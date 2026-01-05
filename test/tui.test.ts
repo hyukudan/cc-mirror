@@ -14,6 +14,11 @@ import { tick, send, waitFor, KEYS, makeCore } from './helpers/index.js';
 const down = KEYS.down;
 const enter = KEYS.enter;
 
+const waitForText = async (app: { lastFrame: () => string | undefined }, text: string, attempts = 100) => {
+  const ok = await waitFor(() => (app.lastFrame() || '').includes(text), attempts);
+  assert.ok(ok, `Expected to see "${text}"`);
+};
+
 test('TUI create flow applies tweakcc by default', async () => {
   const { core, calls } = makeCore();
   const app = render(
@@ -80,9 +85,10 @@ test('TUI manage -> update flow', async () => {
   await send(app.stdin, down); // create
   await send(app.stdin, down); // manage
   await send(app.stdin, enter);
-  await waitFor(() => (app.lastFrame() || '').includes('alpha'));
+  await waitForText(app, 'Manage Variants');
+  await waitForText(app, 'alpha');
   await send(app.stdin, enter); // pick alpha
-  await waitFor(() => (app.lastFrame() || '').includes('Update'));
+  await waitForText(app, 'Details');
   await send(app.stdin, enter); // update
   await waitFor(() => calls.update.length > 0);
 
@@ -107,9 +113,10 @@ test('TUI manage -> remove flow', async () => {
   await send(app.stdin, down); // create
   await send(app.stdin, down); // manage
   await send(app.stdin, enter);
-  await waitFor(() => (app.lastFrame() || '').includes('alpha'));
+  await waitForText(app, 'Manage Variants');
+  await waitForText(app, 'alpha');
   await send(app.stdin, enter); // pick alpha
-  await waitFor(() => (app.lastFrame() || '').includes('Update'));
+  await waitForText(app, 'Details');
   await send(app.stdin, down); // team mode
   await send(app.stdin, down); // tweak
   await send(app.stdin, down); // remove
