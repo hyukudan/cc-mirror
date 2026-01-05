@@ -440,6 +440,110 @@ echo "All agents complete"
 
 ---
 
+## 🛠️ CLI Task Management
+
+cc-mirror provides a CLI for managing team tasks directly from the command line.
+
+### Command Structure
+
+```bash
+cc-mirror tasks [operation] [id] [options]
+```
+
+### Operations
+
+| Operation | Command                        | Description                              |
+| --------- | ------------------------------ | ---------------------------------------- |
+| List      | `cc-mirror tasks`              | List open tasks (default)                |
+| Show      | `cc-mirror tasks show <id>`    | Show detailed task info                  |
+| Create    | `cc-mirror tasks create`       | Create a new task                        |
+| Update    | `cc-mirror tasks update <id>`  | Update an existing task                  |
+| Delete    | `cc-mirror tasks delete <id>`  | Permanently delete a task                |
+| Archive   | `cc-mirror tasks archive <id>` | Move task to archive (preserves history) |
+| Clean     | `cc-mirror tasks clean`        | Bulk cleanup of tasks                    |
+| Graph     | `cc-mirror tasks graph`        | Visualize task dependencies              |
+
+### Common Options
+
+| Flag               | Description                              |
+| ------------------ | ---------------------------------------- |
+| `--variant <name>` | Target variant (auto-detects if omitted) |
+| `--all-variants`   | Show tasks across all variants           |
+| `--team <name>`    | Target team name                         |
+| `--all`            | Show all teams in variant(s)             |
+| `--json`           | Output as JSON for scripting             |
+
+### Examples
+
+```bash
+# List open tasks for current project
+cc-mirror tasks
+
+# List all tasks (including resolved)
+cc-mirror tasks --status all
+
+# Show task details
+cc-mirror tasks show 18
+
+# Create a new task
+cc-mirror tasks create --subject "Implement auth" --description "Add JWT tokens"
+
+# Mark a task as resolved with comment
+cc-mirror tasks update 5 --status resolved --add-comment "Done"
+
+# Delete a task permanently
+cc-mirror tasks delete 42 --force
+
+# Archive a task (preserves history in archive/ folder)
+cc-mirror tasks archive 5
+
+# Clean up resolved tasks (dry run)
+cc-mirror tasks clean --resolved --dry-run
+
+# Clean tasks older than 30 days
+cc-mirror tasks clean --older-than 30 --force
+
+# View tasks across all teams in a variant
+cc-mirror tasks --variant mc --all
+
+# JSON output for scripting
+cc-mirror tasks --json | jq '.tasks[] | select(.status == "open")'
+
+# View task dependency graph
+cc-mirror tasks graph --variant mc --team my-project
+```
+
+### Dependency Graph Output
+
+The `graph` command shows task dependencies visually:
+
+```
+TASK DEPENDENCY GRAPH (mc / my-project)
+════════════════════════════════════════════════════════════
+
+Legend: [✓] resolved  [○] open  [●] blocked
+
+[✓] #1: Set up database schema
+  └─ [○] #3: Implement user model
+    └─ [●] #5: Add authentication
+      └─ [●] #8: Implement protected routes
+
+[○] #2: Configure test framework
+
+Total: 8 | Open: 4 | Ready: 2 | Blocked: 2
+```
+
+### Smart Auto-Detection
+
+The CLI automatically detects:
+
+- **Team name**: Based on current git repository folder name (matches wrapper logic)
+- **Variant**: First variant with tasks, or specify with `--variant`
+
+This means running `cc-mirror tasks` in `/Users/you/projects/my-api` will automatically target the `my-api` team.
+
+---
+
 ## 💡 Tips
 
 ### Best Practices

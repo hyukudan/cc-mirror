@@ -146,6 +146,7 @@ mclaude      # Launch Mirror Claude variant
 | **🎨 Brand Themes**        | Custom color schemes per provider via [tweakcc](https://github.com/Piebald-AI/tweakcc) |
 | **📝 Prompt Packs**        | Enhanced system prompts for Z.ai and MiniMax                                           |
 | **🤖 Team Mode**           | Multi-agent collaboration with shared task management                                  |
+| **📋 Tasks CLI**           | Manage, archive, and visualize task dependencies from command line                     |
 | **🔄 One-Command Updates** | Update all variants when Claude Code releases                                          |
 
 ---
@@ -160,6 +161,16 @@ cc-mirror list                # List all variants
 cc-mirror update [name]       # Update one or all variants
 cc-mirror remove <name>       # Delete a variant
 cc-mirror doctor              # Health check all variants
+
+# Task management (team mode)
+cc-mirror tasks               # List open tasks
+cc-mirror tasks show <id>     # Show task details
+cc-mirror tasks create        # Create new task
+cc-mirror tasks update <id>   # Update task
+cc-mirror tasks delete <id>   # Delete task
+cc-mirror tasks archive <id>  # Archive task
+cc-mirror tasks clean         # Bulk cleanup
+cc-mirror tasks graph         # Visualize dependencies
 
 # Launch your variant
 zai                           # Run Z.ai variant
@@ -216,6 +227,32 @@ cc-mirror quick --provider mirror --name mclaude
 ```
 
 Team mode enables: `TaskCreate`, `TaskGet`, `TaskUpdate`, `TaskList` tools plus an **orchestrator skill** that teaches Claude effective multi-agent coordination patterns.
+
+### Tasks CLI (v1.4.0+)
+
+Manage team tasks from the command line:
+
+```bash
+# List open tasks
+cc-mirror tasks
+
+# View across all teams
+cc-mirror tasks --all
+
+# Create and update tasks
+cc-mirror tasks create --subject "Add auth" --description "JWT implementation"
+cc-mirror tasks update 5 --status resolved --add-comment "Done"
+
+# Cleanup resolved tasks
+cc-mirror tasks clean --resolved --dry-run
+cc-mirror tasks clean --resolved --force
+
+# Archive instead of delete (preserves task history)
+cc-mirror tasks archive 5
+
+# Visualize dependency graph
+cc-mirror tasks graph
+```
 
 ### Project-Scoped Tasks (v1.3.0+)
 
