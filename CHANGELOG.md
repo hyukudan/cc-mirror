@@ -10,11 +10,14 @@ All notable changes to this project will be documented in this file.
 - GatewayZ and NanoGPT providers with themes, splash art, and model mapping defaults.
 - Provider education updates (placeholders, haikus, setup links).
 - Module-level `AGENTS.md` references for core, TUI, and tests.
+- Orchestration skill refresh with domain guides, coordination rules, and updated workflow guidance.
 
 ### Changed
 
 - Model-mapping checks now use provider flags instead of hardcoded OpenRouter logic.
 - CLI help and provider comparison messaging to include new providers.
+- Team mode now uses `CLAUDE_CODE_TEAM_MODE`, deriving team names from the project folder with optional `TEAM` modifiers.
+- Team mode updates refresh orchestrator skill/tooling when already enabled.
 
 ### Fixed
 

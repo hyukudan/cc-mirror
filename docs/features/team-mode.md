@@ -106,6 +106,32 @@ Tasks are stored per-variant in isolated directories:
 
 Each cc-mirror variant has completely isolated task storage via `CLAUDE_CONFIG_DIR`.
 
+### Dynamic Team Names (v1.3.0+)
+
+Team names are **purely directory-based** at runtime. This prevents cross-project task pollution:
+
+| Command | Team Name |
+|---------|-----------|
+| `mc` | `<project-folder>` |
+| `TEAM=A mc` | `<project-folder>-A` |
+| `TEAM=backend mc` | `<project-folder>-backend` |
+
+**Example:** Running `mc` in `/Users/you/projects/my-api` creates team name `my-api`.
+
+### Multiple Teams in Same Project
+
+Use the `TEAM` env var to run separate teams in the same folder:
+
+```bash
+# Terminal 1 - API team
+TEAM=api mc
+
+# Terminal 2 - Frontend team
+TEAM=frontend mc
+```
+
+Each team has its own isolated task storage.
+
 ---
 
 ## 🎯 Orchestration Skill
@@ -345,17 +371,21 @@ Task #3: "Add authentication" (blockedBy: ["2"])
 
 Configure agent identity for multi-agent setups:
 
-| Variable                 | Purpose                          | Example                   |
-| ------------------------ | -------------------------------- | ------------------------- |
-| `CLAUDE_CODE_TEAM_NAME`  | Team namespace for task storage  | `"my-project-team"`       |
-| `CLAUDE_CODE_AGENT_ID`   | Unique identifier for this agent | `"worker-001"`            |
-| `CLAUDE_CODE_AGENT_TYPE` | Agent role/type                  | `"team-lead"`, `"worker"` |
-| `CLAUDE_CODE_AGENT_NAME` | Human-readable agent name        | `"Code Reviewer"`         |
+| Variable | Purpose | Example |
+|----------|---------|---------|
+| `CLAUDE_CODE_TEAM_MODE` | Enables team mode (set by cc-mirror in settings.json) | `"1"` |
+| `CLAUDE_CODE_TEAM_NAME` | Computed team name (set by wrapper at runtime) | `"my-project"` |
+| `TEAM` | Optional modifier appended to folder-based team name | `"api"` |
+| `CLAUDE_CODE_AGENT_ID` | Unique identifier for this agent | `"worker-001"` |
+| `CLAUDE_CODE_AGENT_TYPE` | Agent role/type | `"team-lead"`, `"worker"` |
+| `CLAUDE_CODE_AGENT_NAME` | Human-readable agent name | `"Code Reviewer"` |
+
+> **Important:** `CLAUDE_CODE_TEAM_NAME` must NOT be in `settings.json`, or Claude Code will overwrite the wrapper's dynamic value. The wrapper uses `CLAUDE_CODE_TEAM_MODE` and `TEAM` to compute the team name from the project folder.
 
 ### Example: Team Lead Configuration
 
 ```bash
-export CLAUDE_CODE_TEAM_NAME="project-alpha"
+export TEAM="backend"
 export CLAUDE_CODE_AGENT_ID="lead-001"
 export CLAUDE_CODE_AGENT_TYPE="team-lead"
 ```
@@ -363,7 +393,7 @@ export CLAUDE_CODE_AGENT_TYPE="team-lead"
 ### Example: Worker Configuration
 
 ```bash
-export CLAUDE_CODE_TEAM_NAME="project-alpha"
+export TEAM="backend"
 export CLAUDE_CODE_AGENT_ID="worker-001"
 export CLAUDE_CODE_AGENT_TYPE="worker"
 ```
@@ -379,10 +409,10 @@ export CLAUDE_CODE_AGENT_TYPE="worker"
 # launch-team.sh
 
 VARIANT="zai-team"  # Must have team mode enabled
-TEAM_NAME="my-project"
+TEAM_NAME="backend"
 
 # Launch team lead
-CLAUDE_CODE_TEAM_NAME="$TEAM_NAME" \
+TEAM="$TEAM_NAME" \
 CLAUDE_CODE_AGENT_ID="lead" \
 CLAUDE_CODE_AGENT_TYPE="team-lead" \
 $VARIANT --print "Plan tasks for: $1" &
@@ -392,7 +422,7 @@ sleep 10
 
 # Launch workers
 for i in 1 2 3; do
-  CLAUDE_CODE_TEAM_NAME="$TEAM_NAME" \
+  TEAM="$TEAM_NAME" \
   CLAUDE_CODE_AGENT_ID="worker-$i" \
   CLAUDE_CODE_AGENT_TYPE="worker" \
   $VARIANT --print "Check TaskList and claim available tasks. Complete them." &
