@@ -27,9 +27,9 @@ COMMANDS
 
 OPTIONS (create/quick)
   --name <name>                Variant name (becomes CLI command)
-  --provider <name>            Provider: zai | minimax | openrouter | ccrouter
+  --provider <name>            Provider: zai | minimax | gatewayz | openrouter | nanogpt | ccrouter | mirror
   --api-key <key>              Provider API key
-  --brand <preset>             Theme: auto | none | zai | minimax
+  --brand <preset>             Theme: auto | none | zai | minimax | gatewayz | openrouter | nanogpt | ccrouter | mirror
   --quick                      Fast path mode
   --tui / --no-tui             Force TUI on/off
 

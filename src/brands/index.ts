@@ -1,6 +1,8 @@
 import type { TweakccConfig } from './types.js';
 import { buildZaiTweakccConfig } from './zai.js';
 import { buildMinimaxTweakccConfig } from './minimax.js';
+import { buildGatewayZTweakccConfig } from './gatewayz.js';
+import { buildNanoGPTTweakccConfig } from './nanogpt.js';
 import { buildOpenRouterTweakccConfig } from './openrouter.js';
 import { buildCCRouterTweakccConfig } from './ccrouter.js';
 import { buildMirrorTweakccConfig } from './mirror.js';
@@ -25,11 +27,23 @@ const BRAND_PRESETS: Record<string, BrandPreset> = {
     description: 'Vibrant spectrum accents (red/orange/pink/violet) with MiniMax toolset label.',
     buildTweakccConfig: buildMinimaxTweakccConfig,
   },
+  gatewayz: {
+    key: 'gatewayz',
+    label: 'GatewayZ Portal',
+    description: 'Dark portal palette with violet/purple accents and cyan highlights.',
+    buildTweakccConfig: buildGatewayZTweakccConfig,
+  },
   openrouter: {
     key: 'openrouter',
     label: 'OpenRouter Teal',
     description: 'Light UI with teal/cyan accents and OpenRouter toolset label.',
     buildTweakccConfig: buildOpenRouterTweakccConfig,
+  },
+  nanogpt: {
+    key: 'nanogpt',
+    label: 'NanoGPT Violet',
+    description: 'Dark UI with purple/violet accents and NanoGPT toolset label.',
+    buildTweakccConfig: buildNanoGPTTweakccConfig,
   },
   ccrouter: {
     key: 'ccrouter',

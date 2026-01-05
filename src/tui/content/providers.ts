@@ -78,6 +78,31 @@ export const PROVIDER_EDUCATION: Record<string, ProviderEducation> = {
     setupNote: 'Subscribe to MiniMax Coding Plan, then get your API key from the payment page.',
   },
 
+  gatewayz: {
+    headline: 'GatewayZ — Your Gateway to AI',
+    tagline: 'Portal routing, Anthropic ready',
+    features: [
+      'OneRouter-compatible gateway',
+      'Anthropic /messages API support',
+      'Access to Claude models via GatewayZ',
+      'Portal-themed interface',
+    ],
+    bestFor: 'Anthropic API access through GatewayZ',
+    models: {
+      opus: 'claude-opus-4-5-20251101',
+      sonnet: 'claude-sonnet-4-20250514',
+      haiku: 'claude-haiku-3-5-20241022',
+    },
+    requiresMapping: true,
+    hasPromptPack: false,
+    setupLinks: {
+      subscribe: 'https://gatewayz.ai',
+      apiKey: 'https://gatewayz.ai',
+      docs: 'https://api.gatewayz.ai/docs',
+    },
+    setupNote: 'Get your API key from GatewayZ. You must set model aliases (e.g., claude-opus-4-5-20251101).',
+  },
+
   openrouter: {
     headline: 'OpenRouter — One API, Any Model',
     tagline: 'Many paths, one door',
@@ -91,6 +116,31 @@ export const PROVIDER_EDUCATION: Record<string, ProviderEducation> = {
       docs: 'https://openrouter.ai/docs',
     },
     setupNote: 'Create an account, add credits, then generate an API key. You must set model aliases.',
+  },
+
+  nanogpt: {
+    headline: 'NanoGPT — One API, Many Models',
+    tagline: 'Nano power, vast potential',
+    features: [
+      'Access to 100+ AI models',
+      'Pay-per-use or subscription pricing',
+      'Model flexibility',
+      'Violet-themed interface',
+    ],
+    bestFor: 'Trying different models without multiple accounts',
+    models: {
+      opus: 'zai-org/glm-4.7:thinking',
+      sonnet: 'zai-org/glm-4.7:thinking',
+      haiku: 'zai-org/glm-4.7:thinking',
+    },
+    requiresMapping: true,
+    hasPromptPack: false,
+    setupLinks: {
+      subscribe: 'https://nano-gpt.com',
+      apiKey: 'https://nano-gpt.com/api',
+      docs: 'https://docs.nano-gpt.com',
+    },
+    setupNote: 'Create an account, add credits, then copy your API key from the API page.',
   },
 
   ccrouter: {
@@ -148,7 +198,7 @@ export const getProviderEducation = (providerKey: string): ProviderEducation | n
  */
 export const PROVIDER_COMPARISON = {
   fullySupported: ['zai', 'minimax'],
-  requiresMapping: ['openrouter', 'ccrouter'],
+  requiresMapping: ['openrouter', 'gatewayz', 'nanogpt'],
   hasPromptPack: ['zai', 'minimax'],
   localFirst: ['ccrouter'],
   pureClaudeCode: ['mirror'],

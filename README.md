@@ -64,7 +64,9 @@ npx cc-mirror quick --provider zai --api-key "$Z_AI_API_KEY"
 | -------------- | ---------------------- | ---------- | ------------------------------- |
 | **Z.ai**       | GLM-4.7, GLM-4.5-Air   | API Key    | Heavy coding with GLM reasoning |
 | **MiniMax**    | MiniMax-M2.1           | API Key    | Unified model experience        |
+| **GatewayZ**   | Claude via OneRouter   | Auth Token | Anthropic API via GatewayZ      |
 | **OpenRouter** | 100+ models            | Auth Token | Model flexibility, pay-per-use  |
+| **NanoGPT**    | 100+ models            | Auth Token | Model flexibility, pay-per-use  |
 | **CCRouter**   | Ollama, DeepSeek, etc. | Optional   | Local-first development         |
 | **Mirror**     | Claude (native)        | OAuth/Key  | Pure Claude with team mode      |
 
@@ -75,9 +77,21 @@ npx cc-mirror quick --provider zai --api-key "$Z_AI_API_KEY"
 # MiniMax (MiniMax-M2.1)
 npx cc-mirror quick --provider minimax --api-key "$MINIMAX_API_KEY"
 
+# GatewayZ (OneRouter gateway)
+npx cc-mirror quick --provider gatewayz --api-key "$GATEWAYZ_API_KEY" \
+  --model-sonnet "claude-sonnet-4-20250514" \
+  --model-opus "claude-opus-4-5-20251101" \
+  --model-haiku "claude-haiku-3-5-20241022"
+
 # OpenRouter (100+ models)
 npx cc-mirror quick --provider openrouter --api-key "$OPENROUTER_API_KEY" \
   --model-sonnet "anthropic/claude-3.5-sonnet"
+
+# NanoGPT (100+ models)
+npx cc-mirror quick --provider nanogpt --api-key "$NANOGPT_API_KEY" \
+  --model-sonnet "zai-org/glm-4.7:thinking" \
+  --model-opus "zai-org/glm-4.7:thinking" \
+  --model-haiku "zai-org/glm-4.7:thinking"
 
 # Claude Code Router (local LLMs)
 npx cc-mirror quick --provider ccrouter
@@ -127,7 +141,7 @@ mclaude      # Launch Mirror Claude variant
 
 | Feature                    | Description                                                                            |
 | -------------------------- | -------------------------------------------------------------------------------------- |
-| **🔌 Multiple Providers**  | Z.ai, MiniMax, OpenRouter, CCRouter, Mirror, or custom endpoints                       |
+| **🔌 Multiple Providers**  | Z.ai, MiniMax, GatewayZ, OpenRouter, NanoGPT, CCRouter, Mirror, or custom endpoints    |
 | **📁 Complete Isolation**  | Each variant has its own config, sessions, and credentials                             |
 | **🎨 Brand Themes**        | Custom color schemes per provider via [tweakcc](https://github.com/Piebald-AI/tweakcc) |
 | **📝 Prompt Packs**        | Enhanced system prompts for Z.ai and MiniMax                                           |
@@ -158,14 +172,14 @@ mclaude                       # Run Mirror Claude variant
 ## 🎛️ CLI Options
 
 ```
---provider <name>        zai | minimax | openrouter | ccrouter | mirror | custom
+--provider <name>        zai | minimax | gatewayz | openrouter | nanogpt | ccrouter | mirror | custom
 --name <name>            Variant name (becomes the CLI command)
 --api-key <key>          Provider API key
 --base-url <url>         Custom API endpoint
---model-sonnet <name>    Map to sonnet model (OpenRouter)
---model-opus <name>      Map to opus model (OpenRouter)
---model-haiku <name>     Map to haiku model (OpenRouter)
---brand <preset>         Theme: auto | zai | minimax | openrouter | ccrouter | mirror
+--model-sonnet <name>    Map to sonnet model (OpenRouter/GatewayZ/NanoGPT)
+--model-opus <name>      Map to opus model (OpenRouter/GatewayZ/NanoGPT)
+--model-haiku <name>     Map to haiku model (OpenRouter/GatewayZ/NanoGPT)
+--brand <preset>         Theme: auto | zai | minimax | gatewayz | openrouter | nanogpt | ccrouter | mirror
 --enable-team-mode       Enable team mode (TaskCreate, TaskGet, TaskUpdate, TaskList)
 --no-tweak               Skip tweakcc theme
 --no-prompt-pack         Skip prompt pack
@@ -181,7 +195,9 @@ Each provider includes a custom color theme:
 | -------------- | -------------------------------- |
 | **zai**        | Dark carbon with gold accents    |
 | **minimax**    | Coral/red/orange spectrum        |
+| **gatewayz**   | Dark portal with violet accents  |
 | **openrouter** | Teal/cyan gradient               |
+| **nanogpt**    | Purple/violet gradient           |
 | **ccrouter**   | Sky blue accents                 |
 | **mirror**     | Silver/chrome with electric blue |
 

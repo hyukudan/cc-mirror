@@ -5,6 +5,7 @@
  * without actually downloading packages.
  */
 
+import fs from 'node:fs';
 import path from 'node:path';
 import { makeTempDir, writeExecutable, cleanup } from './fs-helpers.js';
 
@@ -13,6 +14,7 @@ import { makeTempDir, writeExecutable, cleanup } from './fs-helpers.js';
  */
 export const createFakeNpm = (dir: string) => {
   const npmPath = path.join(dir, 'npm');
+  const npmCmdPath = path.join(dir, 'npm.cmd');
   const script = `#!/usr/bin/env node
 const fs = require('fs');
 const path = require('path');
@@ -24,7 +26,9 @@ for (let i = 0; i < args.length; i += 1) {
     prefix = args[i + 1];
   }
 }
-if (!prefix) process.exit(1);
+if (!prefix) {
+  prefix = process.cwd();
+}
 const pkgSpec = args[args.length - 1] || '@anthropic-ai/claude-code';
 const atIndex = pkgSpec.lastIndexOf('@');
 const pkgName = atIndex > 0 ? pkgSpec.slice(0, atIndex) : pkgSpec;
@@ -37,6 +41,7 @@ fs.writeFileSync(cliPath, '#!/usr/bin/env node\\n' + teamModeFunc + '\\n' + 'con
 fs.chmodSync(cliPath, 0o755);
 `;
   writeExecutable(npmPath, script);
+  fs.writeFileSync(npmCmdPath, ['@echo off', 'node "%~dp0\\npm" %*', ''].join('\r\n'), 'utf8');
   return npmPath;
 };
 

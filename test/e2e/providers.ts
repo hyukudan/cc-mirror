@@ -20,12 +20,28 @@ export const PROVIDERS = [
     colorCode: '\\x1b[38;5;203m', // Coral/salmon red
   },
   {
+    key: 'gatewayz',
+    name: 'GatewayZ',
+    apiKey: 'test-gatewayz-key',
+    expectedThemeId: 'gatewayz-portal',
+    expectedSplashStyle: 'gatewayz',
+    colorCode: '\\x1b[38;5;135m', // Violet
+  },
+  {
     key: 'openrouter',
     name: 'OpenRouter',
     apiKey: 'test-openrouter-key',
     expectedThemeId: 'openrouter-teal',
     expectedSplashStyle: 'openrouter',
     colorCode: '\\x1b[38;5;43m', // Teal
+  },
+  {
+    key: 'nanogpt',
+    name: 'NanoGPT',
+    apiKey: 'test-nanogpt-key',
+    expectedThemeId: 'nanogpt-violet',
+    expectedSplashStyle: 'nanogpt',
+    colorCode: '\\x1b[38;5;135m', // Violet
   },
   {
     key: 'ccrouter',

@@ -30,7 +30,7 @@ interface VariantActionsScreenProps {
 }
 
 // Providers that require model mapping
-const MODEL_MAPPING_PROVIDERS = ['openrouter', 'ccrouter'];
+const MODEL_MAPPING_PROVIDERS = ['openrouter', 'gatewayz', 'nanogpt', 'ccrouter'];
 
 export const VariantActionsScreen: React.FC<VariantActionsScreenProps> = ({
   meta,

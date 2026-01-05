@@ -45,6 +45,20 @@ test('Provider Feature Matrix', async (t) => {
     assert.equal(openrouter.authMode, 'authToken', 'openrouter should use authToken mode');
   });
 
+  await t.test('gatewayz provider requires model mapping', () => {
+    const gatewayz = getProvider('gatewayz');
+    assert.ok(gatewayz, 'gatewayz provider should exist');
+    assert.ok(gatewayz.requiresModelMapping, 'gatewayz should require model mapping');
+    assert.equal(gatewayz.authMode, 'authToken', 'gatewayz should use authToken mode');
+  });
+
+  await t.test('nanogpt provider requires model mapping', () => {
+    const nanogpt = getProvider('nanogpt');
+    assert.ok(nanogpt, 'nanogpt provider should exist');
+    assert.ok(nanogpt.requiresModelMapping, 'nanogpt should require model mapping');
+    assert.equal(nanogpt.authMode, 'authToken', 'nanogpt should use authToken mode');
+  });
+
   await t.test('zai and minimax providers have splash styles', () => {
     const zai = getProvider('zai');
     const minimax = getProvider('minimax');

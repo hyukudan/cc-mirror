@@ -21,6 +21,14 @@ export function getModelOverridesFromArgs(opts: ParsedArgs): ModelOverrides {
   };
 }
 
+const PROVIDER_MODEL_DEFAULTS: Record<string, { sonnet: string; opus: string; haiku: string }> = {
+  gatewayz: {
+    sonnet: 'claude-sonnet-4-20250514',
+    opus: 'claude-opus-4-5-20251101',
+    haiku: 'claude-haiku-3-5-20241022',
+  },
+};
+
 /**
  * Ensure model mapping for providers that require it (e.g., OpenRouter, LiteLLM)
  * Prompts for missing models if not in --yes mode
@@ -32,13 +40,20 @@ export async function ensureModelMapping(
 ): Promise<ModelOverrides> {
   const provider = getProvider(providerKey);
   if (!provider?.requiresModelMapping) return overrides;
+  const defaults = PROVIDER_MODEL_DEFAULTS[providerKey];
+  if (defaults) {
+    if (!overrides.sonnet?.trim()) overrides.sonnet = defaults.sonnet;
+    if (!overrides.opus?.trim()) overrides.opus = defaults.opus;
+    if (!overrides.haiku?.trim()) overrides.haiku = defaults.haiku;
+  }
   const missing = {
     sonnet: (overrides.sonnet ?? '').trim().length === 0,
     opus: (overrides.opus ?? '').trim().length === 0,
     haiku: (overrides.haiku ?? '').trim().length === 0,
   };
   if (opts.yes && (missing.sonnet || missing.opus || missing.haiku)) {
-    throw new Error('OpenRouter/Local LLMs require --model-sonnet/--model-opus/--model-haiku');
+    const label = provider?.label || providerKey;
+    throw new Error(`${label} requires --model-sonnet/--model-opus/--model-haiku`);
   }
   if (!opts.yes) {
     if (missing.sonnet) overrides.sonnet = await requirePrompt('Default Sonnet model', overrides.sonnet);

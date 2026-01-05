@@ -146,6 +146,8 @@ test('writeWrapper includes colored ASCII art for all providers', () => {
     assert.ok(content.includes('zai)'), 'Should have zai case');
     assert.ok(content.includes('minimax)'), 'Should have minimax case');
     assert.ok(content.includes('openrouter)'), 'Should have openrouter case');
+    assert.ok(content.includes('gatewayz)'), 'Should have gatewayz case');
+    assert.ok(content.includes('nanogpt)'), 'Should have nanogpt case');
     assert.ok(content.includes('ccrouter)'), 'Should have ccrouter case');
 
     // Check for ANSI color codes

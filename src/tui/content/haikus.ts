@@ -20,6 +20,14 @@ export const COMPLETION_HAIKUS: Record<string, HaikuLines[]> = {
     ['Many paths, one door—', 'OpenRouter finds the way.', 'Models at your core.'],
     ['Routes converge as one,', 'your choice echoes through the wire.', 'The journey begun.'],
   ],
+  gatewayz: [
+    ['Portal lights ignite,', 'GatewayZ opens the route.', 'Models stream in light.'],
+    ['Violet tunnels hum,', 'signals cross the quiet span.', 'Your answers arrive.'],
+  ],
+  nanogpt: [
+    ['Nano sparks ignite,', 'vast models at your command.', 'Code takes its first flight.'],
+    ['Violet streams flow,', 'NanoGPT powers your dreams.', 'Watch your projects grow.'],
+  ],
   ccrouter: [
     ['Local models shine,', "routed through the mirror's edge.", 'Your code, your design.'],
     ['Proxied through the night,', 'your models stand at the ready.', 'Code takes its first flight.'],

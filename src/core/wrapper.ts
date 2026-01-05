@@ -61,6 +61,17 @@ export const writeWrapper = (
     orSecondary: '\x1b[38;5;49m', // Bright teal
     orAccent: '\x1b[38;5;37m', // Deep cyan
     orDim: '\x1b[38;5;30m', // Muted teal
+    // GatewayZ: Purple/Violet gradient
+    gzPrimary: '\x1b[38;5;135m', // Violet
+    gzSecondary: '\x1b[38;5;141m', // Light violet
+    gzAccent: '\x1b[38;5;99m', // Deep purple
+    gzDim: '\x1b[38;5;97m', // Muted purple
+    gzCyan: '\x1b[38;5;51m', // Cyan accent
+    // NanoGPT: Violet gradient
+    ngPrimary: '\x1b[38;5;135m', // Violet
+    ngSecondary: '\x1b[38;5;141m', // Light violet
+    ngAccent: '\x1b[38;5;99m', // Deep purple
+    ngDim: '\x1b[38;5;97m', // Muted purple
     // CCRouter: Sky blue gradient
     ccrPrimary: '\x1b[38;5;39m', // Sky blue
     ccrSecondary: '\x1b[38;5;45m', // Bright cyan
@@ -136,6 +147,38 @@ export const writeWrapper = (
     `${C.orSecondary}      One API ${C.orDim}━${C.orSecondary} Any Model${C.reset}`,
     '',
     'CCMORT',
+    '        __cc_show_label="0"',
+    '        ;;',
+    '      gatewayz)',
+    "        cat <<'CCMGWZ'",
+    '',
+    `${C.gzPrimary}     ██████╗  █████╗ ████████╗███████╗██╗    ██╗ █████╗ ██╗   ██╗${C.gzCyan}███████╗${C.reset}`,
+    `${C.gzPrimary}    ██╔════╝ ██╔══██╗╚══██╔══╝██╔════╝██║    ██║██╔══██╗╚██╗ ██╔╝${C.gzCyan}╚══███╔╝${C.reset}`,
+    `${C.gzSecondary}    ██║  ███╗███████║   ██║   █████╗  ██║ █╗ ██║███████║ ╚████╔╝ ${C.gzCyan}  ███╔╝${C.reset}`,
+    `${C.gzSecondary}    ██║   ██║██╔══██║   ██║   ██╔══╝  ██║███╗██║██╔══██║  ╚██╔╝  ${C.gzCyan} ███╔╝${C.reset}`,
+    `${C.gzAccent}    ╚██████╔╝██║  ██║   ██║   ███████╗╚███╔███╔╝██║  ██║   ██║   ${C.gzCyan}███████╗${C.reset}`,
+    `${C.gzAccent}     ╚═════╝ ╚═╝  ╚═╝   ╚═╝   ╚══════╝ ╚══╝╚══╝ ╚═╝  ╚═╝   ╚═╝   ${C.gzCyan}╚══════╝${C.reset}`,
+    '',
+    `${C.gzDim}    ━━━━━━━━━━━━━━━━${C.gzPrimary}◆${C.gzDim}━━━━━━━━━━━━━━━━${C.reset}`,
+    `${C.gzSecondary}       Your Gateway to AI${C.reset}`,
+    '',
+    'CCMGWZ',
+    '        __cc_show_label="0"',
+    '        ;;',
+    '      nanogpt)',
+    "        cat <<'CCMNGPT'",
+    '',
+    `${C.ngPrimary}    ███╗   ██╗ █████╗ ███╗   ██╗ ██████╗  ██████╗ ██████╗ ████████╗${C.reset}`,
+    `${C.ngPrimary}    ████╗  ██║██╔══██╗████╗  ██║██╔═══██╗██╔════╝ ██╔══██╗╚══██╔══╝${C.reset}`,
+    `${C.ngSecondary}    ██╔██╗ ██║███████║██╔██╗ ██║██║   ██║██║  ███╗██████╔╝   ██║${C.reset}`,
+    `${C.ngSecondary}    ██║╚██╗██║██╔══██║██║╚██╗██║██║   ██║██║   ██║██╔═══╝    ██║${C.reset}`,
+    `${C.ngAccent}    ██║ ╚████║██║  ██║██║ ╚████║╚██████╔╝╚██████╔╝██║        ██║${C.reset}`,
+    `${C.ngAccent}    ╚═╝  ╚═══╝╚═╝  ╚═╝╚═╝  ╚═══╝ ╚═════╝  ╚═════╝ ╚═╝        ╚═╝${C.reset}`,
+    '',
+    `${C.ngDim}    ━━━━━━━━━━━━━━${C.ngPrimary}◆${C.ngDim}━━━━━━━━━━━━━━${C.reset}`,
+    `${C.ngSecondary}      One API ${C.ngDim}━${C.ngSecondary} Many Models${C.reset}`,
+    '',
+    'CCMNGPT',
     '        __cc_show_label="0"',
     '        ;;',
     '      ccrouter)',

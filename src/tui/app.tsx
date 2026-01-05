@@ -25,8 +25,10 @@ import {
   useUpdateAll,
   useModelConfig,
   useTeamModeToggle,
+  useSync,
   type CompletionResult,
 } from './hooks/index.js';
+import type { SyncItem } from '../core/sync.js';
 
 // Import clean screen components
 import {
@@ -46,6 +48,8 @@ import {
   AboutScreen,
   FeedbackScreen,
   TeamModeScreen,
+  SyncSourceScreen,
+  SyncTargetsScreen,
 } from './screens/index.js';
 
 // Import UI components
@@ -234,6 +238,9 @@ export const App: React.FC<AppProps> = ({
   const [selectedVariant, setSelectedVariant] = useState<(VariantMeta & { wrapperPath: string }) | null>(null);
   const [doctorReport, setDoctorReport] = useState<DoctorReportItem[]>([]);
   const [apiKeyDetectedFrom, setApiKeyDetectedFrom] = useState<string | null>(null);
+  const [syncSourceVariant, setSyncSourceVariant] = useState<string>('');
+  const [syncTargetVariants, setSyncTargetVariants] = useState<string[]>([]);
+  const syncItems: SyncItem[] = ['skills', 'mcp-servers', 'permissions', 'claude-md'];
 
   // Include experimental providers to show "Coming Soon" in UI
   const providerList = useMemo(() => providers.listProviders(true), [providers]);
@@ -260,6 +267,17 @@ export const App: React.FC<AppProps> = ({
     skillInstall: key === 'zai' || key === 'minimax',
     shellEnv: key === 'zai',
   });
+
+  const getDefaultModels = (key?: string | null): { opus: string; sonnet: string; haiku: string } => {
+    if (key === 'gatewayz') {
+      return {
+        opus: 'claude-opus-4-5-20251101',
+        sonnet: 'claude-sonnet-4-20250514',
+        haiku: 'claude-haiku-3-5-20241022',
+      };
+    }
+    return { opus: '', sonnet: '', haiku: '' };
+  };
 
   const resolveZaiApiKey = (): {
     value: string;
@@ -330,12 +348,22 @@ export const App: React.FC<AppProps> = ({
         case 'manage-models-done':
           setScreen('manage-actions');
           break;
+        // Sync screens - back steps
+        case 'sync-source':
+          setScreen('home');
+          break;
+        case 'sync-targets':
+          setScreen('sync-source');
+          break;
+        case 'sync-running':
+          break;
         // Completion/done screens - back to home
         case 'create-done':
         case 'manage-update-done':
         case 'manage-tweak-done':
         case 'manage-remove-done':
         case 'updateAll-done':
+        case 'sync-done':
           setScreen('home');
           break;
         // Doctor screen - home
@@ -357,7 +385,7 @@ export const App: React.FC<AppProps> = ({
   });
 
   useEffect(() => {
-    if (screen === 'manage') {
+    if (screen === 'manage' || screen === 'sync-source') {
       setVariants(core.listVariants(rootDir));
     }
   }, [screen, rootDir, core]);
@@ -496,6 +524,18 @@ export const App: React.FC<AppProps> = ({
     onComplete: handleOperationComplete,
   });
 
+  // Sync variants operation
+  useSync({
+    screen,
+    rootDir,
+    sourceVariant: syncSourceVariant,
+    targetVariants: syncTargetVariants,
+    syncItems,
+    setProgressLines,
+    setScreen,
+    onComplete: handleOperationComplete,
+  });
+
   const resetWizard = () => {
     setProviderKey(null);
     setBrandKey('auto');
@@ -547,6 +587,11 @@ export const App: React.FC<AppProps> = ({
             setScreen('create-provider');
           }
           if (value === 'manage') setScreen('manage');
+          if (value === 'sync') {
+            setSyncSourceVariant('');
+            setSyncTargetVariants([]);
+            setScreen('sync-source');
+          }
           if (value === 'updateAll') setScreen('updateAll');
           if (value === 'doctor') setScreen('doctor');
           if (value === 'about') setScreen('about');
@@ -564,6 +609,7 @@ export const App: React.FC<AppProps> = ({
         onSelect={(value) => {
           const selected = providers.getProvider(value);
           const defaults = providerDefaults(value);
+          const modelDefaults = getDefaultModels(value);
           const keyDefaults =
             value === 'zai' ? resolveZaiApiKey() : { value: '', detectedFrom: null, skipPrompt: false };
           setProviderKey(value);
@@ -571,9 +617,9 @@ export const App: React.FC<AppProps> = ({
           setBaseUrl(selected?.baseUrl || '');
           setApiKey(keyDefaults.value);
           setApiKeyDetectedFrom(keyDefaults.detectedFrom);
-          setModelSonnet('');
-          setModelOpus('');
-          setModelHaiku('');
+          setModelSonnet(modelDefaults.sonnet);
+          setModelOpus(modelDefaults.opus);
+          setModelHaiku(modelDefaults.haiku);
           setExtraEnv([]);
           setBrandKey('auto');
           setUsePromptPack(defaults.promptPack);
@@ -690,6 +736,7 @@ export const App: React.FC<AppProps> = ({
         onSelect={(value) => {
           const selected = providers.getProvider(value);
           const defaults = providerDefaults(value);
+          const modelDefaults = getDefaultModels(value);
           const keyDefaults =
             value === 'zai' ? resolveZaiApiKey() : { value: '', detectedFrom: null, skipPrompt: false };
           setProviderKey(value);
@@ -697,9 +744,9 @@ export const App: React.FC<AppProps> = ({
           setBaseUrl(selected?.baseUrl || '');
           setApiKey(keyDefaults.value);
           setApiKeyDetectedFrom(keyDefaults.detectedFrom);
-          setModelSonnet('');
-          setModelOpus('');
-          setModelHaiku('');
+          setModelSonnet(modelDefaults.sonnet);
+          setModelOpus(modelDefaults.opus);
+          setModelHaiku(modelDefaults.haiku);
           setExtraEnv([]);
           setBrandKey('auto');
           setUsePromptPack(defaults.promptPack);
@@ -1236,6 +1283,61 @@ export const App: React.FC<AppProps> = ({
     return (
       <CompletionScreen
         title="Update all"
+        lines={doneLines}
+        summary={completionSummary}
+        nextSteps={completionNextSteps}
+        help={completionHelp}
+        onDone={(value) => {
+          if (value === 'home') setScreen('home');
+          else setScreen('exit');
+        }}
+      />
+    );
+  }
+
+  if (screen === 'sync-source') {
+    return (
+      <SyncSourceScreen
+        variants={variants.map((v) => ({
+          name: v.name,
+          provider: v.meta?.provider,
+          wrapperPath: path.join(binDir, v.name),
+        }))}
+        onSelect={(variantName) => {
+          setSyncSourceVariant(variantName);
+          setScreen('sync-targets');
+        }}
+        onBack={() => setScreen('home')}
+      />
+    );
+  }
+
+  if (screen === 'sync-targets') {
+    return (
+      <SyncTargetsScreen
+        variants={variants.map((v) => ({
+          name: v.name,
+          provider: v.meta?.provider,
+        }))}
+        sourceVariant={syncSourceVariant}
+        onConfirm={(selected) => {
+          setSyncTargetVariants(selected);
+          setProgressLines([]);
+          setScreen('sync-running');
+        }}
+        onBack={() => setScreen('sync-source')}
+      />
+    );
+  }
+
+  if (screen === 'sync-running') {
+    return <ProgressScreen title="Syncing variants" lines={progressLines} />;
+  }
+
+  if (screen === 'sync-done') {
+    return (
+      <CompletionScreen
+        title="Sync Variants"
         lines={doneLines}
         summary={completionSummary}
         nextSteps={completionNextSteps}

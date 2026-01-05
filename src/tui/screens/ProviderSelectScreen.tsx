@@ -72,7 +72,7 @@ export const ProviderSelectScreen: React.FC<ProviderSelectScreenProps> = ({ prov
           {icons.star} <Text color={colors.gold}>Zai Cloud</Text> and <Text color={colors.gold}>MiniMax Cloud</Text> are
           fully supported
         </Text>
-        <Text color={colors.textMuted}>{icons.bullet} OpenRouter/Local LLMs require model mapping</Text>
+        <Text color={colors.textMuted}>{icons.bullet} OpenRouter, GatewayZ, and NanoGPT require model mapping</Text>
       </Box>
 
       <Box flexDirection="column" marginY={1}>

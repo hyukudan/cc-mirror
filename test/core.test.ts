@@ -157,6 +157,76 @@ test('openrouter brand preset writes tweakcc config', () => {
   });
 });
 
+test('gatewayz brand preset writes tweakcc config', () => {
+  withFakeNpm(() => {
+    const rootDir = makeTempDir();
+    const binDir = makeTempDir();
+
+    core.createVariant({
+      name: 'gatewayz',
+      providerKey: 'gatewayz',
+      apiKey: 'gz-test-key',
+      baseUrl: 'https://api.gatewayz.ai/v1',
+      rootDir,
+      binDir,
+      brand: 'gatewayz',
+      promptPack: false,
+      skillInstall: false,
+      noTweak: true,
+      tweakccStdio: 'pipe',
+    });
+
+    const tweakConfigPath = path.join(rootDir, 'gatewayz', 'tweakcc', 'config.json');
+    assert.ok(fs.existsSync(tweakConfigPath));
+    const tweakConfig = JSON.parse(readFile(tweakConfigPath)) as { settings?: { themes?: { id?: string }[] } };
+    assert.equal(tweakConfig.settings?.themes?.[0]?.id, 'gatewayz-portal');
+
+    const configPath = path.join(rootDir, 'gatewayz', 'config', 'settings.json');
+    const configJson = JSON.parse(readFile(configPath)) as { env: Record<string, string> };
+    assert.equal(configJson.env.ANTHROPIC_BASE_URL, 'https://api.gatewayz.ai/v1');
+    assert.equal(configJson.env.ANTHROPIC_AUTH_TOKEN, 'gz-test-key');
+    assert.equal(configJson.env.CC_MIRROR_PROVIDER_LABEL, 'GatewayZ');
+
+    cleanup(rootDir);
+    cleanup(binDir);
+  });
+});
+
+test('nanogpt brand preset writes tweakcc config', () => {
+  withFakeNpm(() => {
+    const rootDir = makeTempDir();
+    const binDir = makeTempDir();
+
+    core.createVariant({
+      name: 'nanogpt',
+      providerKey: 'nanogpt',
+      apiKey: 'ng-test-key',
+      baseUrl: 'https://nano-gpt.com/api',
+      rootDir,
+      binDir,
+      brand: 'nanogpt',
+      promptPack: false,
+      skillInstall: false,
+      noTweak: true,
+      tweakccStdio: 'pipe',
+    });
+
+    const tweakConfigPath = path.join(rootDir, 'nanogpt', 'tweakcc', 'config.json');
+    assert.ok(fs.existsSync(tweakConfigPath));
+    const tweakConfig = JSON.parse(readFile(tweakConfigPath)) as { settings?: { themes?: { id?: string }[] } };
+    assert.equal(tweakConfig.settings?.themes?.[0]?.id, 'nanogpt-violet');
+
+    const configPath = path.join(rootDir, 'nanogpt', 'config', 'settings.json');
+    const configJson = JSON.parse(readFile(configPath)) as { env: Record<string, string> };
+    assert.equal(configJson.env.ANTHROPIC_BASE_URL, 'https://nano-gpt.com/api');
+    assert.equal(configJson.env.ANTHROPIC_AUTH_TOKEN, 'ng-test-key');
+    assert.equal(configJson.env.CC_MIRROR_PROVIDER_LABEL, 'NanoGPT');
+
+    cleanup(rootDir);
+    cleanup(binDir);
+  });
+});
+
 test('ccrouter brand preset writes tweakcc config', () => {
   withFakeNpm(() => {
     const rootDir = makeTempDir();

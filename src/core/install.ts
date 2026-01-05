@@ -8,6 +8,23 @@ export const resolveNpmCliPath = (npmDir: string, npmPackage: string): string =>
   return path.join(npmDir, 'node_modules', ...packageParts, 'cli.js');
 };
 
+const npmCommand = process.platform === 'win32' ? 'npm.cmd' : 'npm';
+
+const ensureNpmManifest = (npmDir: string) => {
+  const manifestPath = path.join(npmDir, 'package.json');
+  if (!fs.existsSync(manifestPath)) {
+    fs.writeFileSync(manifestPath, JSON.stringify({ name: 'cc-mirror-variant', private: true }, null, 2), 'utf8');
+  }
+};
+
+const buildInstallArgs = (npmDir: string, pkgSpec: string) => {
+  const args = ['install', '--no-save', pkgSpec];
+  if (process.platform !== 'win32') {
+    args.splice(1, 0, '--prefix', npmDir);
+  }
+  return args;
+};
+
 export const installNpmClaude = (params: {
   npmDir: string;
   npmPackage: string;
@@ -20,9 +37,11 @@ export const installNpmClaude = (params: {
 
   const stdio = params.stdio ?? 'inherit';
   const pkgSpec = params.npmVersion ? `${params.npmPackage}@${params.npmVersion}` : params.npmPackage;
-  const result = spawnSync('npm', ['install', '--prefix', params.npmDir, '--no-save', pkgSpec], {
+  ensureNpmManifest(params.npmDir);
+  const result = spawnSync(npmCommand, buildInstallArgs(params.npmDir, pkgSpec), {
     stdio: 'pipe',
     encoding: 'utf8',
+    cwd: params.npmDir,
   });
 
   if (stdio === 'inherit') {
@@ -61,8 +80,10 @@ export const installNpmClaudeAsync = (params: {
 
     const stdio = params.stdio ?? 'inherit';
     const pkgSpec = params.npmVersion ? `${params.npmPackage}@${params.npmVersion}` : params.npmPackage;
-    const child = spawn('npm', ['install', '--prefix', params.npmDir, '--no-save', pkgSpec], {
+    ensureNpmManifest(params.npmDir);
+    const child = spawn(npmCommand, buildInstallArgs(params.npmDir, pkgSpec), {
       stdio: 'pipe',
+      cwd: params.npmDir,
     });
 
     let stdout = '';

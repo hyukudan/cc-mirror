@@ -50,7 +50,9 @@ test('E2E: Colored ASCII art content verification', async (t) => {
       const colorPatterns: Record<string, RegExp> = {
         zai: /\x1b\[38;5;220m/, // Gold
         minimax: /\x1b\[38;5;203m/, // Coral/salmon red
+        gatewayz: /\x1b\[38;5;135m/, // Violet
         openrouter: /\x1b\[38;5;43m/, // Teal
+        nanogpt: /\x1b\[38;5;135m/, // Violet
         ccrouter: /\x1b\[38;5;39m/, // Sky blue
       };
       /* eslint-enable no-control-regex */
@@ -65,7 +67,9 @@ test('E2E: Colored ASCII art content verification', async (t) => {
       const asciiPatterns: Record<string, string[]> = {
         zai: ['███████╗', 'GLM Coding Plan'],
         minimax: ['███╗   ███╗', 'MiniMax-M2.1', 'AGI for All'],
+        gatewayz: ['██████╗  █████╗', 'Your Gateway to AI'],
         openrouter: ['██████╗ ██████╗', 'One API', 'Any Model'],
+        nanogpt: ['███╗   ██╗', 'One API', 'Many Models'],
         ccrouter: ['██████╗ ██████╗██████╗', 'Claude Code Router', 'Any Model'],
       };
 
