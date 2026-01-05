@@ -81,7 +81,7 @@ test('TUI manage -> update flow', async () => {
   await send(app.stdin, down); // manage
   await send(app.stdin, enter);
   await send(app.stdin, enter); // pick alpha
-  await tick();
+  await waitFor(() => (app.lastFrame() || '').includes('Update'));
   await send(app.stdin, enter); // update
   await waitFor(() => calls.update.length > 0);
 
