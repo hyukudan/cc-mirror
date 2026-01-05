@@ -56,6 +56,24 @@ No API key required at setup. When you run `mclaude`, authenticate via:
 
 ---
 
+## 👥 Multiple Claude Accounts
+
+You can keep separate Claude Code accounts by creating multiple Mirror variants. Each variant has its own `CLAUDE_CONFIG_DIR`, so sessions and approvals are isolated.
+
+```bash
+# Work account
+npx cc-mirror create --provider mirror --name claude-work
+claude-work  # sign in once
+
+# Personal account
+npx cc-mirror create --provider mirror --name claude-personal
+claude-personal  # sign in once
+```
+
+Once authenticated, each wrapper keeps using its own account. You do not need to re-login unless you intentionally sign out or delete the variant.
+
+---
+
 ## 🎯 What You Get
 
 | Feature               | Description                                                          |
