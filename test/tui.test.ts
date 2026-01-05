@@ -80,6 +80,7 @@ test('TUI manage -> update flow', async () => {
   await send(app.stdin, down); // create
   await send(app.stdin, down); // manage
   await send(app.stdin, enter);
+  await waitFor(() => (app.lastFrame() || '').includes('alpha'));
   await send(app.stdin, enter); // pick alpha
   await waitFor(() => (app.lastFrame() || '').includes('Update'));
   await send(app.stdin, enter); // update
@@ -106,6 +107,7 @@ test('TUI manage -> remove flow', async () => {
   await send(app.stdin, down); // create
   await send(app.stdin, down); // manage
   await send(app.stdin, enter);
+  await waitFor(() => (app.lastFrame() || '').includes('alpha'));
   await send(app.stdin, enter); // pick alpha
   await waitFor(() => (app.lastFrame() || '').includes('Update'));
   await send(app.stdin, down); // team mode
