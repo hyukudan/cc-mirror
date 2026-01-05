@@ -2,6 +2,24 @@
 
 All notable changes to this project will be documented in this file.
 
+## [Unreleased]
+
+### Added
+
+- Sync Variants flow to copy skills, MCP servers, permissions, and `CLAUDE.md`.
+- GatewayZ and NanoGPT providers with themes, splash art, and model mapping defaults.
+- Provider education updates (placeholders, haikus, setup links).
+- Module-level `AGENTS.md` references for core, TUI, and tests.
+
+### Changed
+
+- Model-mapping checks now use provider flags instead of hardcoded OpenRouter logic.
+- CLI help and provider comparison messaging to include new providers.
+
+### Fixed
+
+- Windows npm install flow uses `npm.cmd`, `cwd` in the npm dir, and a minimal manifest.
+
 ## [1.1.5] - 2025-01-05
 
 ### Added
