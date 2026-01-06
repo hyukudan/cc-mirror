@@ -31,32 +31,56 @@ test('TUI create flow applies tweakcc by default', async () => {
   );
 
   await tick();
+  await waitForText(app, 'Quick Setup');
   await send(app.stdin, down); // home -> create
   await send(app.stdin, enter);
+  await waitForText(app, 'Select Provider');
   await send(app.stdin, enter); // provider select -> default (zai)
+  await waitForText(app, 'Setting up');
   await send(app.stdin, enter); // intro screen -> continue
-  await send(app.stdin, enter); // brand preset (auto)
+  const reachedBrand = await waitFor(() => {
+    const frame = app.lastFrame() || '';
+    return frame.includes('Choose Theme') || frame.includes('Variant Name');
+  });
+  assert.ok(reachedBrand);
+  const brandFrame = app.lastFrame() || '';
+  if (brandFrame.includes('Choose Theme')) {
+    await send(app.stdin, enter); // brand preset (auto)
+    await waitForText(app, 'Variant Name');
+  }
   await send(app.stdin, enter); // name
-  await send(app.stdin, enter); // base url
-  await send(app.stdin, enter); // api key
-  await send(app.stdin, enter); // prompt pack mode (maximal) - skipped yes/no for zai/minimax
+  const reachedBaseUrl = await waitFor(() => {
+    const frame = app.lastFrame() || '';
+    return frame.includes('Base URL') || frame.includes('API Key') || frame.includes('Browser Automation');
+  });
+  assert.ok(reachedBaseUrl);
+  const baseUrlFrame = app.lastFrame() || '';
+  if (baseUrlFrame.includes('Base URL')) {
+    await send(app.stdin, enter); // base url
+    await waitForText(app, 'API Key');
+  }
+  const apiKeyFrame = app.lastFrame() || '';
+  if (apiKeyFrame.includes('API Key')) {
+    await send(app.stdin, enter); // api key
+  }
+  await waitForText(app, 'Browser Automation');
   await send(app.stdin, enter); // install dev-browser? default Yes
+  await waitForText(app, 'Team Mode');
   await send(app.stdin, enter); // team mode? default Yes
-  await send(app.stdin, enter); // write Z_AI_API_KEY? default Yes
+  const reachedShellEnv = await waitFor(() => {
+    const frame = app.lastFrame() || '';
+    return frame.includes('Shell Environment') || frame.includes('Custom Environment');
+  });
+  assert.ok(reachedShellEnv);
+  const shellFrame = app.lastFrame() || '';
+  if (shellFrame.includes('Shell Environment')) {
+    await send(app.stdin, enter); // write Z_AI_API_KEY? default Yes
+    await waitForText(app, 'Custom Environment');
+  }
   await send(app.stdin, down); // add env? select No
   await send(app.stdin, enter);
 
-  const reachedSummary = await waitFor(() => {
-    const frame = app.lastFrame() || '';
-    return frame.includes('Review Configuration') || frame.includes('Extra environment variables');
-  });
-  assert.ok(reachedSummary);
-
-  const frame = app.lastFrame() || '';
-  if (frame.includes('Extra environment variables')) {
-    await send(app.stdin, enter); // submit empty env line
-    await waitFor(() => (app.lastFrame() || '').includes('Review Configuration'));
-  }
+  await waitForText(app, 'Review Configuration');
 
   await send(app.stdin, enter); // summary -> create
 
