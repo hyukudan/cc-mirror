@@ -4,6 +4,7 @@ import React from 'react';
 import { render } from 'ink-testing-library';
 import { App } from '../src/tui/app.js';
 import * as providers from '../src/providers/index.js';
+import { icons } from '../src/tui/components/ui/theme.js';
 
 delete process.env.Z_AI_API_KEY;
 delete process.env.ANTHROPIC_API_KEY;
@@ -14,9 +15,47 @@ import { tick, send, waitFor, KEYS, makeCore } from './helpers/index.js';
 const down = KEYS.down;
 const enter = KEYS.enter;
 
+const ESC = String.fromCharCode(27);
+const stripAnsi = (value: string) => {
+  let result = '';
+  let inEscape = false;
+  for (let i = 0; i < value.length; i += 1) {
+    const char = value[i];
+    if (!inEscape) {
+      if (char === ESC) {
+        inEscape = true;
+        continue;
+      }
+      result += char;
+      continue;
+    }
+    if (char === 'm') {
+      inEscape = false;
+    }
+  }
+  return result;
+};
+
+const frameText = (app: { lastFrame: () => string | undefined }) => stripAnsi(app.lastFrame() || '');
+
 const waitForText = async (app: { lastFrame: () => string | undefined }, text: string, attempts = 100) => {
-  const ok = await waitFor(() => (app.lastFrame() || '').includes(text), attempts);
+  const ok = await waitFor(() => frameText(app).includes(text), attempts);
   assert.ok(ok, `Expected to see "${text}"`);
+};
+
+const selectMenuItem = async (
+  app: { lastFrame: () => string | undefined; stdin: { write: (value: string) => void } },
+  label: string,
+  maxMoves = 20
+) => {
+  await waitForText(app, label);
+  for (let i = 0; i < maxMoves; i += 1) {
+    if (frameText(app).includes(`${icons.pointer} ${label}`)) {
+      return;
+    }
+    await send(app.stdin, down);
+  }
+  assert.fail(`Expected "${label}" to be selected`);
 };
 
 test('TUI create flow applies tweakcc by default', async () => {
@@ -32,34 +71,34 @@ test('TUI create flow applies tweakcc by default', async () => {
 
   await tick();
   await waitForText(app, 'Quick Setup');
-  await send(app.stdin, down); // home -> create
+  await selectMenuItem(app, 'New Variant');
   await send(app.stdin, enter);
   await waitForText(app, 'Select Provider');
   await send(app.stdin, enter); // provider select -> default (zai)
   await waitForText(app, 'Setting up');
   await send(app.stdin, enter); // intro screen -> continue
   const reachedBrand = await waitFor(() => {
-    const frame = app.lastFrame() || '';
+    const frame = frameText(app);
     return frame.includes('Choose Theme') || frame.includes('Variant Name');
   });
   assert.ok(reachedBrand);
-  const brandFrame = app.lastFrame() || '';
+  const brandFrame = frameText(app);
   if (brandFrame.includes('Choose Theme')) {
     await send(app.stdin, enter); // brand preset (auto)
     await waitForText(app, 'Variant Name');
   }
   await send(app.stdin, enter); // name
   const reachedBaseUrl = await waitFor(() => {
-    const frame = app.lastFrame() || '';
+    const frame = frameText(app);
     return frame.includes('Base URL') || frame.includes('API Key') || frame.includes('Browser Automation');
   });
   assert.ok(reachedBaseUrl);
-  const baseUrlFrame = app.lastFrame() || '';
+  const baseUrlFrame = frameText(app);
   if (baseUrlFrame.includes('Base URL')) {
     await send(app.stdin, enter); // base url
     await waitForText(app, 'API Key');
   }
-  const apiKeyFrame = app.lastFrame() || '';
+  const apiKeyFrame = frameText(app);
   if (apiKeyFrame.includes('API Key')) {
     await send(app.stdin, enter); // api key
   }
@@ -68,11 +107,11 @@ test('TUI create flow applies tweakcc by default', async () => {
   await waitForText(app, 'Team Mode');
   await send(app.stdin, enter); // team mode? default Yes
   const reachedShellEnv = await waitFor(() => {
-    const frame = app.lastFrame() || '';
+    const frame = frameText(app);
     return frame.includes('Shell Environment') || frame.includes('Custom Environment');
   });
   assert.ok(reachedShellEnv);
-  const shellFrame = app.lastFrame() || '';
+  const shellFrame = frameText(app);
   if (shellFrame.includes('Shell Environment')) {
     await send(app.stdin, enter); // write Z_AI_API_KEY? default Yes
     await waitForText(app, 'Custom Environment');
@@ -106,8 +145,8 @@ test('TUI manage -> update flow', async () => {
   );
 
   await tick();
-  await send(app.stdin, down); // create
-  await send(app.stdin, down); // manage
+  await waitForText(app, 'Quick Setup');
+  await selectMenuItem(app, 'Manage Variants');
   await send(app.stdin, enter);
   await waitForText(app, 'Manage Variants');
   await waitForText(app, 'alpha');
@@ -134,16 +173,14 @@ test('TUI manage -> remove flow', async () => {
   );
 
   await tick();
-  await send(app.stdin, down); // create
-  await send(app.stdin, down); // manage
+  await waitForText(app, 'Quick Setup');
+  await selectMenuItem(app, 'Manage Variants');
   await send(app.stdin, enter);
   await waitForText(app, 'Manage Variants');
   await waitForText(app, 'alpha');
   await send(app.stdin, enter); // pick alpha
   await waitForText(app, 'Details');
-  await send(app.stdin, down); // team mode
-  await send(app.stdin, down); // tweak
-  await send(app.stdin, down); // remove
+  await selectMenuItem(app, 'Remove');
   await send(app.stdin, enter);
   await send(app.stdin, enter); // confirm remove
   await waitFor(() => calls.remove.length > 0);
@@ -166,10 +203,8 @@ test('TUI update all flow', async () => {
   );
 
   await tick();
-  await send(app.stdin, down); // create
-  await send(app.stdin, down); // manage
-  await send(app.stdin, down); // sync
-  await send(app.stdin, down); // updateAll
+  await waitForText(app, 'Quick Setup');
+  await selectMenuItem(app, 'Update All');
   await send(app.stdin, enter);
   await tick();
 
@@ -192,15 +227,12 @@ test('TUI doctor flow', async () => {
   );
 
   await tick();
-  await send(app.stdin, down); // create
-  await send(app.stdin, down); // manage
-  await send(app.stdin, down); // sync
-  await send(app.stdin, down); // updateAll
-  await send(app.stdin, down); // doctor
+  await waitForText(app, 'Quick Setup');
+  await selectMenuItem(app, 'Diagnostics');
   await send(app.stdin, enter);
   await tick();
 
-  const frame = app.lastFrame() || '';
+  const frame = frameText(app);
   assert.ok(frame.includes('alpha'));
   assert.ok(calls.doctor.length >= 1);
   assert.equal(calls.doctor[0].root, '/tmp/root');
