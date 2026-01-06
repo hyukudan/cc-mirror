@@ -7,6 +7,7 @@ All notable changes to this project will be documented in this file.
 ### Added
 
 - `cc-mirror run <name>` command to launch a variant wrapper directly.
+- `cc-mirror mcp <name>` command to manage MCP servers in a variant.
 
 ## [1.5.0] - 2026-01-06
 

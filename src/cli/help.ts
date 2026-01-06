@@ -26,6 +26,7 @@ COMMANDS
   doctor                       Health check all variants
   tweak <name>                 Launch tweakcc customization
   run <name>                   Launch a variant wrapper
+  mcp <name> [operation]       Manage MCP servers for a variant
   tasks [operation]            Manage team tasks (list, show, create, update, delete, clean)
   path [--apply]               Show PATH setup instructions
   sync <source> <target...>    Sync config between variants
@@ -76,6 +77,7 @@ EXAMPLES
   npx cc-mirror doctor
   npx cc-mirror path
   npx cc-mirror run zai
+  npx cc-mirror mcp zai list
 
 LEARN MORE
   https://github.com/numman-ali/cc-mirror

@@ -153,10 +153,11 @@ minimax      # Launch MiniMax variant
 mclaude      # Launch Mirror Claude variant
 ```
 
-MCP servers live in `~/.cc-mirror/<variant>/config/.claude.json`. Add them by running the wrapper:
+MCP servers live in `~/.cc-mirror/<variant>/config/.claude.json`. Add them by running the wrapper or using `cc-mirror mcp`:
 
 ```bash
 zai mcp add-json airtable '{"command":"npx","args":["@rashidazarang/airtable-mcp"],"env":{"AIRTABLE_TOKEN":"","AIRTABLE_BASE_ID":""}}'
+npx cc-mirror mcp zai add-json airtable '{"command":"npx","args":["@rashidazarang/airtable-mcp"],"env":{"AIRTABLE_TOKEN":"","AIRTABLE_BASE_ID":""}}'
 ```
 
 ---
@@ -187,6 +188,7 @@ npx cc-mirror remove <name>       # Delete a variant
 npx cc-mirror doctor              # Health check all variants
 npx cc-mirror sync <source> <target...>  # Sync skills/MCP/permissions/CLAUDE.md
 npx cc-mirror run <name>          # Launch a variant wrapper
+npx cc-mirror mcp <name>          # Manage MCP servers for a variant
 
 # Task management (team mode)
 npx cc-mirror tasks               # List open tasks

@@ -41,7 +41,7 @@ Claude Code's internal config: approvals, onboarding state, theme, and MCP serve
 
 ### MCP servers
 
-MCP servers are stored under `config/.claude.json` in the `mcpServers` section. The easiest way to add them is to run the variant wrapper so `CLAUDE_CONFIG_DIR` points at the right config:
+MCP servers are stored under `config/.claude.json` in the `mcpServers` section. The easiest way to add them is to run the variant wrapper so `CLAUDE_CONFIG_DIR` points at the right config (or use `cc-mirror mcp`):
 
 ```bash
 zai mcp add-json airtable '{
@@ -52,6 +52,7 @@ zai mcp add-json airtable '{
     "AIRTABLE_BASE_ID": ""
   }
 }'
+npx cc-mirror mcp zai add-json airtable '{"command":"npx","args":["@rashidazarang/airtable-mcp"]}'
 ```
 
 Use `cc-mirror sync` with `--items mcp-servers` to copy MCP server entries between variants.

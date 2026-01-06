@@ -12,6 +12,7 @@ All commands are available through `npx cc-mirror`.
 - `doctor` - Health check all variants
 - `tweak <name>` - Launch tweakcc customization
 - `run <name>` - Launch a variant wrapper
+- `mcp <name> [operation]` - Manage MCP servers for a variant
 - `tasks [operation]` - Manage team tasks
 - `path [--apply]` - Show PATH setup instructions
 - `sync <source> <target...>` - Sync config between variants
@@ -60,6 +61,17 @@ All commands are available through `npx cc-mirror`.
 - `--targets <list>` - Comma-separated targets (optional if positional)
 - `--no-backup` - Skip config backup
 - `--dry-run` - Show what would change without writing files
+
+## MCP Command
+
+Common examples:
+
+```
+npx cc-mirror mcp zai list
+npx cc-mirror mcp zai show airtable
+npx cc-mirror mcp zai add-json airtable '{"command":"npx","args":["@rashidazarang/airtable-mcp"]}'
+npx cc-mirror mcp zai remove airtable
+```
 
 ## Tasks Command
 

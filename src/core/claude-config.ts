@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { readJson, writeJson } from './fs.js';
 
-type ClaudeConfig = {
+export type ClaudeConfig = {
   customApiKeyResponses?: {
     approved?: string[];
     rejected?: string[];
@@ -22,7 +22,7 @@ type SettingsFile = {
   };
 };
 
-type McpServerConfig = {
+export type McpServerConfig = {
   command?: string;
   args?: string[];
   env?: Record<string, string>;
@@ -34,6 +34,17 @@ type McpServerConfig = {
 const SETTINGS_FILE = 'settings.json';
 const CLAUDE_CONFIG_FILE = '.claude.json';
 const PLACEHOLDER_KEY = '<API_KEY>';
+
+const loadClaudeConfig = (configDir: string): ClaudeConfig => {
+  const configPath = path.join(configDir, CLAUDE_CONFIG_FILE);
+  if (!fs.existsSync(configPath)) return {};
+  return readJson<ClaudeConfig>(configPath) ?? {};
+};
+
+const saveClaudeConfig = (configDir: string, config: ClaudeConfig): void => {
+  const configPath = path.join(configDir, CLAUDE_CONFIG_FILE);
+  writeJson(configPath, config);
+};
 
 const toStringOrNull = (value: unknown): string | null => {
   if (typeof value !== 'string') return null;
@@ -210,16 +221,7 @@ export const ensureOnboardingState = (
 
 export const ensureMinimaxMcpServer = (configDir: string, apiKey?: string | null): boolean => {
   const resolvedKey = toStringOrNull(apiKey) || readSettingsApiKey(configDir);
-  const configPath = path.join(configDir, CLAUDE_CONFIG_FILE);
-  const exists = fs.existsSync(configPath);
-
-  let config: ClaudeConfig | null = null;
-  if (exists) {
-    config = readJson<ClaudeConfig>(configPath);
-    if (!config) return false;
-  } else {
-    config = {};
-  }
+  const config = loadClaudeConfig(configDir);
 
   const existingServers = config.mcpServers ?? {};
   if (existingServers.MiniMax) return false;
@@ -241,6 +243,47 @@ export const ensureMinimaxMcpServer = (configDir: string, apiKey?: string | null
     },
   };
 
-  writeJson(configPath, next);
+  saveClaudeConfig(configDir, next);
+  return true;
+};
+
+export const listMcpServers = (configDir: string): Record<string, McpServerConfig> => {
+  const config = loadClaudeConfig(configDir);
+  return config.mcpServers ?? {};
+};
+
+export const upsertMcpServer = (configDir: string, name: string, server: McpServerConfig): boolean => {
+  const config = loadClaudeConfig(configDir);
+  const existingServers = config.mcpServers ?? {};
+  const current = existingServers[name];
+  const nextServer: McpServerConfig = { ...server };
+
+  if (current && JSON.stringify(current) === JSON.stringify(nextServer)) {
+    return false;
+  }
+
+  const next: ClaudeConfig = {
+    ...config,
+    mcpServers: {
+      ...existingServers,
+      [name]: nextServer,
+    },
+  };
+  saveClaudeConfig(configDir, next);
+  return true;
+};
+
+export const removeMcpServer = (configDir: string, name: string): boolean => {
+  const config = loadClaudeConfig(configDir);
+  const existingServers = config.mcpServers ?? {};
+  if (!Object.hasOwn(existingServers, name)) return false;
+
+  const { [name]: _unused, ...rest } = existingServers;
+  const next: ClaudeConfig = {
+    ...config,
+    mcpServers: Object.keys(rest).length > 0 ? rest : undefined,
+  };
+
+  saveClaudeConfig(configDir, next);
   return true;
 };
