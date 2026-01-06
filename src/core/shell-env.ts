@@ -56,7 +56,11 @@ const resolveShellProfile = (): string | null => {
   if (name === 'bash') {
     const bashrc = path.join(home, '.bashrc');
     if (fs.existsSync(bashrc)) return bashrc;
-    return path.join(home, '.bash_profile');
+    const bashProfile = path.join(home, '.bash_profile');
+    if (fs.existsSync(bashProfile)) return bashProfile;
+    const profile = path.join(home, '.profile');
+    if (fs.existsSync(profile)) return profile;
+    return bashrc;
   }
 
   return null;
