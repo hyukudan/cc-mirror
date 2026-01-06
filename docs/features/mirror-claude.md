@@ -58,19 +58,30 @@ No API key required at setup. When you run `mclaude`, authenticate via:
 
 ## 👥 Multiple Claude Accounts
 
-You can keep separate Claude Code accounts by creating multiple Mirror variants. Each variant has its own `CLAUDE_CONFIG_DIR`, so sessions and approvals are isolated.
+Mirror Claude supports multiple accounts by design. Each variant has its own `CLAUDE_CONFIG_DIR`, so OAuth sessions, approvals, and settings stay isolated.
+
+### Recommended flow
 
 ```bash
 # Work account
-npx cc-mirror create --provider mirror --name claude-work
+npx cc-mirror quick --provider mirror --name claude-work
 claude-work  # sign in once
 
 # Personal account
-npx cc-mirror create --provider mirror --name claude-personal
+npx cc-mirror quick --provider mirror --name claude-personal
 claude-personal  # sign in once
 ```
 
-Once authenticated, each wrapper keeps using its own account. You do not need to re-login unless you intentionally sign out or delete the variant.
+### API key per variant (optional)
+
+If you prefer API keys, set them per variant:
+
+```bash
+npx cc-mirror update claude-work --env ANTHROPIC_API_KEY="sk-ant-..."
+npx cc-mirror update claude-personal --env ANTHROPIC_API_KEY="sk-ant-..."
+```
+
+Once authenticated, each wrapper keeps using its own account. Switch accounts by running the corresponding wrapper (e.g., `claude-work` vs `claude-personal`).
 
 ---
 
@@ -120,22 +131,6 @@ Once authenticated, each wrapper keeps using its own account. You do not need to
 - **Different models** - use OpenRouter or CCRouter for alternative LLMs
 - **Cost savings** - Z.ai and MiniMax offer Coding Plan subscriptions
 - **Offline use** - Mirror requires Anthropic API access
-
----
-
-## 🔐 Multiple Accounts (Claude)
-
-Create separate mirror variants and authenticate each one once. Each variant keeps its own OAuth session and config.
-
-```bash
-npx cc-mirror quick --provider mirror --name mclaude-work
-mclaude-work
-
-npx cc-mirror quick --provider mirror --name mclaude-personal
-mclaude-personal
-```
-
-Switch accounts by running the corresponding wrapper (e.g., `mclaude-work` vs `mclaude-personal`).
 
 ---
 
