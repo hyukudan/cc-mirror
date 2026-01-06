@@ -3,6 +3,7 @@
  */
 
 import React, { useState } from 'react';
+import path from 'node:path';
 import { Box } from 'ink';
 import { ScreenLayout } from '../components/ui/ScreenLayout.js';
 import { Section } from '../components/ui/Layout.js';
@@ -21,11 +22,13 @@ interface VariantMeta {
 
 interface VariantActionsScreenProps {
   meta: VariantMeta;
+  onLaunch?: () => void;
   onUpdate: () => void;
   onTweak: () => void;
   onRemove: () => void;
   onConfigureModels?: () => void;
   onToggleTeamMode?: () => void;
+  onApplyPath?: () => void;
   onBack: () => void;
 }
 
@@ -34,16 +37,19 @@ const MODEL_MAPPING_PROVIDERS = ['openrouter', 'gatewayz', 'nanogpt', 'ccrouter'
 
 export const VariantActionsScreen: React.FC<VariantActionsScreenProps> = ({
   meta,
+  onLaunch,
   onUpdate,
   onTweak,
   onRemove,
   onConfigureModels,
   onToggleTeamMode,
+  onApplyPath,
   onBack,
 }) => {
   const [selectedIndex, setSelectedIndex] = useState(0);
 
   const requiresModelMapping = meta.provider && MODEL_MAPPING_PROVIDERS.includes(meta.provider);
+  const showApplyPath = meta.wrapperPath && !isWrapperInPath(meta.wrapperPath);
 
   // Team mode toggle - shows enable or disable based on current state
   const teamModeAction: MenuItem | null = onToggleTeamMode
@@ -58,20 +64,26 @@ export const VariantActionsScreen: React.FC<VariantActionsScreenProps> = ({
     : null;
 
   const actions: MenuItem[] = [
+    ...(onLaunch ? [{ value: 'launch', label: 'Launch', description: 'Run this variant' }] : []),
     { value: 'update', label: 'Update', description: 'Re-sync binary + patches' },
     ...(requiresModelMapping && onConfigureModels
       ? [{ value: 'models', label: 'Configure Models', description: 'Edit Opus/Sonnet/Haiku mapping' }]
       : []),
     ...(teamModeAction ? [teamModeAction] : []),
+    ...(onApplyPath && showApplyPath
+      ? [{ value: 'path', label: 'Apply PATH', description: 'Add wrapper directory to PATH' }]
+      : []),
     { value: 'tweak', label: 'Customize', description: 'Open tweakcc' },
     { value: 'remove', label: 'Remove', description: 'Delete variant', icon: 'exit' as const },
     { value: 'back', label: 'Back', icon: 'back' as const },
   ];
 
   const handleSelect = (value: string) => {
+    if (value === 'launch' && onLaunch) onLaunch();
     if (value === 'update') onUpdate();
     if (value === 'models' && onConfigureModels) onConfigureModels();
     if (value === 'team-mode' && onToggleTeamMode) onToggleTeamMode();
+    if (value === 'path' && onApplyPath) onApplyPath();
     if (value === 'tweak') onTweak();
     if (value === 'remove') onRemove();
     if (value === 'back') onBack();
@@ -100,3 +112,10 @@ export const VariantActionsScreen: React.FC<VariantActionsScreenProps> = ({
     </ScreenLayout>
   );
 };
+
+function isWrapperInPath(wrapperPath: string): boolean {
+  const wrapperDir = path.dirname(wrapperPath);
+  const envPath = process.env.PATH || '';
+  if (!envPath) return false;
+  return envPath.split(path.delimiter).some((entry) => entry === wrapperDir || path.resolve(entry) === wrapperDir);
+}

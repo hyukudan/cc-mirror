@@ -8,15 +8,18 @@ All notable changes to this project will be documented in this file.
 
 - Sync Variants flow to copy skills, MCP servers, permissions, and `CLAUDE.md`.
 - `cc-mirror sync` CLI command for syncing configs between variants.
+- Sync options for `tasks`, `provider-env`, and `--dry-run`.
 - GatewayZ and NanoGPT providers with themes, splash art, and model mapping defaults.
 - Provider education updates (placeholders, haikus, setup links).
 - Z.ai `Z_AI_BASE_URL` support for China endpoint defaults in CLI/TUI flows.
 - Ctrl+C interrupt patch for Claude Code CLI (ESC fallback, double-press exit).
 - Windows support: `.cmd` wrappers, PowerShell profile integration, and `~/.cc-mirror/bin` defaults.
-- `--prefer-ipv4` flag to set `NODE_OPTIONS=--dns-result-order=ipv4first`.
+- Windows npm install failures now include targeted troubleshooting hints.
+- `--prefer-ipv4` flag to enable IPv4-first DNS in wrappers.
+- `CC_MIRROR_PREFER_IPV4=1` wrapper support for IPv4-first DNS without overriding `NODE_OPTIONS`.
 - `CC_MIRROR_SPLASH_UTF8=0` to skip `chcp 65001` in Windows splash rendering.
 - Termux PATH troubleshooting guidance for `~/.local/bin`.
-- `npx cc-mirror path --apply` to append PATH exports to shell profiles on POSIX.
+- `npx cc-mirror path --apply` to append PATH exports to shell profiles on POSIX/PowerShell.
 - Termux/Android setup guide in docs.
 - Added reference docs for CLI, configuration layout, and environment variables.
 - `--npm-version` flag to override Claude Code package version during create/update.

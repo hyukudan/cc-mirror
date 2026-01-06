@@ -68,7 +68,7 @@ test('CompletionScreen shows PATH tip when wrapper is missing from PATH', async 
 });
 
 function getExpectedPathCommand(): string {
-  if (process.platform === 'win32') return 'npx cc-mirror path';
+  if (process.platform === 'win32') return 'npx cc-mirror path --apply';
   const shellName = path.basename(process.env.SHELL || '');
   if (shellName === 'fish') return 'npx cc-mirror path';
   return 'npx cc-mirror path --apply';

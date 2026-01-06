@@ -20,6 +20,8 @@ const SYNC_ITEM_LABELS: Record<SyncItem, string> = {
   'mcp-servers': 'MCP Servers',
   permissions: 'Permissions',
   'claude-md': 'CLAUDE.md',
+  tasks: 'Tasks',
+  'provider-env': 'Provider Env',
 };
 
 export function useSync(options: UseSyncOptions): void {

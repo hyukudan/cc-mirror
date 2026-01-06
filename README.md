@@ -223,24 +223,25 @@ npx cc-mirror sync source target --no-backup
 --shell-env              Write env vars to shell profile (Z.ai)
 --env KEY=VALUE          Extra env var override (repeatable)
 --timeout-ms <ms>        API timeout override (ms)
---prefer-ipv4            Set NODE_OPTIONS=--dns-result-order=ipv4first
+--prefer-ipv4            Prefer IPv4 DNS (sets CC_MIRROR_PREFER_IPV4=1)
 ```
 
 Sync options:
 
 ```
---items <list>           skills,mcp-servers,permissions,claude-md
+--items <list>           skills,mcp-servers,permissions,claude-md,tasks,provider-env
 --source <name>          Source variant (optional if positional)
 --targets <list>         Comma-separated targets (optional if positional)
 --no-backup              Skip config backup
+--dry-run                Show what would change without writing files
 ```
 
 ---
 
 ## 🛠️ Troubleshooting
 
-- IPv6 connection resets (often Z.ai): use `--prefer-ipv4` or add `NODE_OPTIONS=--dns-result-order=ipv4first` via `--env`.
-- Command not found after create: run `npx cc-mirror path` (or `--apply` on Linux/macOS/Termux) and follow the PATH instructions.
+- IPv6 connection resets (often Z.ai): use `--prefer-ipv4` or add `CC_MIRROR_PREFER_IPV4=1` via `--env`.
+- Command not found after create: run `npx cc-mirror path` (or `--apply` on Linux/macOS/Termux/PowerShell) and follow the PATH instructions.
 - Android/Termux: add `export PATH="$HOME/.local/bin:$PATH"` to `~/.bashrc` (or `~/.profile`) and `source` it.
 - Windows splash weirdness or slow shells: set `CC_MIRROR_SPLASH_UTF8=0` via `--env` to skip `chcp 65001`.
 

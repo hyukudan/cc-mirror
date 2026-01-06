@@ -8,6 +8,59 @@ export const resolveNpmCliPath = (npmDir: string, npmPackage: string): string =>
   return path.join(npmDir, 'node_modules', ...packageParts, 'cli.js');
 };
 
+const isWindows = process.platform === 'win32';
+
+export const getInstallPreflightNotes = (): string[] => {
+  if (!isWindows) return [];
+  const notes: string[] = [];
+  if (!commandExists('git')) {
+    notes.push('Windows: Git not found on PATH (install Git for Windows if npm needs it).');
+  }
+  return notes;
+};
+
+const buildWindowsInstallHints = (output: string): string[] => {
+  if (!isWindows) return [];
+  const lower = output.toLowerCase();
+  const hints = new Set<string>();
+  hints.add('Verify Node.js LTS and npm are on PATH, then reopen the terminal.');
+
+  if (
+    lower.includes('node-gyp') ||
+    lower.includes('gyp err') ||
+    lower.includes('msbuild') ||
+    lower.includes('visual studio')
+  ) {
+    hints.add('Install Visual Studio Build Tools (C++ workload) for node-gyp builds.');
+  }
+
+  if (lower.includes('spawn git') || lower.includes('fatal:') || lower.includes('git ') || lower.includes('git@')) {
+    hints.add('Install Git for Windows and reopen the terminal if git is missing.');
+  }
+
+  if (lower.includes('eacces') || lower.includes('eperm')) {
+    hints.add('Permissions error: try a new terminal or choose a user-writable directory.');
+  }
+
+  if (
+    lower.includes('etimedout') ||
+    lower.includes('econnreset') ||
+    lower.includes('eai_again') ||
+    lower.includes('enotfound')
+  ) {
+    hints.add('Network error: retry, or configure npm proxy/registry settings.');
+  }
+
+  return Array.from(hints);
+};
+
+const formatNpmInstallError = (pkgSpec: string, output: string): string => {
+  const tail = output.length > 0 ? `\n${output}` : '';
+  const hints = buildWindowsInstallHints(output);
+  const hintText = hints.length > 0 ? `\n\nWindows tips:\n${hints.map((hint) => `- ${hint}`).join('\n')}` : '';
+  return `npm install failed for ${pkgSpec}.${tail}${hintText}`;
+};
+
 const ensureNpmManifest = (npmDir: string) => {
   const manifestPath = path.join(npmDir, 'package.json');
   if (!fs.existsSync(manifestPath)) {
@@ -46,8 +99,7 @@ export const installNpmClaude = (params: {
 
   if (result.status !== 0) {
     const output = `${result.stderr ?? ''}\n${result.stdout ?? ''}`.trim();
-    const tail = output.length > 0 ? `\n${output}` : '';
-    throw new Error(`npm install failed for ${pkgSpec}.${tail}`);
+    throw new Error(formatNpmInstallError(pkgSpec, output));
   }
 
   const cliPath = resolveNpmCliPath(params.npmDir, params.npmPackage);
@@ -98,8 +150,7 @@ export const installNpmClaudeAsync = (params: {
     child.on('close', (code) => {
       if (code !== 0) {
         const output = `${stderr}\n${stdout}`.trim();
-        const tail = output.length > 0 ? `\n${output}` : '';
-        reject(new Error(`npm install failed for ${pkgSpec}.${tail}`));
+        reject(new Error(formatNpmInstallError(pkgSpec, output)));
         return;
       }
 

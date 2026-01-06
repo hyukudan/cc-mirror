@@ -184,14 +184,19 @@ test('buildExtraEnv ignores whitespace timeout', () => {
   assert.deepEqual(result, []);
 });
 
-test('buildExtraEnv adds prefer-ipv4 NODE_OPTIONS', () => {
+test('buildExtraEnv adds prefer-ipv4 flag', () => {
   const result = buildExtraEnv(createOpts({ 'prefer-ipv4': true }));
-  assert.deepEqual(result, ['NODE_OPTIONS=--dns-result-order=ipv4first']);
+  assert.deepEqual(result, ['CC_MIRROR_PREFER_IPV4=1']);
 });
 
 test('buildExtraEnv skips prefer-ipv4 when NODE_OPTIONS is set', () => {
   const result = buildExtraEnv(createOpts({ 'prefer-ipv4': true, env: ['NODE_OPTIONS=--max-old-space-size=4096'] }));
   assert.deepEqual(result, ['NODE_OPTIONS=--max-old-space-size=4096']);
+});
+
+test('buildExtraEnv skips prefer-ipv4 when CC_MIRROR_PREFER_IPV4 is set', () => {
+  const result = buildExtraEnv(createOpts({ 'prefer-ipv4': true, env: ['CC_MIRROR_PREFER_IPV4=0'] }));
+  assert.deepEqual(result, ['CC_MIRROR_PREFER_IPV4=0']);
 });
 
 // printSummary tests (capture console output)
@@ -325,7 +330,7 @@ test('printSummary suggests path command when wrapper not in PATH', () => {
 });
 
 function getExpectedPathCommand(): string {
-  if (process.platform === 'win32') return 'npx cc-mirror path';
+  if (process.platform === 'win32') return 'npx cc-mirror path --apply';
   const shellName = path.basename(process.env.SHELL || '');
   if (shellName === 'fish') return 'npx cc-mirror path';
   return 'npx cc-mirror path --apply';

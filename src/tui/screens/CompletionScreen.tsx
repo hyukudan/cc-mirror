@@ -230,7 +230,7 @@ function isWrapperInPath(wrapperPath: string): boolean {
 }
 
 function getPathCommand(): string {
-  if (process.platform === 'win32') return 'npx cc-mirror path';
+  if (process.platform === 'win32') return 'npx cc-mirror path --apply';
   const shellName = path.basename(process.env.SHELL || '');
   if (shellName === 'fish') return 'npx cc-mirror path';
   return 'npx cc-mirror path --apply';

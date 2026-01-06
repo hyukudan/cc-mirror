@@ -299,6 +299,13 @@ export const App: React.FC<AppProps> = ({
     return process.env.Z_AI_BASE_URL?.trim() || '';
   };
 
+  const getPathCommandForTui = (): string => {
+    if (process.platform === 'win32') return 'npx cc-mirror path --apply';
+    const shellName = path.basename(process.env.SHELL || '');
+    if (shellName === 'fish') return 'npx cc-mirror path';
+    return 'npx cc-mirror path --apply';
+  };
+
   useInput((input, key) => {
     if (key.escape) {
       // ESC key navigation - handle all screens
@@ -364,6 +371,8 @@ export const App: React.FC<AppProps> = ({
         // Completion/done screens - back to home
         case 'create-done':
         case 'manage-update-done':
+        case 'manage-launch-done':
+        case 'manage-path-done':
         case 'manage-tweak-done':
         case 'manage-remove-done':
         case 'updateAll-done':
@@ -488,6 +497,26 @@ export const App: React.FC<AppProps> = ({
     setCompletionHelp(['tweakcc lets you customize themes, overlays, and more']);
     setScreen('manage-tweak-done');
   }, [screen, selectedVariant]);
+
+  useEffect(() => {
+    if (screen !== 'manage-launch') return;
+    if (!selectedVariant) return;
+    setDoneLines([`To launch ${selectedVariant.name}, run:`]);
+    setCompletionSummary([selectedVariant.name]);
+    setCompletionNextSteps(['Exit this TUI first (press ESC or q)', 'Then run the command above in your terminal']);
+    setCompletionHelp(['Launching from inside the TUI is not supported.']);
+    setScreen('manage-launch-done');
+  }, [screen, selectedVariant]);
+
+  useEffect(() => {
+    if (screen !== 'manage-path') return;
+    const pathCommand = getPathCommandForTui();
+    setDoneLines(['To update your PATH, run:']);
+    setCompletionSummary([pathCommand]);
+    setCompletionNextSteps(['Exit this TUI first (press ESC or q)', 'Then run the command above in your terminal']);
+    setCompletionHelp(['Adds the wrapper directory to PATH for new shells.']);
+    setScreen('manage-path-done');
+  }, [screen]);
 
   // Save model configuration operation (extracted to useModelConfig hook)
   useModelConfig({
@@ -1109,6 +1138,7 @@ export const App: React.FC<AppProps> = ({
     return (
       <VariantActionsScreen
         meta={selectedVariant}
+        onLaunch={() => setScreen('manage-launch')}
         onUpdate={() => setScreen('manage-update')}
         onConfigureModels={() => {
           // Reset model inputs and start model configuration
@@ -1118,6 +1148,7 @@ export const App: React.FC<AppProps> = ({
           setScreen('manage-models');
         }}
         onToggleTeamMode={() => setScreen('manage-team-mode')}
+        onApplyPath={() => setScreen('manage-path')}
         onTweak={() => setScreen('manage-tweak')}
         onRemove={() => setScreen('manage-remove')}
         onBack={() => setScreen('manage')}
@@ -1133,6 +1164,46 @@ export const App: React.FC<AppProps> = ({
     return (
       <CompletionScreen
         title="Update variant"
+        lines={doneLines}
+        summary={completionSummary}
+        nextSteps={completionNextSteps}
+        help={completionHelp}
+        onDone={(value) => {
+          if (value === 'home') setScreen('home');
+          else setScreen('exit');
+        }}
+      />
+    );
+  }
+
+  if (screen === 'manage-launch' && selectedVariant) {
+    return <ProgressScreen title="Preparing launch" lines={progressLines} />;
+  }
+
+  if (screen === 'manage-launch-done') {
+    return (
+      <CompletionScreen
+        title="Launch variant"
+        lines={doneLines}
+        summary={completionSummary}
+        nextSteps={completionNextSteps}
+        help={completionHelp}
+        onDone={(value) => {
+          if (value === 'home') setScreen('home');
+          else setScreen('exit');
+        }}
+      />
+    );
+  }
+
+  if (screen === 'manage-path') {
+    return <ProgressScreen title="Preparing PATH instructions" lines={progressLines} />;
+  }
+
+  if (screen === 'manage-path-done') {
+    return (
+      <CompletionScreen
+        title="Update PATH"
         lines={doneLines}
         summary={completionSummary}
         nextSteps={completionNextSteps}

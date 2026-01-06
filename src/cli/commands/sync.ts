@@ -11,6 +11,7 @@ export interface SyncCommandOptions {
   opts: ParsedArgs;
 }
 
+const ALL_SYNC_ITEMS: SyncItem[] = ['skills', 'mcp-servers', 'permissions', 'claude-md', 'tasks', 'provider-env'];
 const DEFAULT_SYNC_ITEMS: SyncItem[] = ['skills', 'mcp-servers', 'permissions', 'claude-md'];
 
 const parseList = (value: string): string[] =>
@@ -22,12 +23,12 @@ const parseList = (value: string): string[] =>
 const parseItems = (value?: string): SyncItem[] => {
   if (!value) return DEFAULT_SYNC_ITEMS;
   const entries = parseList(value);
-  if (entries.length === 0 || entries.includes('all')) return DEFAULT_SYNC_ITEMS;
+  if (entries.length === 0 || entries.includes('all')) return ALL_SYNC_ITEMS;
 
   const items: SyncItem[] = [];
   const invalid: string[] = [];
   for (const entry of entries) {
-    if (DEFAULT_SYNC_ITEMS.includes(entry as SyncItem)) {
+    if (ALL_SYNC_ITEMS.includes(entry as SyncItem)) {
       items.push(entry as SyncItem);
     } else {
       invalid.push(entry);
@@ -42,7 +43,7 @@ const parseItems = (value?: string): SyncItem[] => {
 };
 
 const printUsage = () => {
-  console.log('Usage: npx cc-mirror sync <source> <target...> [--items <list>] [--no-backup]');
+  console.log('Usage: npx cc-mirror sync <source> <target...> [--items <list>] [--no-backup] [--dry-run]');
   console.log('       npx cc-mirror sync --source <name> --targets a,b [--items skills,mcp-servers]');
 };
 
@@ -52,11 +53,13 @@ const formatItemSummary = (item: SyncItem, result?: SyncItemResult): string => {
   return `  ${item}: copied ${result.copied}, skipped ${result.skipped}${suffix}`;
 };
 
-const printResults = (results: SyncResult[], items: SyncItem[]) => {
+const printResults = (results: SyncResult[], items: SyncItem[], dryRun: boolean, createBackup: boolean) => {
   for (const result of results) {
     console.log(`\n${result.target}: ${result.success ? 'ok' : 'failed'}`);
     if (result.backupPath) {
       console.log(`  backup: ${result.backupPath}`);
+    } else if (dryRun && createBackup) {
+      console.log('  backup: skipped (dry-run)');
     }
     for (const item of items) {
       const itemResult = result.itemResults[item];
@@ -83,6 +86,7 @@ export function runSyncCommand({ opts }: SyncCommandOptions): void {
   const targetNames = targetFlag.length > 0 ? targetFlag : opts._.slice(1);
   const items = parseItems(opts.items as string | undefined);
   const createBackup = !opts['no-backup'];
+  const dryRun = Boolean(opts['dry-run']);
 
   if (!sourceName) {
     printUsage();
@@ -118,9 +122,10 @@ export function runSyncCommand({ opts }: SyncCommandOptions): void {
   console.log(`Targets: ${uniqueTargets.join(', ')}`);
   console.log(`Items: ${items.join(', ')}`);
   console.log(`Backup: ${createBackup ? 'on' : 'off'}`);
+  console.log(`Dry-run: ${dryRun ? 'on' : 'off'}`);
 
-  const options: SyncOptions = { items, createBackup };
+  const options: SyncOptions = { items, createBackup, dryRun };
   const results = core.syncVariants(sourceDir, targetDirs, options);
 
-  printResults(results, items);
+  printResults(results, items, dryRun, createBackup);
 }

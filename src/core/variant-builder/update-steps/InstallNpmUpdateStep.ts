@@ -3,7 +3,7 @@
  */
 
 import { ensureDir } from '../../fs.js';
-import { installNpmClaude, installNpmClaudeAsync } from '../../install.js';
+import { getInstallPreflightNotes, installNpmClaude, installNpmClaudeAsync } from '../../install.js';
 import type { UpdateContext, UpdateStep } from '../types.js';
 
 export class InstallNpmUpdateStep implements UpdateStep {
@@ -11,12 +11,14 @@ export class InstallNpmUpdateStep implements UpdateStep {
 
   execute(ctx: UpdateContext): void {
     if (ctx.opts.settingsOnly) return;
+    ctx.state.notes.push(...getInstallPreflightNotes());
     ctx.report(`Installing ${ctx.prefs.resolvedNpmPackage}@${ctx.prefs.resolvedNpmVersion}...`);
     this.install(ctx, false);
   }
 
   async executeAsync(ctx: UpdateContext): Promise<void> {
     if (ctx.opts.settingsOnly) return;
+    ctx.state.notes.push(...getInstallPreflightNotes());
     await ctx.report(`Installing ${ctx.prefs.resolvedNpmPackage}@${ctx.prefs.resolvedNpmVersion}...`);
     await this.install(ctx, true);
   }

@@ -150,7 +150,8 @@ test('TUI manage -> update flow', async () => {
   await selectMenuItem(app, 'alpha');
   await send(app.stdin, enter); // pick alpha
   await waitForText(app, 'Details');
-  await send(app.stdin, enter); // update
+  await selectMenuItem(app, 'Update');
+  await send(app.stdin, enter);
   await waitFor(() => calls.update.length > 0);
 
   assert.equal(calls.update.length, 1);

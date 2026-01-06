@@ -2,7 +2,7 @@
  * InstallNpmStep - Installs Claude Code via npm
  */
 
-import { installNpmClaude, installNpmClaudeAsync } from '../../install.js';
+import { getInstallPreflightNotes, installNpmClaude, installNpmClaudeAsync } from '../../install.js';
 import type { BuildContext, BuildStep } from '../types.js';
 
 export class InstallNpmStep implements BuildStep {
@@ -10,6 +10,7 @@ export class InstallNpmStep implements BuildStep {
 
   execute(ctx: BuildContext): void {
     const { prefs, paths, state } = ctx;
+    state.notes.push(...getInstallPreflightNotes());
     ctx.report(`Installing ${prefs.resolvedNpmPackage}@${prefs.resolvedNpmVersion}...`);
 
     const install = installNpmClaude({
@@ -25,6 +26,7 @@ export class InstallNpmStep implements BuildStep {
 
   async executeAsync(ctx: BuildContext): Promise<void> {
     const { prefs, paths, state } = ctx;
+    state.notes.push(...getInstallPreflightNotes());
     await ctx.report(`Installing ${prefs.resolvedNpmPackage}@${prefs.resolvedNpmVersion}...`);
 
     const install = await installNpmClaudeAsync({

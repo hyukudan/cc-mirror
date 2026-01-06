@@ -17,6 +17,7 @@ export interface ParsedArgs {
   ['enable-team-mode']?: boolean;
   ['disable-team-mode']?: boolean;
   ['no-backup']?: boolean;
+  ['dry-run']?: boolean;
   items?: string;
   source?: string;
   targets?: string;

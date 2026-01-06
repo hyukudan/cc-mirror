@@ -38,6 +38,7 @@ This reference lists the key environment variables used by cc-mirror and Claude 
 - `CC_MIRROR_PROVIDER_LABEL` - Custom splash label
 - `CC_MIRROR_SPLASH_UTF8` - Windows: `0` to skip `chcp 65001`
 - `CC_MIRROR_UNSET_AUTH_TOKEN` - Internal flag to unset `ANTHROPIC_AUTH_TOKEN`
+- `CC_MIRROR_PREFER_IPV4` - Set to `1` to export `NODE_OPTIONS=--dns-result-order=ipv4first` at runtime
 
 ## Misc
 

@@ -54,18 +54,19 @@ OPTIONS (advanced)
   --skill-update               Refresh managed skills during update
   --env KEY=VALUE              Extra env var override (repeatable)
   --timeout-ms <ms>            API timeout override (ms)
-  --prefer-ipv4                Set NODE_OPTIONS=--dns-result-order=ipv4first
+  --prefer-ipv4                Prefer IPv4 DNS (sets CC_MIRROR_PREFER_IPV4=1)
   --enable-team-mode           Enable team mode
   --disable-team-mode          Disable team mode (quick setup)
 
 OPTIONS (path)
-  --apply                      Append PATH export to shell profile (POSIX only)
+  --apply                      Append PATH export to shell profile (POSIX/PowerShell)
 
 OPTIONS (sync)
-  --items <list>               skills,mcp-servers,permissions,claude-md
+  --items <list>               skills,mcp-servers,permissions,claude-md,tasks,provider-env
   --source <name>              Source variant (optional if positional)
   --targets <list>             Comma-separated targets (optional if positional)
   --no-backup                  Skip config backup
+  --dry-run                    Show what would change without writing files
 
 EXAMPLES
   npx cc-mirror quick --provider zai

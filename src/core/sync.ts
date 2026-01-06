@@ -2,11 +2,12 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { ensureDir, readJson, writeJson } from './fs.js';
 
-export type SyncItem = 'skills' | 'mcp-servers' | 'permissions' | 'claude-md';
+export type SyncItem = 'skills' | 'mcp-servers' | 'permissions' | 'claude-md' | 'tasks' | 'provider-env';
 
 export interface SyncOptions {
   items: SyncItem[];
   createBackup: boolean;
+  dryRun?: boolean;
 }
 
 export interface SyncItemResult {
@@ -61,6 +62,7 @@ const BACKUP_DIR_NAME = 'config.backup';
 const CLAUDE_CONFIG_FILE = '.claude.json';
 const SETTINGS_FILE = 'settings.json';
 const SKILLS_DIR = 'skills';
+const TASKS_DIR = 'tasks';
 const CLAUDE_MD_FILE = 'CLAUDE.md';
 
 export const createConfigBackup = (variantDir: string): string => {
@@ -112,7 +114,7 @@ const isProviderEnvKey = (key: string): boolean => {
   return PROVIDER_ENV_PREFIXES.some((prefix) => key.startsWith(prefix));
 };
 
-const syncSkills = (sourceConfigDir: string, targetConfigDir: string): SyncItemResult => {
+const syncSkills = (sourceConfigDir: string, targetConfigDir: string, dryRun: boolean): SyncItemResult => {
   const result: SyncItemResult = { copied: 0, skipped: 0, errors: [] };
   const sourceSkillsDir = path.join(sourceConfigDir, SKILLS_DIR);
   const targetSkillsDir = path.join(targetConfigDir, SKILLS_DIR);
@@ -126,6 +128,15 @@ const syncSkills = (sourceConfigDir: string, targetConfigDir: string): SyncItemR
     ensureDir(targetSkillsDir);
 
     const skills = fs.readdirSync(sourceSkillsDir, { withFileTypes: true }).filter((e) => e.isDirectory());
+    if (skills.length === 0) {
+      result.skipped = 1;
+      return result;
+    }
+
+    if (dryRun) {
+      result.copied = skills.length;
+      return result;
+    }
 
     for (const skill of skills) {
       const sourceSkillPath = path.join(sourceSkillsDir, skill.name);
@@ -148,7 +159,65 @@ const syncSkills = (sourceConfigDir: string, targetConfigDir: string): SyncItemR
   return result;
 };
 
-const syncMcpServers = (sourceConfigDir: string, targetConfigDir: string): SyncItemResult => {
+const syncTasks = (sourceConfigDir: string, targetConfigDir: string, dryRun: boolean): SyncItemResult => {
+  const result: SyncItemResult = { copied: 0, skipped: 0, errors: [] };
+  const sourceTasksDir = path.join(sourceConfigDir, TASKS_DIR);
+  const targetTasksDir = path.join(targetConfigDir, TASKS_DIR);
+
+  if (!fs.existsSync(sourceTasksDir)) {
+    result.skipped = 1;
+    return result;
+  }
+
+  try {
+    ensureDir(targetTasksDir);
+    const teams = fs.readdirSync(sourceTasksDir, { withFileTypes: true }).filter((entry) => entry.isDirectory());
+
+    if (teams.length === 0) {
+      result.skipped = 1;
+      return result;
+    }
+
+    for (const team of teams) {
+      const sourceTeamDir = path.join(sourceTasksDir, team.name);
+      const targetTeamDir = path.join(targetTasksDir, team.name);
+      ensureDir(targetTeamDir);
+
+      const entries = fs
+        .readdirSync(sourceTeamDir, { withFileTypes: true })
+        .filter((entry) => entry.isFile() && entry.name.endsWith('.json'));
+
+      if (entries.length === 0) {
+        result.skipped++;
+        continue;
+      }
+
+      if (dryRun) {
+        result.copied += entries.length;
+        continue;
+      }
+
+      for (const entry of entries) {
+        const sourcePath = path.join(sourceTeamDir, entry.name);
+        const targetPath = path.join(targetTeamDir, entry.name);
+        try {
+          fs.copyFileSync(sourcePath, targetPath);
+          result.copied++;
+        } catch (err) {
+          result.errors.push(
+            `Failed to copy task ${team.name}/${entry.name}: ${err instanceof Error ? err.message : String(err)}`
+          );
+        }
+      }
+    }
+  } catch (err) {
+    result.errors.push(`Failed to sync tasks: ${err instanceof Error ? err.message : String(err)}`);
+  }
+
+  return result;
+};
+
+const syncMcpServers = (sourceConfigDir: string, targetConfigDir: string, dryRun: boolean): SyncItemResult => {
   const result: SyncItemResult = { copied: 0, skipped: 0, errors: [] };
   const sourceConfigPath = path.join(sourceConfigDir, CLAUDE_CONFIG_FILE);
   const targetConfigPath = path.join(targetConfigDir, CLAUDE_CONFIG_FILE);
@@ -160,6 +229,11 @@ const syncMcpServers = (sourceConfigDir: string, targetConfigDir: string): SyncI
   }
 
   try {
+    if (dryRun) {
+      result.copied = Object.keys(sourceConfig.mcpServers).length;
+      return result;
+    }
+
     const targetConfig = readJson<ClaudeConfig>(targetConfigPath) || {};
     const existingServers = targetConfig.mcpServers || {};
 
@@ -182,7 +256,7 @@ const syncMcpServers = (sourceConfigDir: string, targetConfigDir: string): SyncI
   return result;
 };
 
-const syncPermissions = (sourceConfigDir: string, targetConfigDir: string): SyncItemResult => {
+const syncPermissions = (sourceConfigDir: string, targetConfigDir: string, dryRun: boolean): SyncItemResult => {
   const result: SyncItemResult = { copied: 0, skipped: 0, errors: [] };
   const sourceSettingsPath = path.join(sourceConfigDir, SETTINGS_FILE);
   const targetSettingsPath = path.join(targetConfigDir, SETTINGS_FILE);
@@ -213,13 +287,15 @@ const syncPermissions = (sourceConfigDir: string, targetConfigDir: string): Sync
       }
     }
 
-    const updatedSettings: SettingsFile = {
-      ...targetSettings,
-      env: mergedEnv,
-      permissions: mergedPermissions,
-    };
+    if (!dryRun) {
+      const updatedSettings: SettingsFile = {
+        ...targetSettings,
+        env: mergedEnv,
+        permissions: mergedPermissions,
+      };
 
-    writeJson(targetSettingsPath, updatedSettings);
+      writeJson(targetSettingsPath, updatedSettings);
+    }
   } catch (err) {
     result.errors.push(`Failed to sync permissions: ${err instanceof Error ? err.message : String(err)}`);
   }
@@ -227,7 +303,46 @@ const syncPermissions = (sourceConfigDir: string, targetConfigDir: string): Sync
   return result;
 };
 
-const syncClaudeMd = (sourceConfigDir: string, targetConfigDir: string): SyncItemResult => {
+const syncProviderEnv = (sourceConfigDir: string, targetConfigDir: string, dryRun: boolean): SyncItemResult => {
+  const result: SyncItemResult = { copied: 0, skipped: 0, errors: [] };
+  const sourceSettingsPath = path.join(sourceConfigDir, SETTINGS_FILE);
+  const targetSettingsPath = path.join(targetConfigDir, SETTINGS_FILE);
+
+  const sourceSettings = readJson<SettingsFile>(sourceSettingsPath);
+  const sourceEnv = sourceSettings?.env || {};
+  const providerEntries = Object.entries(sourceEnv).filter(([key]) => isProviderEnvKey(key));
+
+  if (providerEntries.length === 0) {
+    result.skipped = 1;
+    return result;
+  }
+
+  try {
+    const targetSettings = readJson<SettingsFile>(targetSettingsPath) || {};
+    const targetEnv = targetSettings.env || {};
+
+    const mergedEnv: Record<string, string | number | undefined> = { ...targetEnv };
+    for (const [key, value] of providerEntries) {
+      mergedEnv[key] = value;
+      result.copied++;
+    }
+
+    if (!dryRun) {
+      const updatedSettings: SettingsFile = {
+        ...targetSettings,
+        env: mergedEnv,
+      };
+
+      writeJson(targetSettingsPath, updatedSettings);
+    }
+  } catch (err) {
+    result.errors.push(`Failed to sync provider env: ${err instanceof Error ? err.message : String(err)}`);
+  }
+
+  return result;
+};
+
+const syncClaudeMd = (sourceConfigDir: string, targetConfigDir: string, dryRun: boolean): SyncItemResult => {
   const result: SyncItemResult = { copied: 0, skipped: 0, errors: [] };
   const sourcePath = path.join(sourceConfigDir, CLAUDE_MD_FILE);
   const targetPath = path.join(targetConfigDir, CLAUDE_MD_FILE);
@@ -238,7 +353,9 @@ const syncClaudeMd = (sourceConfigDir: string, targetConfigDir: string): SyncIte
   }
 
   try {
-    fs.copyFileSync(sourcePath, targetPath);
+    if (!dryRun) {
+      fs.copyFileSync(sourcePath, targetPath);
+    }
     result.copied = 1;
   } catch (err) {
     result.errors.push(`Failed to sync CLAUDE.md: ${err instanceof Error ? err.message : String(err)}`);
@@ -250,6 +367,7 @@ const syncClaudeMd = (sourceConfigDir: string, targetConfigDir: string): SyncIte
 export const syncVariants = (sourceDir: string, targetDirs: string[], options: SyncOptions): SyncResult[] => {
   const results: SyncResult[] = [];
   const sourceConfigDir = path.join(sourceDir, 'config');
+  const dryRun = Boolean(options.dryRun);
 
   if (!fs.existsSync(sourceConfigDir)) {
     throw new Error(`Source config directory not found: ${sourceConfigDir}`);
@@ -264,7 +382,7 @@ export const syncVariants = (sourceDir: string, targetDirs: string[], options: S
 
     const targetConfigDir = path.join(targetDir, 'config');
 
-    if (options.createBackup) {
+    if (options.createBackup && !dryRun) {
       try {
         result.backupPath = createConfigBackup(targetDir);
       } catch (err) {
@@ -285,16 +403,22 @@ export const syncVariants = (sourceDir: string, targetDirs: string[], options: S
     for (const item of options.items) {
       switch (item) {
         case 'skills':
-          result.itemResults[item] = syncSkills(sourceConfigDir, targetConfigDir);
+          result.itemResults[item] = syncSkills(sourceConfigDir, targetConfigDir, dryRun);
+          break;
+        case 'tasks':
+          result.itemResults[item] = syncTasks(sourceConfigDir, targetConfigDir, dryRun);
           break;
         case 'mcp-servers':
-          result.itemResults[item] = syncMcpServers(sourceConfigDir, targetConfigDir);
+          result.itemResults[item] = syncMcpServers(sourceConfigDir, targetConfigDir, dryRun);
           break;
         case 'permissions':
-          result.itemResults[item] = syncPermissions(sourceConfigDir, targetConfigDir);
+          result.itemResults[item] = syncPermissions(sourceConfigDir, targetConfigDir, dryRun);
+          break;
+        case 'provider-env':
+          result.itemResults[item] = syncProviderEnv(sourceConfigDir, targetConfigDir, dryRun);
           break;
         case 'claude-md':
-          result.itemResults[item] = syncClaudeMd(sourceConfigDir, targetConfigDir);
+          result.itemResults[item] = syncClaudeMd(sourceConfigDir, targetConfigDir, dryRun);
           break;
       }
 
@@ -318,6 +442,7 @@ export const syncVariantsAsync = async (
 ): Promise<SyncResult[]> => {
   const results: SyncResult[] = [];
   const sourceConfigDir = path.join(sourceDir, 'config');
+  const dryRun = Boolean(options.dryRun);
 
   if (!fs.existsSync(sourceConfigDir)) {
     throw new Error(`Source config directory not found: ${sourceConfigDir}`);
@@ -332,7 +457,7 @@ export const syncVariantsAsync = async (
 
     const targetConfigDir = path.join(targetDir, 'config');
 
-    if (options.createBackup) {
+    if (options.createBackup && !dryRun) {
       try {
         result.backupPath = createConfigBackup(targetDir);
       } catch (err) {
@@ -356,16 +481,22 @@ export const syncVariantsAsync = async (
 
       switch (item) {
         case 'skills':
-          result.itemResults[item] = syncSkills(sourceConfigDir, targetConfigDir);
+          result.itemResults[item] = syncSkills(sourceConfigDir, targetConfigDir, dryRun);
+          break;
+        case 'tasks':
+          result.itemResults[item] = syncTasks(sourceConfigDir, targetConfigDir, dryRun);
           break;
         case 'mcp-servers':
-          result.itemResults[item] = syncMcpServers(sourceConfigDir, targetConfigDir);
+          result.itemResults[item] = syncMcpServers(sourceConfigDir, targetConfigDir, dryRun);
           break;
         case 'permissions':
-          result.itemResults[item] = syncPermissions(sourceConfigDir, targetConfigDir);
+          result.itemResults[item] = syncPermissions(sourceConfigDir, targetConfigDir, dryRun);
+          break;
+        case 'provider-env':
+          result.itemResults[item] = syncProviderEnv(sourceConfigDir, targetConfigDir, dryRun);
           break;
         case 'claude-md':
-          result.itemResults[item] = syncClaudeMd(sourceConfigDir, targetConfigDir);
+          result.itemResults[item] = syncClaudeMd(sourceConfigDir, targetConfigDir, dryRun);
           break;
       }
 

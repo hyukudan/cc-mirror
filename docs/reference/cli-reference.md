@@ -41,7 +41,7 @@ All commands are available through `npx cc-mirror`.
 - `--shell-env` - Write env vars to shell profile (Z.ai)
 - `--env KEY=VALUE` - Extra env var override (repeatable)
 - `--timeout-ms <ms>` - API timeout override (ms)
-- `--prefer-ipv4` - Set `NODE_OPTIONS=--dns-result-order=ipv4first`
+- `--prefer-ipv4` - Prefer IPv4 DNS (sets `CC_MIRROR_PREFER_IPV4=1` unless `NODE_OPTIONS` is set)
 - `--enable-team-mode` - Enable team mode (orchestrator skill + Task* tools)
 - `--disable-team-mode` - Disable team mode for quick setup
 - `--no-skill-install` - Skip dev-browser skill install
@@ -49,15 +49,16 @@ All commands are available through `npx cc-mirror`.
 
 ## Options (path)
 
-- `--apply` - Append PATH export to shell profile (POSIX only)
+- `--apply` - Append PATH export to shell profile (POSIX/PowerShell)
 - `--bin-dir <path>` - Check a custom wrapper directory
 
 ## Options (sync)
 
-- `--items <list>` - Items to sync (`skills,mcp-servers,permissions,claude-md`)
+- `--items <list>` - Items to sync (`skills,mcp-servers,permissions,claude-md,tasks,provider-env`)
 - `--source <name>` - Source variant (optional if positional)
 - `--targets <list>` - Comma-separated targets (optional if positional)
 - `--no-backup` - Skip config backup
+- `--dry-run` - Show what would change without writing files
 
 ## Tasks Command
 

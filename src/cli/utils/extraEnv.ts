@@ -15,8 +15,9 @@ export function buildExtraEnv(opts: ParsedArgs): string[] {
   }
   const preferIpv4 = Boolean(opts['prefer-ipv4']);
   const hasNodeOptions = env.some((entry) => entry.trim().startsWith('NODE_OPTIONS='));
-  if (preferIpv4 && !hasNodeOptions) {
-    env.push('NODE_OPTIONS=--dns-result-order=ipv4first');
+  const hasPreferIpv4 = env.some((entry) => entry.trim().startsWith('CC_MIRROR_PREFER_IPV4='));
+  if (preferIpv4 && !hasNodeOptions && !hasPreferIpv4) {
+    env.push('CC_MIRROR_PREFER_IPV4=1');
   }
   return env;
 }

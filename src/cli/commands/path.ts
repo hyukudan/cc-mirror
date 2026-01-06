@@ -38,6 +38,41 @@ const isInPath = (binDir: string): boolean => {
   });
 };
 
+const escapePowerShellString = (value: string): string => value.replace(/'/g, "''");
+
+const getPowerShellProfilePath = (): string | null => {
+  const home = process.env.USERPROFILE || os.homedir();
+  if (!home) return null;
+  const docsDir = path.join(home, 'Documents');
+  const candidates = [
+    path.join(docsDir, 'PowerShell', 'Microsoft.PowerShell_profile.ps1'),
+    path.join(docsDir, 'WindowsPowerShell', 'Microsoft.PowerShell_profile.ps1'),
+  ];
+  const existing = candidates.find((candidate) => fs.existsSync(candidate));
+  return existing || candidates[0] || null;
+};
+
+const applyPowerShellProfile = (binDir: string): { ok: boolean; message: string; profile?: string } => {
+  const profile = getPowerShellProfilePath();
+  if (!profile) return { ok: false, message: 'Unable to resolve PowerShell profile path.' };
+
+  try {
+    fs.mkdirSync(path.dirname(profile), { recursive: true });
+    const current = fs.existsSync(profile) ? fs.readFileSync(profile, 'utf8') : '';
+    if (current.includes(binDir)) {
+      return { ok: true, message: `Status: ${profile} already includes ${binDir}`, profile };
+    }
+    const escaped = escapePowerShellString(binDir);
+    const block = `# cc-mirror\nif (-not $env:Path.Contains('${escaped}')) { $env:Path += ';${escaped}' }\n`;
+    const prefix = current && !current.endsWith('\n') ? '\n' : '';
+    fs.appendFileSync(profile, `${prefix}${block}`, 'utf8');
+    return { ok: true, message: `Updated ${profile}.`, profile };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    return { ok: false, message: `Failed to update ${profile}: ${message}`, profile };
+  }
+};
+
 export function runPathCommand({ opts }: PathCommandOptions): void {
   const binDir = resolveBinDir(opts['bin-dir'] as string | undefined);
   const inPath = isInPath(binDir);
@@ -51,8 +86,12 @@ export function runPathCommand({ opts }: PathCommandOptions): void {
 
   if (apply) {
     if (process.platform === 'win32') {
-      console.log('Automatic PATH updates are not supported on Windows.');
-      console.log('Run the commands below instead.');
+      const result = applyPowerShellProfile(binDir);
+      console.log(result.message);
+      if (result.ok) {
+        console.log('Open a new PowerShell window to pick up PATH changes.');
+        return;
+      }
     } else {
       const shellName = path.basename(process.env.SHELL || '');
       if (shellName === 'fish') {
