@@ -223,6 +223,7 @@ mclaude                       # Run Mirror Claude variant
 ## 🛠️ Troubleshooting
 
 - IPv6 connection resets (often Z.ai): use `--prefer-ipv4` or add `NODE_OPTIONS=--dns-result-order=ipv4first` via `--env`.
+- Command not found after create: add `~/.local/bin` to your PATH (e.g. `export PATH="$HOME/.local/bin:$PATH"`).
 
 ## 🎨 Brand Themes
 
