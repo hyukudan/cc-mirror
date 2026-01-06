@@ -11,6 +11,8 @@ All notable changes to this project will be documented in this file.
 - Provider education updates (placeholders, haikus, setup links).
 - Module-level `AGENTS.md` references for core, TUI, and tests.
 - Orchestration skill refresh with domain guides, coordination rules, and updated workflow guidance.
+- Z.ai `Z_AI_BASE_URL` support for China endpoint defaults in CLI/TUI flows.
+- Ctrl+C interrupt patch for Claude Code CLI (ESC fallback, double-press exit).
 
 ### Changed
 
@@ -18,6 +20,7 @@ All notable changes to this project will be documented in this file.
 - CLI help and provider comparison messaging to include new providers.
 - Team mode now uses `CLAUDE_CODE_TEAM_MODE`, deriving team names from the project folder with optional `TEAM` modifiers.
 - Team mode updates refresh orchestrator skill/tooling when already enabled.
+- Create/update summaries now surface PATH tips when wrapper directory is not exported.
 
 ### Fixed
 

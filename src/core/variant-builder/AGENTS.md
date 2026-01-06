@@ -23,20 +23,21 @@ interface BuildStep {
 }
 ```
 
-## Build Order (10 steps)
+## Build Order (11 steps)
 
 | #   | Step                   | Creates                                                    |
 | --- | ---------------------- | ---------------------------------------------------------- |
 | 1   | PrepareDirectoriesStep | `variantDir/`, `configDir/`, `tweakDir/`, `npmDir/`        |
 | 2   | InstallNpmStep         | `npm/node_modules/@anthropic-ai/claude-code/`              |
-| 3   | WriteConfigStep        | `config/settings.json`, `config/.claude.json`              |
-| 4   | BrandThemeStep         | `tweakcc/config.json` (must precede TeamModeStep)          |
-| 5   | TeamModeStep           | Patches `cli.js` for Task\* tools, configures team toolset |
-| 6   | TweakccStep            | Applies theme + prompt pack to `tweakcc/system-prompts/`   |
-| 7   | WrapperStep            | `~/.local/bin/<name>` wrapper script                       |
-| 8   | ShellEnvStep           | `~/.zshrc` or `~/.bashrc` (zai only)                       |
-| 9   | SkillInstallStep       | `config/skills/` (zai/minimax only)                        |
-| 10  | FinalizeStep           | `variant.json` metadata                                    |
+| 3   | CliPatchStep           | Patches `cli.js` for Ctrl+C interrupt handling             |
+| 4   | WriteConfigStep        | `config/settings.json`, `config/.claude.json`              |
+| 5   | BrandThemeStep         | `tweakcc/config.json` (must precede TeamModeStep)          |
+| 6   | TeamModeStep           | Patches `cli.js` for Task\* tools, configures team toolset |
+| 7   | TweakccStep            | Applies theme + prompt pack to `tweakcc/system-prompts/`   |
+| 8   | WrapperStep            | `~/.local/bin/<name>` wrapper script                       |
+| 9   | ShellEnvStep           | `~/.zshrc` or `~/.bashrc` (zai only)                       |
+| 10  | SkillInstallStep       | `config/skills/` (zai/minimax only)                        |
+| 11  | FinalizeStep           | `variant.json` metadata                                    |
 
 ## Adding a Step
 

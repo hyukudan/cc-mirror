@@ -56,7 +56,8 @@ async function prepareCreateParams(opts: ParsedArgs): Promise<CreateParams> {
   }
 
   const name = (opts.name as string) || providerKey;
-  const baseUrl = (opts['base-url'] as string) || provider.baseUrl;
+  const envZaiBaseUrl = providerKey === 'zai' ? process.env.Z_AI_BASE_URL?.trim() : undefined;
+  const baseUrl = (opts['base-url'] as string) || envZaiBaseUrl || provider.baseUrl;
   const envZaiKey = providerKey === 'zai' ? process.env.Z_AI_API_KEY : undefined;
   const envAnthropicKey = providerKey === 'zai' ? process.env.ANTHROPIC_API_KEY : undefined;
   const hasApiKeyFlag = Boolean(opts['api-key']);
@@ -66,6 +67,9 @@ async function prepareCreateParams(opts: ParsedArgs): Promise<CreateParams> {
 
   if (apiKeyDetected && !opts.yes) {
     console.log('Detected Z_AI_API_KEY in environment. Using it by default.');
+  }
+  if (envZaiBaseUrl && !opts['base-url'] && !opts.yes) {
+    console.log('Detected Z_AI_BASE_URL in environment. Using it by default.');
   }
 
   const brand = (opts.brand as string) || 'auto';

@@ -52,9 +52,10 @@ function filterTasksForClean(tasks: Task[], tasksDir: string, opts: TasksCleanOp
 
   // Filter by age
   if (opts.olderThan !== undefined) {
+    const olderThan = opts.olderThan;
     candidates = candidates.filter((t) => {
       const age = getTaskAge(tasksDir, t.id);
-      return age !== null && age >= opts.olderThan!;
+      return age !== null && age >= olderThan;
     });
   }
 

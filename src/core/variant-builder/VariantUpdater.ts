@@ -15,6 +15,7 @@ import type { ReportFn, UpdateContext, UpdatePaths, UpdatePreferences, UpdateSta
 
 // Import steps
 import { InstallNpmUpdateStep } from './update-steps/InstallNpmUpdateStep.js';
+import { CliPatchUpdateStep } from './update-steps/CliPatchUpdateStep.js';
 import { TeamModeUpdateStep } from './update-steps/TeamModeUpdateStep.js';
 import { ModelOverridesStep } from './update-steps/ModelOverridesStep.js';
 import { TweakccUpdateStep } from './update-steps/TweakccUpdateStep.js';
@@ -54,6 +55,7 @@ export class VariantUpdater {
     // Register steps in execution order
     this.steps = [
       new InstallNpmUpdateStep(),
+      new CliPatchUpdateStep(),
       new TeamModeUpdateStep(), // Patches cli.js for team mode (if enabled)
       new ModelOverridesStep(),
       new TweakccUpdateStep(),

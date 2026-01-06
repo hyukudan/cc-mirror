@@ -73,6 +73,8 @@ npx cc-mirror quick --provider zai --api-key "$Z_AI_API_KEY"
 ```bash
 # Z.ai (GLM Coding Plan)
 npx cc-mirror quick --provider zai --api-key "$Z_AI_API_KEY"
+# Z.ai China endpoint (optional)
+Z_AI_BASE_URL="https://open.bigmodel.cn/api/anthropic" npx cc-mirror quick --provider zai --api-key "$Z_AI_API_KEY"
 
 # MiniMax (MiniMax-M2.1)
 npx cc-mirror quick --provider minimax --api-key "$MINIMAX_API_KEY"

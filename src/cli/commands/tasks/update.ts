@@ -37,7 +37,8 @@ export function runTasksUpdate(opts: TasksUpdateOptions): void {
       }
     }
     if (opts.removeBlocks) {
-      task.blocks = task.blocks.filter((id) => !opts.removeBlocks!.includes(id));
+      const removeBlocks = opts.removeBlocks;
+      task.blocks = task.blocks.filter((id) => !removeBlocks.includes(id));
     }
 
     // Handle blockedBy
@@ -47,7 +48,8 @@ export function runTasksUpdate(opts: TasksUpdateOptions): void {
       }
     }
     if (opts.removeBlockedBy) {
-      task.blockedBy = task.blockedBy.filter((id) => !opts.removeBlockedBy!.includes(id));
+      const removeBlockedBy = opts.removeBlockedBy;
+      task.blockedBy = task.blockedBy.filter((id) => !removeBlockedBy.includes(id));
     }
 
     // Add comment

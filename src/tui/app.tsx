@@ -295,6 +295,10 @@ export const App: React.FC<AppProps> = ({
     return { value: '', detectedFrom: null, skipPrompt: false };
   };
 
+  const resolveZaiBaseUrl = (): string => {
+    return process.env.Z_AI_BASE_URL?.trim() || '';
+  };
+
   useInput((input, key) => {
     if (key.escape) {
       // ESC key navigation - handle all screens
@@ -612,9 +616,11 @@ export const App: React.FC<AppProps> = ({
           const modelDefaults = getDefaultModels(value);
           const keyDefaults =
             value === 'zai' ? resolveZaiApiKey() : { value: '', detectedFrom: null, skipPrompt: false };
+          const baseUrlValue =
+            value === 'zai' ? resolveZaiBaseUrl() || selected?.baseUrl || '' : selected?.baseUrl || '';
           setProviderKey(value);
           setName(value === 'mirror' ? 'mclaude' : value);
-          setBaseUrl(selected?.baseUrl || '');
+          setBaseUrl(baseUrlValue);
           setApiKey(keyDefaults.value);
           setApiKeyDetectedFrom(keyDefaults.detectedFrom);
           setModelSonnet(modelDefaults.sonnet);
@@ -739,9 +745,11 @@ export const App: React.FC<AppProps> = ({
           const modelDefaults = getDefaultModels(value);
           const keyDefaults =
             value === 'zai' ? resolveZaiApiKey() : { value: '', detectedFrom: null, skipPrompt: false };
+          const baseUrlValue =
+            value === 'zai' ? resolveZaiBaseUrl() || selected?.baseUrl || '' : selected?.baseUrl || '';
           setProviderKey(value);
           setName(value === 'mirror' ? 'mclaude' : value);
-          setBaseUrl(selected?.baseUrl || '');
+          setBaseUrl(baseUrlValue);
           setApiKey(keyDefaults.value);
           setApiKeyDetectedFrom(keyDefaults.detectedFrom);
           setModelSonnet(modelDefaults.sonnet);

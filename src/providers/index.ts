@@ -233,7 +233,16 @@ export const buildEnv = ({ providerKey, baseUrl, apiKey, extraEnv, modelOverride
   if (!Object.hasOwn(env, 'CLAUDE_CODE_ENABLE_PROMPT_SUGGESTION')) {
     env.CLAUDE_CODE_ENABLE_PROMPT_SUGGESTION = '1';
   }
-  if (baseUrl) env.ANTHROPIC_BASE_URL = baseUrl;
+  const normalizedBaseUrl = typeof baseUrl === 'string' ? baseUrl.trim() : '';
+  if (normalizedBaseUrl) {
+    env.ANTHROPIC_BASE_URL = normalizedBaseUrl;
+  } else if (baseUrl === undefined) {
+    const envZaiBaseUrl = providerKey === 'zai' ? process.env.Z_AI_BASE_URL?.trim() : undefined;
+    const fallbackBaseUrl = envZaiBaseUrl || provider.baseUrl;
+    if (fallbackBaseUrl) env.ANTHROPIC_BASE_URL = fallbackBaseUrl;
+  } else if (provider.baseUrl) {
+    env.ANTHROPIC_BASE_URL = provider.baseUrl;
+  }
   if (authMode === 'authToken') {
     const trimmed = normalizeModelValue(apiKey);
     if (trimmed) {
