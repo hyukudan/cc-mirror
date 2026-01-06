@@ -29,7 +29,7 @@ COMMANDS
   mcp <name> [operation]       Manage MCP servers for a variant
   export <name> [file]         Export config snapshot
   import <name> <file>         Import config snapshot
-  config <name>                Show variant config summary
+  config [operation]           Show or edit variant config summary
   tasks [operation]            Manage team tasks (list, show, create, update, delete, clean)
   path [--apply]               Show PATH setup instructions
   sync <source> <target...>    Sync config between variants
@@ -89,6 +89,8 @@ OPTIONS (config)
   --variant <name>             Variant to inspect (optional if positional)
   --json                       Print JSON output
   --show-values                Show full env values (default masks secrets)
+  --env KEY=VALUE              Env override (repeatable; for set)
+  --env KEY                    Env key to remove (repeatable; for unset)
 
 EXAMPLES
   npx cc-mirror quick --provider zai
@@ -101,6 +103,7 @@ EXAMPLES
   npx cc-mirror export zai
   npx cc-mirror import zai ./cc-mirror-zai.json
   npx cc-mirror config zai
+  npx cc-mirror config list
 
 LEARN MORE
   https://github.com/numman-ali/cc-mirror

@@ -192,6 +192,9 @@ npx cc-mirror mcp <name>          # Manage MCP servers for a variant
 npx cc-mirror export <name>       # Export config snapshot
 npx cc-mirror import <name> <file>  # Import config snapshot
 npx cc-mirror config <name>       # Show variant config summary
+npx cc-mirror config list         # List variant config summaries
+npx cc-mirror config set <name> --env KEY=VALUE   # Update env overrides
+npx cc-mirror config unset <name> --env KEY       # Remove env overrides
 
 # Task management (team mode)
 npx cc-mirror tasks               # List open tasks
@@ -255,6 +258,8 @@ Config options:
 --variant <name>         Variant to inspect (optional if positional)
 --json                   Print JSON output
 --show-values            Show full env values (default masks secrets)
+--env KEY=VALUE          Env override (repeatable; for set)
+--env KEY                Env key to remove (repeatable; for unset)
 ```
 
 ---

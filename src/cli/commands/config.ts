@@ -6,7 +6,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import * as core from '../../core/index.js';
 import { getWrapperPath } from '../../core/wrapper.js';
-import { readJson } from '../../core/fs.js';
+import { readJson, writeJson } from '../../core/fs.js';
 import { detectVariantFromEnv } from '../../core/tasks/index.js';
 import type { ClaudeConfig } from '../../core/claude-config.js';
 import type { VariantEntry } from '../../core/types.js';
@@ -28,21 +28,56 @@ type SettingsFile = {
 const SETTINGS_FILE = 'settings.json';
 const CLAUDE_FILE = '.claude.json';
 const SENSITIVE_TOKENS = ['KEY', 'TOKEN', 'SECRET', 'PASSWORD'];
+const CONFIG_OPERATIONS = new Set(['show', 'list', 'set', 'unset']);
+
+type ConfigOperation = 'show' | 'list' | 'set' | 'unset';
+
+type ConfigListEntry = {
+  name: string;
+  provider?: string;
+  teamModeEnabled?: boolean;
+  envCount: number;
+  mcpCount: number;
+  permissions: {
+    allow: number;
+    ask: number;
+    deny: number;
+  };
+  paths: {
+    variantDir: string;
+    configDir: string;
+    wrapperPath: string;
+  };
+  wrapperExists: boolean;
+  env?: Record<string, string | number>;
+  mcpServers?: string[];
+};
 
 function showConfigHelp(): void {
   console.log(`
 npx cc-mirror config - Show variant config/env summary
 
 USAGE:
-  npx cc-mirror config <variant> [options]
+  npx cc-mirror config [operation] [variant] [options]
+
+OPERATIONS:
+  show <name>            Show config summary (default)
+  list                   List config summary for all variants
+  set <name>             Update settings.json env overrides
+  unset <name>           Remove settings.json env overrides
 
 OPTIONS:
   --variant <name>     Variant to inspect (optional if positional)
   --json               Print JSON output
   --show-values        Show full env values (default masks secrets)
+  --env KEY=VALUE      Env override (repeatable; for set)
+  --env KEY            Env key to remove (repeatable; for unset)
 
 EXAMPLES:
   npx cc-mirror config zai
+  npx cc-mirror config list
+  npx cc-mirror config set zai --env ANTHROPIC_API_KEY=sk-ant-...
+  npx cc-mirror config unset zai --env ANTHROPIC_API_KEY
   npx cc-mirror config --json --variant minimax
   npx cc-mirror config mirror --show-values
 `);
@@ -82,11 +117,16 @@ function formatList(values?: string[]): string {
   return values.join(', ');
 }
 
-function resolveVariant(opts: ParsedArgs, variants: VariantEntry[], rootDir: string): string | null {
+function resolveVariantWithOffset(
+  opts: ParsedArgs,
+  variants: VariantEntry[],
+  rootDir: string,
+  positionalIndex: number
+): string | null {
   const positional = opts._ || [];
   const variantFromFlag = opts.variant as string | undefined;
   const variantFromEnv = detectVariantFromEnv() || undefined;
-  let variant = variantFromFlag || positional[0] || variantFromEnv;
+  let variant = variantFromFlag || positional[positionalIndex] || variantFromEnv;
 
   if (!variant) {
     if (variants.length === 1) {
@@ -101,6 +141,57 @@ function resolveVariant(opts: ParsedArgs, variants: VariantEntry[], rootDir: str
     }
   }
   return variant;
+}
+
+function resolveConfigDir(entry: VariantEntry, rootDir: string): string {
+  if (entry.meta?.configDir) return entry.meta.configDir;
+  return path.join(rootDir, entry.name, 'config');
+}
+
+function loadSettings(configDir: string): SettingsFile {
+  const settingsPath = path.join(configDir, SETTINGS_FILE);
+  return (readJson<SettingsFile>(settingsPath) ?? {}) as SettingsFile;
+}
+
+function saveSettings(configDir: string, settings: SettingsFile): void {
+  const settingsPath = path.join(configDir, SETTINGS_FILE);
+  writeJson(settingsPath, settings);
+}
+
+function parseEnvUpdates(entries: string[]): { updates: Record<string, string>; invalid: string[] } {
+  const updates: Record<string, string> = {};
+  const invalid: string[] = [];
+  for (const entry of entries) {
+    if (!entry) continue;
+    const idx = entry.indexOf('=');
+    if (idx === -1) {
+      invalid.push(entry);
+      continue;
+    }
+    const key = entry.slice(0, idx).trim();
+    if (!key) {
+      invalid.push(entry);
+      continue;
+    }
+    updates[key] = entry.slice(idx + 1);
+  }
+  return { updates, invalid };
+}
+
+function parseEnvKeys(entries: string[]): { keys: string[]; invalid: string[] } {
+  const keys: string[] = [];
+  const invalid: string[] = [];
+  for (const entry of entries) {
+    if (!entry) continue;
+    const idx = entry.indexOf('=');
+    const key = (idx === -1 ? entry : entry.slice(0, idx)).trim();
+    if (!key) {
+      invalid.push(entry);
+      continue;
+    }
+    keys.push(key);
+  }
+  return { keys, invalid };
 }
 
 function printEnv(env: Record<string, string | number>): void {
@@ -159,6 +250,51 @@ function printClaudeSummary(claudeConfig?: ClaudeConfig): void {
   }
 }
 
+function buildConfigListEntry(
+  entry: VariantEntry,
+  rootDir: string,
+  binDirOverride: string | undefined,
+  showValues: boolean
+): ConfigListEntry | null {
+  const variantDir = path.join(rootDir, entry.name);
+  const configDir = resolveConfigDir(entry, rootDir);
+  if (!fs.existsSync(configDir)) {
+    return null;
+  }
+
+  const settings = loadSettings(configDir);
+  const claudePath = path.join(configDir, CLAUDE_FILE);
+  const claudeConfig = (readJson<ClaudeConfig>(claudePath) ?? {}) as ClaudeConfig;
+  const env = sanitizeEnv(settings.env, showValues);
+
+  const binDir = entry.meta?.binDir || binDirOverride || core.DEFAULT_BIN_DIR;
+  const resolvedBin = core.expandTilde(binDir) ?? binDir;
+  const wrapperPath = getWrapperPath(resolvedBin, entry.name);
+  const permissions = settings.permissions ?? {};
+  const mcpServers = Object.keys(claudeConfig.mcpServers ?? {}).sort();
+
+  return {
+    name: entry.name,
+    provider: entry.meta?.provider,
+    teamModeEnabled: entry.meta?.teamModeEnabled,
+    envCount: Object.keys(env).length,
+    mcpCount: mcpServers.length,
+    permissions: {
+      allow: permissions.allow?.length ?? 0,
+      ask: permissions.ask?.length ?? 0,
+      deny: permissions.deny?.length ?? 0,
+    },
+    paths: {
+      variantDir,
+      configDir,
+      wrapperPath,
+    },
+    wrapperExists: fs.existsSync(wrapperPath),
+    env: env,
+    mcpServers,
+  };
+}
+
 /**
  * Execute the config command
  */
@@ -171,7 +307,41 @@ export function runConfigCommand({ opts }: ConfigCommandOptions): void {
   const rootDir = (opts.root as string) || core.DEFAULT_ROOT;
   const resolvedRoot = core.expandTilde(rootDir) ?? rootDir;
   const variants = core.listVariants(resolvedRoot);
-  const variant = resolveVariant(opts, variants, resolvedRoot);
+  const showValues = Boolean(opts['show-values']);
+  const positional = opts._ || [];
+  const hasOperation = Boolean(positional[0] && CONFIG_OPERATIONS.has(positional[0]));
+  const operation = (hasOperation ? positional[0] : 'show') as ConfigOperation;
+  const positionalIndex = hasOperation ? 1 : 0;
+
+  if (operation === 'list') {
+    if (variants.length === 0) {
+      console.log(`No variants found in ${resolvedRoot}`);
+      return;
+    }
+    const binDirOverride = opts['bin-dir'] as string | undefined;
+    const entries = variants
+      .map((entry) => buildConfigListEntry(entry, resolvedRoot, binDirOverride, showValues))
+      .filter((entry): entry is ConfigListEntry => Boolean(entry));
+
+    if (opts.json === true) {
+      console.log(JSON.stringify(entries, null, 2));
+      return;
+    }
+
+    console.log('Variants:');
+    for (const entry of entries) {
+      const provider = entry.provider ?? 'unknown';
+      const team = entry.teamModeEnabled ? 'on' : 'off';
+      const perms = `${entry.permissions.allow}/${entry.permissions.ask}/${entry.permissions.deny}`;
+      const wrapper = entry.wrapperExists ? 'ok' : 'missing';
+      console.log(
+        `- ${entry.name} (provider=${provider}, team=${team}, env=${entry.envCount}, mcp=${entry.mcpCount}, perms=${perms}, wrapper=${wrapper})`
+      );
+    }
+    return;
+  }
+
+  const variant = resolveVariantWithOffset(opts, variants, resolvedRoot, positionalIndex);
   if (!variant) {
     showConfigHelp();
     process.exitCode = 1;
@@ -187,19 +357,107 @@ export function runConfigCommand({ opts }: ConfigCommandOptions): void {
 
   const meta = entry.meta ?? null;
   const variantDir = path.join(resolvedRoot, variant);
-  const configDir = meta?.configDir ?? path.join(variantDir, 'config');
+  const configDir = resolveConfigDir(entry, resolvedRoot);
   if (!fs.existsSync(configDir)) {
     console.error(`Config directory missing: ${configDir}`);
     process.exitCode = 1;
     return;
   }
 
-  const settingsPath = path.join(configDir, SETTINGS_FILE);
-  const claudePath = path.join(configDir, CLAUDE_FILE);
-  const settings = (readJson<SettingsFile>(settingsPath) ?? {}) as SettingsFile;
-  const claudeConfig = (readJson<ClaudeConfig>(claudePath) ?? {}) as ClaudeConfig;
+  if (operation === 'set' || operation === 'unset') {
+    const envEntries = opts.env ?? [];
+    if (envEntries.length === 0) {
+      console.error('Error: --env is required for set/unset.');
+      process.exitCode = 1;
+      return;
+    }
 
-  const showValues = Boolean(opts['show-values']);
+    const settings = loadSettings(configDir);
+    const env = { ...(settings.env ?? {}) };
+    let updated = false;
+    let updatedKeys: string[] = [];
+
+    if (operation === 'set') {
+      const { updates, invalid } = parseEnvUpdates(envEntries);
+      if (invalid.length > 0) {
+        console.error(`Error: invalid --env entries: ${invalid.join(', ')}`);
+        process.exitCode = 1;
+        return;
+      }
+      updatedKeys = Object.keys(updates);
+      if (updatedKeys.length === 0) {
+        console.error('Error: no valid --env entries provided.');
+        process.exitCode = 1;
+        return;
+      }
+      for (const [key, value] of Object.entries(updates)) {
+        if (env[key] !== value) {
+          env[key] = value;
+          updated = true;
+        }
+      }
+    } else {
+      const { keys, invalid } = parseEnvKeys(envEntries);
+      if (invalid.length > 0) {
+        console.error(`Error: invalid --env entries: ${invalid.join(', ')}`);
+        process.exitCode = 1;
+        return;
+      }
+      const uniqueKeys = Array.from(new Set(keys));
+      updatedKeys = uniqueKeys;
+      if (uniqueKeys.length === 0) {
+        console.error('Error: no valid --env entries provided.');
+        process.exitCode = 1;
+        return;
+      }
+      for (const key of uniqueKeys) {
+        if (Object.hasOwn(env, key)) {
+          delete env[key];
+          updated = true;
+        }
+      }
+    }
+
+    const next: SettingsFile = {
+      ...settings,
+      env: Object.keys(env).length > 0 ? env : undefined,
+    };
+
+    if (updated) {
+      saveSettings(configDir, next);
+    }
+
+    if (opts.json === true) {
+      console.log(
+        JSON.stringify(
+          {
+            variant,
+            operation,
+            updated,
+            keys: updatedKeys.sort(),
+            configDir,
+          },
+          null,
+          2
+        )
+      );
+      return;
+    }
+
+    if (updated) {
+      console.log(`Updated settings.json for ${variant}.`);
+    } else {
+      console.log(`No changes for ${variant}.`);
+    }
+    if (updatedKeys.length > 0) {
+      console.log(`Keys: ${updatedKeys.sort().join(', ')}`);
+    }
+    return;
+  }
+
+  const settings = loadSettings(configDir);
+  const claudePath = path.join(configDir, CLAUDE_FILE);
+  const claudeConfig = (readJson<ClaudeConfig>(claudePath) ?? {}) as ClaudeConfig;
   const env = sanitizeEnv(settings.env, showValues);
 
   const binDir = (opts['bin-dir'] as string) || meta?.binDir || core.DEFAULT_BIN_DIR;

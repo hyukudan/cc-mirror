@@ -15,7 +15,7 @@ All commands are available through `npx cc-mirror`.
 - `mcp <name> [operation]` - Manage MCP servers for a variant
 - `export <name> [file]` - Export a config snapshot
 - `import <name> <file>` - Import a config snapshot
-- `config <name>` - Show variant config summary
+- `config [operation]` - Show or edit variant config summary
 - `tasks [operation]` - Manage team tasks
 - `path [--apply]` - Show PATH setup instructions
 - `sync <source> <target...>` - Sync config between variants
@@ -84,6 +84,8 @@ All commands are available through `npx cc-mirror`.
 - `--variant <name>` - Variant to inspect (optional if positional)
 - `--json` - Print JSON output
 - `--show-values` - Show full env values (default masks secrets)
+- `--env KEY=VALUE` - Env override (repeatable; for set)
+- `--env KEY` - Env key to remove (repeatable; for unset)
 
 ## MCP Command
 
@@ -108,6 +110,9 @@ npx cc-mirror import zai ./cc-mirror-zai.json --items mcp-servers,permissions
 
 ```
 npx cc-mirror config zai
+npx cc-mirror config list
+npx cc-mirror config set zai --env ANTHROPIC_API_KEY=sk-ant-...
+npx cc-mirror config unset zai --env ANTHROPIC_API_KEY
 npx cc-mirror config --json --variant minimax
 ```
 
