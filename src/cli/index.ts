@@ -13,6 +13,7 @@ import {
   runUpdateCommand,
   runCreateCommand,
   runTasksCommand,
+  runPathCommand,
 } from './commands/index.js';
 
 const main = async () => {
@@ -69,6 +70,10 @@ const main = async () => {
 
     case 'tweak':
       runTweakCommand({ opts });
+      break;
+
+    case 'path':
+      runPathCommand({ opts });
       break;
 
     case 'create':

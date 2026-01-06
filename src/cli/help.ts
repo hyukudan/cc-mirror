@@ -26,6 +26,7 @@ COMMANDS
   doctor                       Health check all variants
   tweak <name>                 Launch tweakcc customization
   tasks [operation]            Manage team tasks (list, show, create, update, delete, clean)
+  path                         Show PATH setup instructions
 
 OPTIONS (create/quick)
   --name <name>                Variant name (becomes CLI command)
@@ -55,6 +56,7 @@ EXAMPLES
   npx cc-mirror create --provider minimax --brand minimax
   npx cc-mirror update zai
   npx cc-mirror doctor
+  npx cc-mirror path
 
 LEARN MORE
   https://github.com/numman-ali/cc-mirror

@@ -34,6 +34,7 @@ test('printHelp outputs usage information', () => {
   assert.ok(text.includes('remove'), 'Should include remove command');
   assert.ok(text.includes('doctor'), 'Should include doctor command');
   assert.ok(text.includes('tweak'), 'Should include tweak command');
+  assert.ok(text.includes('path'), 'Should include path command');
 });
 
 test('printHelp documents provider options', () => {
