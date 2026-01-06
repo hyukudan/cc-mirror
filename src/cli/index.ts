@@ -12,6 +12,8 @@ import {
   runTweakCommand,
   runRunCommand,
   runMcpCommand,
+  runExportCommand,
+  runImportCommand,
   runUpdateCommand,
   runCreateCommand,
   runTasksCommand,
@@ -81,6 +83,14 @@ const main = async () => {
 
     case 'mcp':
       runMcpCommand({ opts });
+      break;
+
+    case 'export':
+      runExportCommand({ opts });
+      break;
+
+    case 'import':
+      runImportCommand({ opts });
       break;
 
     case 'path':

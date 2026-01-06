@@ -189,6 +189,8 @@ npx cc-mirror doctor              # Health check all variants
 npx cc-mirror sync <source> <target...>  # Sync skills/MCP/permissions/CLAUDE.md
 npx cc-mirror run <name>          # Launch a variant wrapper
 npx cc-mirror mcp <name>          # Manage MCP servers for a variant
+npx cc-mirror export <name>       # Export config snapshot
+npx cc-mirror import <name> <file>  # Import config snapshot
 
 # Task management (team mode)
 npx cc-mirror tasks               # List open tasks
