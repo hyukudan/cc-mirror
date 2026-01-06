@@ -15,28 +15,7 @@ import { tick, send, waitFor, KEYS, makeCore } from './helpers/index.js';
 const down = KEYS.down;
 const enter = KEYS.enter;
 
-const ESC = String.fromCharCode(27);
-const stripAnsi = (value: string) => {
-  let result = '';
-  let inEscape = false;
-  for (let i = 0; i < value.length; i += 1) {
-    const char = value[i];
-    if (!inEscape) {
-      if (char === ESC) {
-        inEscape = true;
-        continue;
-      }
-      result += char;
-      continue;
-    }
-    if (char === 'm') {
-      inEscape = false;
-    }
-  }
-  return result;
-};
-
-const frameText = (app: { lastFrame: () => string | undefined }) => stripAnsi(app.lastFrame() || '');
+const frameText = (app: { lastFrame: () => string | undefined }) => app.lastFrame() || '';
 
 const waitForText = async (app: { lastFrame: () => string | undefined }, text: string, attempts = 100) => {
   const ok = await waitFor(() => frameText(app).includes(text), attempts);
@@ -50,7 +29,10 @@ const selectMenuItem = async (
 ) => {
   await waitForText(app, label);
   for (let i = 0; i < maxMoves; i += 1) {
-    if (frameText(app).includes(`${icons.pointer} ${label}`)) {
+    const selectedLine = frameText(app)
+      .split('\n')
+      .find((line) => line.includes(icons.pointer));
+    if (selectedLine && selectedLine.includes(label)) {
       return;
     }
     await send(app.stdin, down);
