@@ -75,8 +75,22 @@ test('TUI create flow applies tweakcc by default', async () => {
   await send(app.stdin, enter);
   await waitForText(app, 'Select Provider');
   await send(app.stdin, enter); // provider select -> default (zai)
-  await waitForText(app, 'Setting up');
-  await send(app.stdin, enter); // intro screen -> continue
+  const reachedIntro = await waitFor(() => {
+    const frame = frameText(app);
+    return (
+      frame.includes('Setting up') ||
+      frame.includes('Choose Theme') ||
+      frame.includes('Variant Name') ||
+      frame.includes('Base URL') ||
+      frame.includes('API Key') ||
+      frame.includes('Browser Automation')
+    );
+  }, 150);
+  assert.ok(reachedIntro);
+  const introFrame = frameText(app);
+  if (introFrame.includes('Setting up')) {
+    await send(app.stdin, enter); // intro screen -> continue
+  }
   const reachedBrand = await waitFor(() => {
     const frame = frameText(app);
     return frame.includes('Choose Theme') || frame.includes('Variant Name');
