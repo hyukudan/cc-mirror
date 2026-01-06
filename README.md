@@ -260,6 +260,9 @@ Config options:
 --show-values            Show full env values (default masks secrets)
 --env KEY=VALUE          Env override (repeatable; for set)
 --env KEY                Env key to remove (repeatable; for unset)
+--allow <list>           Comma-separated allow list (set/unset)
+--ask <list>             Comma-separated ask list (set/unset)
+--deny <list>            Comma-separated deny list (set/unset)
 ```
 
 ---

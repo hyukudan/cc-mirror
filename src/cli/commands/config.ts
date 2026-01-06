@@ -72,12 +72,17 @@ OPTIONS:
   --show-values        Show full env values (default masks secrets)
   --env KEY=VALUE      Env override (repeatable; for set)
   --env KEY            Env key to remove (repeatable; for unset)
+  --allow <list>       Comma-separated allow list (set/unset)
+  --ask <list>         Comma-separated ask list (set/unset)
+  --deny <list>        Comma-separated deny list (set/unset)
 
 EXAMPLES:
   npx cc-mirror config zai
   npx cc-mirror config list
   npx cc-mirror config set zai --env ANTHROPIC_API_KEY=sk-ant-...
   npx cc-mirror config unset zai --env ANTHROPIC_API_KEY
+  npx cc-mirror config set zai --allow TaskCreate,TaskUpdate
+  npx cc-mirror config unset zai --deny WebSearch
   npx cc-mirror config --json --variant minimax
   npx cc-mirror config mirror --show-values
 `);
@@ -192,6 +197,81 @@ function parseEnvKeys(entries: string[]): { keys: string[]; invalid: string[] } 
     keys.push(key);
   }
   return { keys, invalid };
+}
+
+function parseCommaList(value: string | boolean | undefined): { items: string[]; invalid: boolean } {
+  if (value === undefined) {
+    return { items: [], invalid: false };
+  }
+  if (typeof value === 'boolean') {
+    return { items: [], invalid: true };
+  }
+  const items = value
+    .split(',')
+    .map((item: string) => item.trim())
+    .filter(Boolean);
+  return { items, invalid: items.length === 0 };
+}
+
+function normalizePermissions(permissions?: SettingsFile['permissions']): {
+  allow: string[];
+  ask: string[];
+  deny: string[];
+} {
+  return {
+    allow: Array.isArray(permissions?.allow) ? [...permissions.allow] : [],
+    ask: Array.isArray(permissions?.ask) ? [...permissions.ask] : [],
+    deny: Array.isArray(permissions?.deny) ? [...permissions.deny] : [],
+  };
+}
+
+function applyPermissionUpdates(opts: {
+  current: SettingsFile['permissions'] | undefined;
+  allowItems: string[];
+  askItems: string[];
+  denyItems: string[];
+  operation: 'set' | 'unset';
+}): { next: SettingsFile['permissions'] | undefined; updated: boolean; keys: string[] } {
+  const { allow, ask, deny } = normalizePermissions(opts.current);
+  const updatedKeys: string[] = [];
+  let updated = false;
+
+  const updateList = (list: string[], items: string[], label: string) => {
+    if (items.length === 0) return;
+    const set = new Set(list);
+    if (opts.operation === 'set') {
+      for (const item of items) {
+        if (!set.has(item)) {
+          set.add(item);
+          updated = true;
+        }
+      }
+    } else {
+      for (const item of items) {
+        if (set.delete(item)) {
+          updated = true;
+        }
+      }
+    }
+    const nextList = Array.from(set);
+    nextList.sort();
+    list.splice(0, list.length, ...nextList);
+    updatedKeys.push(...items.map((item) => `${label}:${item}`));
+  };
+
+  updateList(allow, opts.allowItems, 'allow');
+  updateList(ask, opts.askItems, 'ask');
+  updateList(deny, opts.denyItems, 'deny');
+
+  const nextPermissions: SettingsFile['permissions'] = {};
+  if (allow.length > 0) nextPermissions.allow = allow;
+  if (ask.length > 0) nextPermissions.ask = ask;
+  if (deny.length > 0) nextPermissions.deny = deny;
+
+  if (Object.keys(nextPermissions).length === 0) {
+    return { next: undefined, updated, keys: updatedKeys };
+  }
+  return { next: nextPermissions, updated, keys: updatedKeys };
 }
 
 function printEnv(env: Record<string, string | number>): void {
@@ -366,8 +446,14 @@ export function runConfigCommand({ opts }: ConfigCommandOptions): void {
 
   if (operation === 'set' || operation === 'unset') {
     const envEntries = opts.env ?? [];
-    if (envEntries.length === 0) {
-      console.error('Error: --env is required for set/unset.');
+    const allowArg = opts.allow as string | boolean | undefined;
+    const askArg = opts.ask as string | boolean | undefined;
+    const denyArg = opts.deny as string | boolean | undefined;
+
+    const hasPermissionFlags = allowArg !== undefined || askArg !== undefined || denyArg !== undefined;
+    const hasEnvFlags = envEntries.length > 0;
+    if (!hasEnvFlags && !hasPermissionFlags) {
+      console.error('Error: set/unset requires --env or permission flags.');
       process.exitCode = 1;
       return;
     }
@@ -375,52 +461,82 @@ export function runConfigCommand({ opts }: ConfigCommandOptions): void {
     const settings = loadSettings(configDir);
     const env = { ...(settings.env ?? {}) };
     let updated = false;
-    let updatedKeys: string[] = [];
+    const updatedKeys: string[] = [];
 
-    if (operation === 'set') {
-      const { updates, invalid } = parseEnvUpdates(envEntries);
-      if (invalid.length > 0) {
-        console.error(`Error: invalid --env entries: ${invalid.join(', ')}`);
-        process.exitCode = 1;
-        return;
-      }
-      updatedKeys = Object.keys(updates);
-      if (updatedKeys.length === 0) {
-        console.error('Error: no valid --env entries provided.');
-        process.exitCode = 1;
-        return;
-      }
-      for (const [key, value] of Object.entries(updates)) {
-        if (env[key] !== value) {
-          env[key] = value;
-          updated = true;
+    if (envEntries.length > 0) {
+      if (operation === 'set') {
+        const { updates, invalid } = parseEnvUpdates(envEntries);
+        if (invalid.length > 0) {
+          console.error(`Error: invalid --env entries: ${invalid.join(', ')}`);
+          process.exitCode = 1;
+          return;
         }
-      }
-    } else {
-      const { keys, invalid } = parseEnvKeys(envEntries);
-      if (invalid.length > 0) {
-        console.error(`Error: invalid --env entries: ${invalid.join(', ')}`);
-        process.exitCode = 1;
-        return;
-      }
-      const uniqueKeys = Array.from(new Set(keys));
-      updatedKeys = uniqueKeys;
-      if (uniqueKeys.length === 0) {
-        console.error('Error: no valid --env entries provided.');
-        process.exitCode = 1;
-        return;
-      }
-      for (const key of uniqueKeys) {
-        if (Object.hasOwn(env, key)) {
-          delete env[key];
-          updated = true;
+        const envKeys = Object.keys(updates);
+        if (envKeys.length === 0) {
+          console.error('Error: no valid --env entries provided.');
+          process.exitCode = 1;
+          return;
         }
+        for (const [key, value] of Object.entries(updates)) {
+          if (env[key] !== value) {
+            env[key] = value;
+            updated = true;
+          }
+        }
+        updatedKeys.push(...envKeys);
+      } else {
+        const { keys, invalid } = parseEnvKeys(envEntries);
+        if (invalid.length > 0) {
+          console.error(`Error: invalid --env entries: ${invalid.join(', ')}`);
+          process.exitCode = 1;
+          return;
+        }
+        const uniqueKeys = Array.from(new Set(keys));
+        if (uniqueKeys.length === 0) {
+          console.error('Error: no valid --env entries provided.');
+          process.exitCode = 1;
+          return;
+        }
+        for (const key of uniqueKeys) {
+          if (Object.hasOwn(env, key)) {
+            delete env[key];
+            updated = true;
+          }
+        }
+        updatedKeys.push(...uniqueKeys);
+      }
+    }
+
+    let nextPermissions = settings.permissions;
+    if (hasPermissionFlags) {
+      const allowList = parseCommaList(allowArg);
+      const askList = parseCommaList(askArg);
+      const denyList = parseCommaList(denyArg);
+      if (allowList.invalid || askList.invalid || denyList.invalid) {
+        console.error('Error: --allow/--ask/--deny require comma-separated values.');
+        process.exitCode = 1;
+        return;
+      }
+      const permissionUpdates = applyPermissionUpdates({
+        current: settings.permissions,
+        allowItems: allowList.items,
+        askItems: askList.items,
+        denyItems: denyList.items,
+        operation,
+      });
+      nextPermissions = permissionUpdates.next;
+      if (permissionUpdates.updated) {
+        updated = true;
+      }
+      if (permissionUpdates.keys.length > 0) {
+        updatedKeys.push(...permissionUpdates.keys);
       }
     }
 
     const next: SettingsFile = {
       ...settings,
       env: Object.keys(env).length > 0 ? env : undefined,
+      permissions: nextPermissions,
     };
 
     if (updated) {

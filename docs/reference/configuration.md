@@ -1,7 +1,7 @@
 # Configuration Reference
 
 Each variant stores its configuration under `~/.cc-mirror/<variant>/`.
-Use `npx cc-mirror config <variant>` to inspect the current settings, permissions, and MCP servers. To edit env overrides without a full update, run `npx cc-mirror config set <variant> --env KEY=VALUE` or `npx cc-mirror config unset <variant> --env KEY`.
+Use `npx cc-mirror config <variant>` to inspect the current settings, permissions, and MCP servers. To edit env or permissions without a full update, run `npx cc-mirror config set <variant> --env KEY=VALUE --allow ToolA,ToolB` or `npx cc-mirror config unset <variant> --env KEY --deny ToolC`.
 
 ## Variant Layout
 

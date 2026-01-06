@@ -34,7 +34,14 @@ const setupVariant = (rootDir: string, name: string) => {
 
 const readSettings = (configDir: string) => {
   const settingsPath = path.join(configDir, 'settings.json');
-  return JSON.parse(fs.readFileSync(settingsPath, 'utf8')) as { env?: Record<string, string> };
+  return JSON.parse(fs.readFileSync(settingsPath, 'utf8')) as {
+    env?: Record<string, string>;
+    permissions?: {
+      allow?: string[];
+      ask?: string[];
+      deny?: string[];
+    };
+  };
 };
 
 test('config set updates env overrides', () => {
@@ -84,6 +91,66 @@ test('config unset removes env overrides', () => {
   const settings = readSettings(configDir);
   assert.equal(settings.env?.FOO, undefined);
   assert.equal(settings.env?.KEEP, 'yes');
+
+  if (originalConfigDir) {
+    process.env.CLAUDE_CONFIG_DIR = originalConfigDir;
+  }
+  cleanup(rootDir);
+});
+
+test('config set updates permissions', () => {
+  const rootDir = makeTempDir();
+  const { configDir } = setupVariant(rootDir, 'gamma');
+  writeJson(path.join(configDir, 'settings.json'), { permissions: { allow: ['TaskList'] } });
+
+  const originalConfigDir = process.env.CLAUDE_CONFIG_DIR;
+  delete process.env.CLAUDE_CONFIG_DIR;
+  process.exitCode = 0;
+
+  runConfigCommand({
+    opts: {
+      _: ['set', 'gamma'],
+      env: [],
+      allow: 'TaskCreate,TaskUpdate',
+      deny: 'WebSearch',
+      root: rootDir,
+    },
+  });
+
+  const settings = readSettings(configDir);
+  assert.deepEqual(settings.permissions?.allow, ['TaskCreate', 'TaskList', 'TaskUpdate']);
+  assert.deepEqual(settings.permissions?.deny, ['WebSearch']);
+
+  if (originalConfigDir) {
+    process.env.CLAUDE_CONFIG_DIR = originalConfigDir;
+  }
+  cleanup(rootDir);
+});
+
+test('config unset updates permissions', () => {
+  const rootDir = makeTempDir();
+  const { configDir } = setupVariant(rootDir, 'delta');
+  writeJson(path.join(configDir, 'settings.json'), {
+    permissions: { allow: ['TaskCreate', 'TaskUpdate'], deny: ['WebSearch'] },
+  });
+
+  const originalConfigDir = process.env.CLAUDE_CONFIG_DIR;
+  delete process.env.CLAUDE_CONFIG_DIR;
+  process.exitCode = 0;
+
+  runConfigCommand({
+    opts: {
+      _: ['unset', 'delta'],
+      env: [],
+      allow: 'TaskCreate',
+      deny: 'WebSearch',
+      root: rootDir,
+    },
+  });
+
+  const settings = readSettings(configDir);
+  assert.deepEqual(settings.permissions?.allow, ['TaskUpdate']);
+  assert.equal(settings.permissions?.deny, undefined);
 
   if (originalConfigDir) {
     process.env.CLAUDE_CONFIG_DIR = originalConfigDir;

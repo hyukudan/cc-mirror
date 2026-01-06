@@ -10,7 +10,7 @@ All notable changes to this project will be documented in this file.
 - `cc-mirror mcp <name>` command to manage MCP servers in a variant.
 - `cc-mirror export/import` commands to snapshot and restore variant config.
 - `cc-mirror config <name>` command to inspect variant config, env, and MCP summary.
-- `cc-mirror config list/set/unset` operations to list or edit settings.json env overrides.
+- `cc-mirror config list/set/unset` operations to list or edit settings.json env + permissions.
 
 ## [1.5.0] - 2026-01-06
 
