@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Added
+
+- `cc-mirror run <name>` command to launch a variant wrapper directly.
+
 ## [1.5.0] - 2026-01-06
 
 ### Added

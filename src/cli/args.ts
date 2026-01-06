@@ -33,6 +33,10 @@ export const parseArgs = (argv: string[]): ParsedArgs => {
       opts._.push(arg);
       continue;
     }
+    if (arg === '--') {
+      opts._.push(...args);
+      break;
+    }
     if (arg === '--yes') {
       opts.yes = true;
       continue;

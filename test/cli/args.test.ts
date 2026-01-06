@@ -115,6 +115,12 @@ test('parseArgs ignores non-flag arguments starting with single dash', () => {
   assert.equal(result.provider, undefined);
 });
 
+test('parseArgs treats -- as the end of flags', () => {
+  const result = parseArgs(['my-variant', '--', '--version', '--foo=bar']);
+  assert.deepEqual(result._, ['my-variant', '--version', '--foo=bar']);
+  assert.equal(result.foo, undefined);
+});
+
 test('parseArgs handles empty array', () => {
   const result = parseArgs([]);
   assert.deepEqual(result._, []);

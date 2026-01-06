@@ -10,6 +10,7 @@ import {
   runDoctorCommand,
   runRemoveCommand,
   runTweakCommand,
+  runRunCommand,
   runUpdateCommand,
   runCreateCommand,
   runTasksCommand,
@@ -71,6 +72,10 @@ const main = async () => {
 
     case 'tweak':
       runTweakCommand({ opts });
+      break;
+
+    case 'run':
+      runRunCommand({ opts });
       break;
 
     case 'path':

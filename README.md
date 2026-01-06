@@ -186,6 +186,7 @@ npx cc-mirror update [name]       # Update one or all variants
 npx cc-mirror remove <name>       # Delete a variant
 npx cc-mirror doctor              # Health check all variants
 npx cc-mirror sync <source> <target...>  # Sync skills/MCP/permissions/CLAUDE.md
+npx cc-mirror run <name>          # Launch a variant wrapper
 
 # Task management (team mode)
 npx cc-mirror tasks               # List open tasks
@@ -198,6 +199,7 @@ npx cc-mirror tasks clean         # Bulk cleanup
 npx cc-mirror tasks graph         # Visualize dependencies
 
 # Launch your variant
+npx cc-mirror run <name>          # Launch a variant wrapper
 zai                           # Run Z.ai variant
 minimax                       # Run MiniMax variant
 mclaude                       # Run Mirror Claude variant

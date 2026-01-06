@@ -25,6 +25,7 @@ COMMANDS
   remove <name>                Remove a variant
   doctor                       Health check all variants
   tweak <name>                 Launch tweakcc customization
+  run <name>                   Launch a variant wrapper
   tasks [operation]            Manage team tasks (list, show, create, update, delete, clean)
   path [--apply]               Show PATH setup instructions
   sync <source> <target...>    Sync config between variants
@@ -74,6 +75,7 @@ EXAMPLES
   npx cc-mirror update zai
   npx cc-mirror doctor
   npx cc-mirror path
+  npx cc-mirror run zai
 
 LEARN MORE
   https://github.com/numman-ali/cc-mirror

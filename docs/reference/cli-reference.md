@@ -11,6 +11,7 @@ All commands are available through `npx cc-mirror`.
 - `remove <name>` - Remove a variant
 - `doctor` - Health check all variants
 - `tweak <name>` - Launch tweakcc customization
+- `run <name>` - Launch a variant wrapper
 - `tasks [operation]` - Manage team tasks
 - `path [--apply]` - Show PATH setup instructions
 - `sync <source> <target...>` - Sync config between variants
