@@ -8,7 +8,7 @@ import type { UpdateContext, UpdateStep } from '../types.js';
 
 const SIGINT_EXIT_HANDLER = 'process.on("SIGINT",()=>{process.exit(0)})';
 const SIGINT_PATCH_HANDLER =
-  'process.on("SIGINT",(()=>{let A=0;return()=>{let Q=Date.now();try{if(process.stdin&&process.stdin.isTTY)process.stdin.emit("data","\\x1b")}catch{}if(Q-A<600)process.exit(0);else A=Q}})())';
+  'process.on("SIGINT",(()=>{let A=0;return()=>{if(!process.stdin||!process.stdin.isTTY){process.exit(0);return}let Q=Date.now();try{process.stdin.emit("data","\\x1b")}catch{}if(Q-A<600)process.exit(0);else A=Q}})())';
 
 export class CliPatchUpdateStep implements UpdateStep {
   name = 'CliPatch';

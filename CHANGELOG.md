@@ -10,6 +10,7 @@ All notable changes to this project will be documented in this file.
 - `cc-mirror sync` CLI command for syncing configs between variants.
 - Sync options for `tasks`, `provider-env`, and `--dry-run`.
 - TUI sync flow now lets you choose which items to copy.
+- MCP server setup guidance in README and configuration reference.
 - GatewayZ and NanoGPT providers with themes, splash art, and model mapping defaults.
 - Provider education updates (placeholders, haikus, setup links).
 - Z.ai `Z_AI_BASE_URL` support for China endpoint defaults in CLI/TUI flows.

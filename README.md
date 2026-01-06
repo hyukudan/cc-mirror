@@ -153,6 +153,12 @@ minimax      # Launch MiniMax variant
 mclaude      # Launch Mirror Claude variant
 ```
 
+MCP servers live in `~/.cc-mirror/<variant>/config/.claude.json`. Add them by running the wrapper:
+
+```bash
+zai mcp add-json airtable '{"command":"npx","args":["@rashidazarang/airtable-mcp"],"env":{"AIRTABLE_TOKEN":"","AIRTABLE_BASE_ID":""}}'
+```
+
 ---
 
 ## ✨ Features

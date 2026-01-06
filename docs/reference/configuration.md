@@ -39,6 +39,23 @@ Environment overrides for the wrapper. The `env` object is merged into the runti
 
 Claude Code's internal config: approvals, onboarding state, theme, and MCP servers. This file is managed by Claude Code and cc-mirror.
 
+### MCP servers
+
+MCP servers are stored under `config/.claude.json` in the `mcpServers` section. The easiest way to add them is to run the variant wrapper so `CLAUDE_CONFIG_DIR` points at the right config:
+
+```bash
+zai mcp add-json airtable '{
+  "command": "npx",
+  "args": ["@rashidazarang/airtable-mcp"],
+  "env": {
+    "AIRTABLE_TOKEN": "",
+    "AIRTABLE_BASE_ID": ""
+  }
+}'
+```
+
+Use `cc-mirror sync` with `--items mcp-servers` to copy MCP server entries between variants.
+
 ### `variant.json`
 
 Metadata describing the variant (provider, paths, team mode flag, etc). cc-mirror uses this to update and validate variants.
