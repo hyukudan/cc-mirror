@@ -15,6 +15,7 @@ All commands are available through `npx cc-mirror`.
 - `mcp <name> [operation]` - Manage MCP servers for a variant
 - `export <name> [file]` - Export a config snapshot
 - `import <name> <file>` - Import a config snapshot
+- `config <name>` - Show variant config summary
 - `tasks [operation]` - Manage team tasks
 - `path [--apply]` - Show PATH setup instructions
 - `sync <source> <target...>` - Sync config between variants
@@ -78,6 +79,12 @@ All commands are available through `npx cc-mirror`.
 - `--no-backup` - Skip config backup
 - `--dry-run` - Show what would change without writing files
 
+## Options (config)
+
+- `--variant <name>` - Variant to inspect (optional if positional)
+- `--json` - Print JSON output
+- `--show-values` - Show full env values (default masks secrets)
+
 ## MCP Command
 
 Common examples:
@@ -95,6 +102,13 @@ npx cc-mirror mcp zai remove airtable
 npx cc-mirror export zai
 npx cc-mirror import zai ./cc-mirror-zai.json
 npx cc-mirror import zai ./cc-mirror-zai.json --items mcp-servers,permissions
+```
+
+## Config
+
+```
+npx cc-mirror config zai
+npx cc-mirror config --json --variant minimax
 ```
 
 ## Tasks Command

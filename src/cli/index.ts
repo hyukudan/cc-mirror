@@ -14,6 +14,7 @@ import {
   runMcpCommand,
   runExportCommand,
   runImportCommand,
+  runConfigCommand,
   runUpdateCommand,
   runCreateCommand,
   runTasksCommand,
@@ -37,7 +38,7 @@ const main = async () => {
 
   // Help command (only for main help, not subcommand help)
   // Subcommands like 'tasks' handle their own --help
-  const commandsWithOwnHelp = ['tasks', 'mcp'];
+  const commandsWithOwnHelp = ['tasks', 'mcp', 'config'];
   if (cmd === 'help' || cmd === '--help' || (opts.help && !commandsWithOwnHelp.includes(cmd))) {
     printHelp();
     return;
@@ -91,6 +92,10 @@ const main = async () => {
 
     case 'import':
       runImportCommand({ opts });
+      break;
+
+    case 'config':
+      runConfigCommand({ opts });
       break;
 
     case 'path':

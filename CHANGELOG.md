@@ -9,6 +9,7 @@ All notable changes to this project will be documented in this file.
 - `cc-mirror run <name>` command to launch a variant wrapper directly.
 - `cc-mirror mcp <name>` command to manage MCP servers in a variant.
 - `cc-mirror export/import` commands to snapshot and restore variant config.
+- `cc-mirror config <name>` command to inspect variant config, env, and MCP summary.
 
 ## [1.5.0] - 2026-01-06
 

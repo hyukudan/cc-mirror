@@ -191,6 +191,7 @@ npx cc-mirror run <name>          # Launch a variant wrapper
 npx cc-mirror mcp <name>          # Manage MCP servers for a variant
 npx cc-mirror export <name>       # Export config snapshot
 npx cc-mirror import <name> <file>  # Import config snapshot
+npx cc-mirror config <name>       # Show variant config summary
 
 # Task management (team mode)
 npx cc-mirror tasks               # List open tasks
@@ -246,6 +247,14 @@ Sync options:
 --targets <list>         Comma-separated targets (optional if positional)
 --no-backup              Skip config backup
 --dry-run                Show what would change without writing files
+```
+
+Config options:
+
+```
+--variant <name>         Variant to inspect (optional if positional)
+--json                   Print JSON output
+--show-values            Show full env values (default masks secrets)
 ```
 
 ---

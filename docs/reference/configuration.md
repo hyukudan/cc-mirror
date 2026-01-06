@@ -1,6 +1,7 @@
 # Configuration Reference
 
 Each variant stores its configuration under `~/.cc-mirror/<variant>/`.
+Use `npx cc-mirror config <variant>` to inspect the current settings, permissions, and MCP servers.
 
 ## Variant Layout
 

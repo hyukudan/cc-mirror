@@ -38,6 +38,7 @@ test('printHelp outputs usage information', () => {
   assert.ok(text.includes('mcp'), 'Should include mcp command');
   assert.ok(text.includes('export'), 'Should include export command');
   assert.ok(text.includes('import'), 'Should include import command');
+  assert.ok(text.includes('config'), 'Should include config command');
   assert.ok(text.includes('path'), 'Should include path command');
   assert.ok(text.includes('sync'), 'Should include sync command');
 });
