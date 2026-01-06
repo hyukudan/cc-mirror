@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import * as core from '../src/core/index.js';
+import { getWrapperPath } from '../src/core/wrapper.js';
 import { makeTempDir, readFile, cleanup, withFakeNpm, resolveNpmCliPath } from './helpers/index.js';
 
 test('core create/update/remove/doctor flows', () => {
@@ -27,7 +28,7 @@ test('core create/update/remove/doctor flows', () => {
     const npmDir = path.join(variantDir, 'npm');
     const binaryPath = resolveNpmCliPath(npmDir, core.DEFAULT_NPM_PACKAGE);
     const configPath = path.join(variantDir, 'config', 'settings.json');
-    const wrapperPath = path.join(binDir, 'alpha');
+    const wrapperPath = getWrapperPath(binDir, 'alpha');
     const variantMetaPath = path.join(variantDir, 'variant.json');
 
     assert.ok(fs.existsSync(binaryPath));
@@ -42,6 +43,10 @@ test('core create/update/remove/doctor flows', () => {
     assert.equal(configJson.env.ANTHROPIC_API_KEY, '<API_KEY>');
     assert.equal(configJson.env.DISABLE_AUTOUPDATER, '1');
     assert.equal(configJson.env.CLAUDE_CODE_ENABLE_PROMPT_SUGGESTION, '1');
+
+    const cliContent = readFile(binaryPath);
+    assert.ok(cliContent.includes('process.stdin.emit("data","\\x1b")'));
+    assert.equal(cliContent.includes('process.on("SIGINT",()=>{process.exit(0)})'), false);
 
     process.env.CC_MIRROR_FAKE_NPM_PAYLOAD = 'claude new';
     core.updateVariant(rootDir, 'alpha', { noTweak: true, tweakccStdio: 'pipe' });

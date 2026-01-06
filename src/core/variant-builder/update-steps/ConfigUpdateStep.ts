@@ -8,6 +8,7 @@ import {
   ensureMinimaxMcpServer,
   ensureOnboardingState,
   ensureSettingsEnvDefaults,
+  ensureSettingsEnvOverrides,
   ensureZaiMcpDeny,
 } from '../../claude-config.js';
 import type { UpdateContext, UpdateStep } from '../types.js';
@@ -61,6 +62,24 @@ export class ConfigUpdateStep implements UpdateStep {
       DISABLE_AUTOUPDATER: '1',
       CLAUDE_CODE_ENABLE_PROMPT_SUGGESTION: '1',
     });
+
+    if (Array.isArray(opts.extraEnv) && opts.extraEnv.length > 0) {
+      const overrides: Record<string, string | number> = {};
+      for (const entry of opts.extraEnv) {
+        const idx = entry.indexOf('=');
+        if (idx === -1) continue;
+        const key = entry.slice(0, idx).trim();
+        const value = entry.slice(idx + 1).trim();
+        if (!key) continue;
+        overrides[key] = value;
+      }
+      if (Object.keys(overrides).length > 0) {
+        const envOverridesUpdated = ensureSettingsEnvOverrides(meta.configDir, overrides);
+        if (envOverridesUpdated) {
+          state.notes.push('Updated environment overrides in settings.json.');
+        }
+      }
+    }
 
     if (envDefaultsUpdated) {
       state.notes.push('Disabled Claude Code auto-updater (DISABLE_AUTOUPDATER=1).');

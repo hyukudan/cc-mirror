@@ -13,5 +13,10 @@ export function buildExtraEnv(opts: ParsedArgs): string[] {
   if (typeof timeout === 'string' && timeout.trim().length > 0) {
     env.push(`API_TIMEOUT_MS=${timeout}`);
   }
+  const preferIpv4 = Boolean(opts['prefer-ipv4']);
+  const hasNodeOptions = env.some((entry) => entry.trim().startsWith('NODE_OPTIONS='));
+  if (preferIpv4 && !hasNodeOptions) {
+    env.push('NODE_OPTIONS=--dns-result-order=ipv4first');
+  }
   return env;
 }

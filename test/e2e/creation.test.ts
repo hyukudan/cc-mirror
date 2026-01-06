@@ -7,6 +7,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import * as core from '../../src/core/index.js';
+import { getWrapperPath } from '../../src/core/wrapper.js';
 import { makeTempDir, readFile, cleanup, withFakeNpm } from '../helpers/index.js';
 import { PROVIDERS } from './providers.js';
 
@@ -44,7 +45,7 @@ test('E2E: Create variants for all providers', async (t) => {
         assert.ok(fs.existsSync(variantDir), `${provider.name} variant dir should exist`);
 
         // Verify wrapper was created
-        const wrapperPath = path.join(binDir, provider.key);
+        const wrapperPath = getWrapperPath(binDir, provider.key);
         assert.ok(fs.existsSync(wrapperPath), `${provider.name} wrapper should exist`);
         assert.equal(result.wrapperPath, wrapperPath);
 
@@ -89,7 +90,7 @@ test('E2E: Create variants for all providers', async (t) => {
           tweakccStdio: 'pipe',
         });
 
-        const wrapperPath = path.join(binDir, `${provider.key}-art`);
+        const wrapperPath = getWrapperPath(binDir, `${provider.key}-art`);
         const wrapperContent = readFile(wrapperPath);
 
         // Verify ANSI color codes are present (escape character \x1b)

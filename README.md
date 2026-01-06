@@ -58,6 +58,18 @@ npx cc-mirror quick --provider zai --api-key "$Z_AI_API_KEY"
 
 ---
 
+## 🪟 Windows Notes
+
+Wrappers are created as `.cmd` files under `%USERPROFILE%\.cc-mirror\bin`. Add it to your PATH once:
+
+```powershell
+[Environment]::SetEnvironmentVariable("Path", [Environment]::GetEnvironmentVariable("Path", "User") + ";$env:USERPROFILE\\.cc-mirror\\bin", "User")
+```
+
+Open a new terminal and run your variant name (e.g., `mclaude`).
+
+---
+
 ## 🔌 Supported Providers
 
 | Provider       | Models                 | Auth       | Best For                        |
@@ -124,10 +136,14 @@ Each variant lives in its own directory with complete isolation:
 │  └── mclaude/                      ← Your Mirror Claude variant         │
 │      └── ...                                                            │
 │                                                                         │
-│  Wrappers: ~/.local/bin/zai, ~/.local/bin/minimax, ~/.local/bin/mclaude │
+│  Wrappers: ~/.local/bin/<variant>                                       │
 │                                                                         │
 └─────────────────────────────────────────────────────────────────────────┘
 ```
+
+Wrappers:
+- macOS/Linux: `~/.local/bin/<variant>`
+- Windows: `%USERPROFILE%\.cc-mirror\bin\<variant>.cmd`
 
 Run any variant directly from your terminal:
 
@@ -196,9 +212,17 @@ mclaude                       # Run Mirror Claude variant
 --enable-team-mode       Enable team mode (TaskCreate, TaskGet, TaskUpdate, TaskList)
 --no-tweak               Skip tweakcc theme
 --no-prompt-pack         Skip prompt pack
+--shell-env              Write env vars to shell profile (Z.ai)
+--env KEY=VALUE          Extra env var override (repeatable)
+--timeout-ms <ms>        API timeout override (ms)
+--prefer-ipv4            Set NODE_OPTIONS=--dns-result-order=ipv4first
 ```
 
 ---
+
+## 🛠️ Troubleshooting
+
+- IPv6 connection resets (often Z.ai): use `--prefer-ipv4` or add `NODE_OPTIONS=--dns-result-order=ipv4first` via `--env`.
 
 ## 🎨 Brand Themes
 
@@ -287,6 +311,15 @@ A pure Claude Code variant with enhanced features:
 ```bash
 npx cc-mirror quick --provider mirror --name mclaude
 mclaude  # Authenticate via OAuth or API key
+```
+
+Need multiple Claude accounts? Create multiple mirror variants and authenticate each once:
+
+```bash
+npx cc-mirror quick --provider mirror --name mclaude-work
+mclaude-work
+npx cc-mirror quick --provider mirror --name mclaude-personal
+mclaude-personal
 ```
 
 → [Mirror Claude Documentation](docs/features/mirror-claude.md)

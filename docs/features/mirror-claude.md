@@ -123,6 +123,22 @@ Once authenticated, each wrapper keeps using its own account. You do not need to
 
 ---
 
+## 🔐 Multiple Accounts (Claude)
+
+Create separate mirror variants and authenticate each one once. Each variant keeps its own OAuth session and config.
+
+```bash
+npx cc-mirror quick --provider mirror --name mclaude-work
+mclaude-work
+
+npx cc-mirror quick --provider mirror --name mclaude-personal
+mclaude-personal
+```
+
+Switch accounts by running the corresponding wrapper (e.g., `mclaude-work` vs `mclaude-personal`).
+
+---
+
 ## 🎨 Theme Preview
 
 Mirror Claude features a distinctive silver/chrome theme:
@@ -187,7 +203,7 @@ mclaude
 │  │   └── config.json         Mirror theme config        │
 │  └── variant.json            Variant metadata           │
 │                                                         │
-│  Wrapper: ~/.local/bin/mclaude                          │
+│  Wrapper: ~/.local/bin/mclaude (Win: ~/.cc-mirror/bin/mclaude.cmd) │
 └─────────────────────────────────────────────────────────┘
 ```
 

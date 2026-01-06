@@ -27,8 +27,26 @@ const normalizeApiKey = (value?: string | null): string | null => {
   return trimmed;
 };
 
+const stripQuotes = (value: string): string => {
+  if ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'"))) {
+    return value.slice(1, -1);
+  }
+  return value;
+};
+
+const isWindows = (): boolean => process.platform === 'win32';
+
 const resolveShellProfile = (): string | null => {
   const home = os.homedir();
+
+  if (isWindows()) {
+    const pwshProfile = path.join(home, 'Documents', 'PowerShell', 'Microsoft.PowerShell_profile.ps1');
+    if (fs.existsSync(pwshProfile)) return pwshProfile;
+    const psProfile = path.join(home, 'Documents', 'WindowsPowerShell', 'Microsoft.PowerShell_profile.ps1');
+    if (fs.existsSync(psProfile)) return psProfile;
+    return pwshProfile;
+  }
+
   const shell = process.env.SHELL || '';
   const name = path.basename(shell);
 
@@ -53,7 +71,12 @@ const readSettingsApiKey = (configDir: string): string | null => {
   return normalizeApiKey(key);
 };
 
-const renderBlock = (apiKey: string) => `${BLOCK_START}\nexport Z_AI_API_KEY="${apiKey}"\n${BLOCK_END}\n`;
+const renderBlock = (apiKey: string): string => {
+  if (isWindows()) {
+    return `${BLOCK_START}\n$env:Z_AI_API_KEY = "${apiKey}"\n${BLOCK_END}\n`;
+  }
+  return `${BLOCK_START}\nexport Z_AI_API_KEY="${apiKey}"\n${BLOCK_END}\n`;
+};
 
 const upsertBlock = (content: string, block: string) => {
   if (content.includes(BLOCK_START) && content.includes(BLOCK_END)) {
@@ -71,14 +94,19 @@ const hasZaiKeyInProfile = (content: string): boolean => {
   for (const line of lines) {
     const trimmed = line.trim();
     if (!trimmed || trimmed.startsWith('#')) continue;
+    if (trimmed.startsWith('$env:Z_AI_API_KEY')) {
+      const equalsIndex = trimmed.indexOf('=');
+      if (equalsIndex === -1) continue;
+      const value = stripQuotes(trimmed.slice(equalsIndex + 1).trim());
+      if (normalizeApiKey(value)) return true;
+      continue;
+    }
+
     const exportStripped = trimmed.startsWith('export ') ? trimmed.slice(7).trim() : trimmed;
     if (!exportStripped.startsWith('Z_AI_API_KEY')) continue;
     const equalsIndex = exportStripped.indexOf('=');
     if (equalsIndex === -1) continue;
-    let value = exportStripped.slice(equalsIndex + 1).trim();
-    if ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'"))) {
-      value = value.slice(1, -1);
-    }
+    const value = stripQuotes(exportStripped.slice(equalsIndex + 1).trim());
     if (normalizeApiKey(value)) return true;
   }
   return false;
@@ -113,6 +141,12 @@ export const ensureZaiShellEnv = (opts: {
     return { status: 'skipped', message: 'Shell profile already up to date', path: profile };
   }
 
+  const profileDir = path.dirname(profile);
+  if (!fs.existsSync(profileDir)) {
+    fs.mkdirSync(profileDir, { recursive: true });
+  }
+
   fs.writeFileSync(profile, next);
-  return { status: 'updated', path: profile, message: `Run: source ${profile}` };
+  const reloadMessage = isWindows() ? `Run: . "${profile}"` : `Run: source ${profile}`;
+  return { status: 'updated', path: profile, message: reloadMessage };
 };

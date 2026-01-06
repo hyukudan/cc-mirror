@@ -21,6 +21,8 @@ This document explains how cc-mirror works under the hood.
 │          │               │               │         │                   │     │
 │          │         ┌─────▼─────┐   ┌─────▼─────┐   │   Shell Wrapper   │     │
 │          │         │ Providers │   │  Brands   │   │  ~/.local/bin/    │     │
+│          │         │           │   │           │   │  (Win: ~/.cc-     │     │
+│          │         │           │   │           │   │  mirror/bin)      │     │
 │          │         └───────────┘   └───────────┘   │                   │     │
 │          │                                         └─────────┬─────────┘     │
 │          │                                                   │               │
@@ -114,6 +116,7 @@ src/
 │   │   6. PromptPackStep         Copy system-prompt overlays               │ │
 │   │                             │                                         │ │
 │   │   7. WrapperStep            Create ~/.local/bin/<name>                │ │
+│   │                             (Win: ~/.cc-mirror/bin/<name>.cmd)        │ │
 │   │                             │                                         │ │
 │   │   8. FinalizeStep           Write variant.json metadata               │ │
 │   │                                                                       │ │
@@ -181,6 +184,7 @@ npx cc-mirror update <name>
 │  └── variant.json                    Variant metadata                       │
 │                                                                             │
 │  Wrapper: ~/.local/bin/<variant>     Shell wrapper script                   │
+│           (Win: ~/.cc-mirror/bin/<variant>.cmd)                             │
 │                                                                             │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
@@ -237,7 +241,7 @@ The wrapper script makes variants accessible as commands:
 
 ```bash
 #!/bin/bash
-# ~/.local/bin/zai
+# ~/.local/bin/zai (Windows: %USERPROFILE%\.cc-mirror\bin\zai.cmd)
 
 # Show splash art (if TTY and enabled)
 if [ -t 1 ] && [ "${CC_MIRROR_SPLASH:-1}" != "0" ]; then

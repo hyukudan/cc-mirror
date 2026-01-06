@@ -2,10 +2,9 @@
  * WrapperUpdateStep - Writes or updates the CLI wrapper script
  */
 
-import path from 'node:path';
 import { ensureDir } from '../../fs.js';
 import { expandTilde } from '../../paths.js';
-import { writeWrapper } from '../../wrapper.js';
+import { getWrapperPath, writeWrapperForPlatform } from '../../wrapper.js';
 import type { UpdateContext, UpdateStep } from '../types.js';
 
 export class WrapperUpdateStep implements UpdateStep {
@@ -30,8 +29,8 @@ export class WrapperUpdateStep implements UpdateStep {
 
     if (resolvedBin) {
       ensureDir(resolvedBin);
-      const wrapperPath = path.join(resolvedBin, name);
-      writeWrapper(wrapperPath, meta.configDir, meta.binaryPath, 'node');
+      const wrapperPath = getWrapperPath(resolvedBin, name);
+      writeWrapperForPlatform(wrapperPath, meta.configDir, meta.binaryPath, 'node');
       meta.binDir = resolvedBin;
     }
   }

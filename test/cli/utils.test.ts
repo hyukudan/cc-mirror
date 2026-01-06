@@ -183,6 +183,16 @@ test('buildExtraEnv ignores whitespace timeout', () => {
   assert.deepEqual(result, []);
 });
 
+test('buildExtraEnv adds prefer-ipv4 NODE_OPTIONS', () => {
+  const result = buildExtraEnv(createOpts({ 'prefer-ipv4': true }));
+  assert.deepEqual(result, ['NODE_OPTIONS=--dns-result-order=ipv4first']);
+});
+
+test('buildExtraEnv skips prefer-ipv4 when NODE_OPTIONS is set', () => {
+  const result = buildExtraEnv(createOpts({ 'prefer-ipv4': true, env: ['NODE_OPTIONS=--max-old-space-size=4096'] }));
+  assert.deepEqual(result, ['NODE_OPTIONS=--max-old-space-size=4096']);
+});
+
 // printSummary tests (capture console output)
 test('printSummary prints basic info', () => {
   const logs: string[] = [];

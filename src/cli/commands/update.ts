@@ -2,10 +2,10 @@
  * Update command - updates one or all variants
  */
 
-import path from 'node:path';
 import * as core from '../../core/index.js';
+import { getWrapperPath } from '../../core/wrapper.js';
 import type { ParsedArgs } from '../args.js';
-import { printSummary } from '../utils/index.js';
+import { buildExtraEnv, printSummary } from '../utils/index.js';
 
 export interface UpdateCommandOptions {
   opts: ParsedArgs;
@@ -31,6 +31,7 @@ export function runUpdateCommand({ opts }: UpdateCommandOptions): void {
   const shellEnv = opts['no-shell-env'] ? false : opts['shell-env'] ? true : undefined;
   const enableTeamMode = opts['enable-team-mode'] ? true : undefined;
   const disableTeamMode = opts['disable-team-mode'] ? true : undefined;
+  const extraEnv = buildExtraEnv(opts);
 
   for (const name of names) {
     const result = core.updateVariant(rootDir, name, {
@@ -38,6 +39,7 @@ export function runUpdateCommand({ opts }: UpdateCommandOptions): void {
       npmPackage: opts['npm-package'] as string | undefined,
       brand: opts.brand as string | undefined,
       noTweak: Boolean(opts.noTweak),
+      extraEnv,
       promptPack,
       skillInstall,
       shellEnv,
@@ -45,7 +47,7 @@ export function runUpdateCommand({ opts }: UpdateCommandOptions): void {
       enableTeamMode,
       disableTeamMode,
     });
-    const wrapperPath = path.join(binDir, name);
+    const wrapperPath = getWrapperPath(binDir, name);
     printSummary({
       action: 'Updated',
       meta: result.meta,

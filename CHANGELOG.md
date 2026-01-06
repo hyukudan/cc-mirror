@@ -13,6 +13,8 @@ All notable changes to this project will be documented in this file.
 - Orchestration skill refresh with domain guides, coordination rules, and updated workflow guidance.
 - Z.ai `Z_AI_BASE_URL` support for China endpoint defaults in CLI/TUI flows.
 - Ctrl+C interrupt patch for Claude Code CLI (ESC fallback, double-press exit).
+- Windows support: `.cmd` wrappers, PowerShell profile integration, and `~/.cc-mirror/bin` defaults.
+- `--prefer-ipv4` flag to set `NODE_OPTIONS=--dns-result-order=ipv4first`.
 
 ### Changed
 
@@ -21,10 +23,11 @@ All notable changes to this project will be documented in this file.
 - Team mode now uses `CLAUDE_CODE_TEAM_MODE`, deriving team names from the project folder with optional `TEAM` modifiers.
 - Team mode updates refresh orchestrator skill/tooling when already enabled.
 - Create/update summaries now surface PATH tips when wrapper directory is not exported.
+- Wrapper paths are platform-aware (`.cmd` on Windows).
 
 ### Fixed
 
-- Windows npm install flow uses `npm.cmd`, `cwd` in the npm dir, and a minimal manifest.
+- Windows npm installs now use `shell` spawning and `--prefix` to avoid command resolution errors.
 
 ## [1.4.2] - 2025-01-05
 

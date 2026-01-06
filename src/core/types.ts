@@ -68,6 +68,7 @@ export interface UpdateVariantOptions {
   npmPackage?: string;
   brand?: string;
   noTweak?: boolean;
+  extraEnv?: string[];
   /** Skip npm package reinstall - for settings-only updates (models, env) */
   settingsOnly?: boolean;
   promptPack?: boolean;

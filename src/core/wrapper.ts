@@ -1,5 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import { SPLASH_COLORS } from './constants.js';
 
 export type WrapperRuntime = 'native' | 'node';
 
@@ -43,49 +44,7 @@ export const writeWrapper = (
     '  rm -f "$__cc_mirror_env_file" || true',
     'fi',
   ];
-  // ANSI color codes for colored ASCII art
-  const C = {
-    reset: '\x1b[0m',
-    // Zai: Gold/Amber gradient
-    zaiPrimary: '\x1b[38;5;220m', // Gold
-    zaiSecondary: '\x1b[38;5;214m', // Orange-gold
-    zaiAccent: '\x1b[38;5;208m', // Dark orange
-    zaiDim: '\x1b[38;5;172m', // Muted gold
-    // MiniMax: Coral/Red/Orange gradient (from brand image)
-    mmPrimary: '\x1b[38;5;203m', // Coral/salmon red
-    mmSecondary: '\x1b[38;5;209m', // Light coral/orange
-    mmAccent: '\x1b[38;5;208m', // Orange
-    mmDim: '\x1b[38;5;167m', // Muted coral/dark red
-    // OpenRouter: Cyan/Teal gradient
-    orPrimary: '\x1b[38;5;43m', // Teal
-    orSecondary: '\x1b[38;5;49m', // Bright teal
-    orAccent: '\x1b[38;5;37m', // Deep cyan
-    orDim: '\x1b[38;5;30m', // Muted teal
-    // GatewayZ: Purple/Violet gradient
-    gzPrimary: '\x1b[38;5;135m', // Violet
-    gzSecondary: '\x1b[38;5;141m', // Light violet
-    gzAccent: '\x1b[38;5;99m', // Deep purple
-    gzDim: '\x1b[38;5;97m', // Muted purple
-    gzCyan: '\x1b[38;5;51m', // Cyan accent
-    // NanoGPT: Violet gradient
-    ngPrimary: '\x1b[38;5;135m', // Violet
-    ngSecondary: '\x1b[38;5;141m', // Light violet
-    ngAccent: '\x1b[38;5;99m', // Deep purple
-    ngDim: '\x1b[38;5;97m', // Muted purple
-    // CCRouter: Sky blue gradient
-    ccrPrimary: '\x1b[38;5;39m', // Sky blue
-    ccrSecondary: '\x1b[38;5;45m', // Bright cyan
-    ccrAccent: '\x1b[38;5;33m', // Deep blue
-    ccrDim: '\x1b[38;5;31m', // Muted blue
-    // Mirror: Silver/Chrome with electric blue
-    mirPrimary: '\x1b[38;5;252m', // Silver/light gray
-    mirSecondary: '\x1b[38;5;250m', // Platinum
-    mirAccent: '\x1b[38;5;45m', // Electric cyan
-    mirDim: '\x1b[38;5;243m', // Muted silver
-    // Default: White/Gray
-    defPrimary: '\x1b[38;5;255m', // White
-    defDim: '\x1b[38;5;245m', // Gray
-  };
+  const C = SPLASH_COLORS;
 
   const splash = [
     'if [[ "${CC_MIRROR_SPLASH:-0}" != "0" ]] && [[ -t 1 ]]; then',
@@ -266,4 +225,257 @@ export const writeWrapper = (
     '',
   ].join('\n');
   fs.writeFileSync(wrapperPath, content, { mode: 0o755 });
+};
+
+export const getWrapperName = (name: string): string => (process.platform === 'win32' ? `${name}.cmd` : name);
+
+export const getWrapperPath = (binDir: string, name: string): string => path.join(binDir, getWrapperName(name));
+
+export const writeWindowsWrapper = (
+  wrapperPath: string,
+  configDir: string,
+  binaryPath: string,
+  runtime: WrapperRuntime = 'node'
+) => {
+  const tweakDir = path.join(path.dirname(configDir), 'tweakcc');
+  const configDirWin = path.win32.normalize(configDir);
+  const tweakDirWin = path.win32.normalize(tweakDir);
+  const binaryPathWin = path.win32.normalize(binaryPath);
+  const C = SPLASH_COLORS;
+
+  const wrapperParsed = path.parse(wrapperPath);
+  const helperScriptPath = path.join(wrapperParsed.dir, `${wrapperParsed.name}-env.js`);
+  const helperScript = `const fs = require('fs');
+const path = require('path');
+const dir = process.env.CLAUDE_CONFIG_DIR;
+if (!dir) process.exit(0);
+const file = path.join(dir, 'settings.json');
+try {
+  if (fs.existsSync(file)) {
+    const data = JSON.parse(fs.readFileSync(file, 'utf8'));
+    const env = data && typeof data === 'object' ? data.env : null;
+    if (env && typeof env === 'object') {
+      for (const [key, value] of Object.entries(env)) {
+        if (!key) continue;
+        const raw = String(value);
+        const escaped = raw.replace(/"/g, '""').replace(/%/g, '%%');
+        console.log('SET "' + key + '=' + escaped + '"');
+      }
+    }
+  }
+} catch {}
+`;
+  fs.writeFileSync(helperScriptPath, helperScript, { mode: 0o644 });
+  const helperScriptName = path.basename(helperScriptPath);
+
+  const execLine = runtime === 'node' ? `node "${binaryPathWin}" %*` : `"${binaryPathWin}" %*`;
+
+  const splashLines: string[] = [
+    '',
+    'rem === Splash Screen ===',
+    'if not defined CC_MIRROR_SPLASH set "CC_MIRROR_SPLASH=0"',
+    'if "%CC_MIRROR_SPLASH%"=="0" goto :skip_splash',
+    '',
+    'if not defined CC_MIRROR_SPLASH_STYLE set "CC_MIRROR_SPLASH_STYLE=default"',
+    'if not defined CC_MIRROR_PROVIDER_LABEL set "CC_MIRROR_PROVIDER_LABEL=cc-mirror"',
+    '',
+    'echo.',
+    '',
+    'if "%CC_MIRROR_SPLASH_STYLE%"=="zai" goto :splash_zai',
+    'if "%CC_MIRROR_SPLASH_STYLE%"=="minimax" goto :splash_minimax',
+    'if "%CC_MIRROR_SPLASH_STYLE%"=="openrouter" goto :splash_openrouter',
+    'if "%CC_MIRROR_SPLASH_STYLE%"=="gatewayz" goto :splash_gatewayz',
+    'if "%CC_MIRROR_SPLASH_STYLE%"=="nanogpt" goto :splash_nanogpt',
+    'if "%CC_MIRROR_SPLASH_STYLE%"=="ccrouter" goto :splash_ccrouter',
+    'if "%CC_MIRROR_SPLASH_STYLE%"=="mirror" goto :splash_mirror',
+    'goto :splash_default',
+    '',
+    ':splash_zai',
+    `echo ${C.zaiPrimary}    ███████╗       █████╗ ██╗${C.reset}`,
+    `echo ${C.zaiPrimary}    ╚══███╔╝      ██╔══██╗██║${C.reset}`,
+    `echo ${C.zaiSecondary}      ███╔╝       ███████║██║${C.reset}`,
+    `echo ${C.zaiSecondary}     ███╔╝    ${C.zaiAccent}██╗${C.zaiSecondary} ██╔══██║██║${C.reset}`,
+    `echo ${C.zaiAccent}    ███████╗  ╚═╝ ██║  ██║██║${C.reset}`,
+    `echo ${C.zaiAccent}    ╚══════╝      ╚═╝  ╚═╝╚═╝${C.reset}`,
+    'echo.',
+    `echo ${C.zaiDim}    ━━━━━━━━━━${C.zaiPrimary}◆${C.zaiDim}━━━━━━━━━━${C.reset}`,
+    `echo ${C.zaiSecondary}      GLM Coding Plan${C.reset}`,
+    'echo.',
+    'goto :end_splash',
+    '',
+    ':splash_minimax',
+    `echo ${C.mmPrimary}    ███╗   ███╗██╗███╗   ██╗██╗███╗   ███╗ █████╗ ██╗  ██╗${C.reset}`,
+    `echo ${C.mmPrimary}    ████╗ ████║██║████╗  ██║██║████╗ ████║██╔══██╗╚██╗██╔╝${C.reset}`,
+    `echo ${C.mmSecondary}    ██╔████╔██║██║██╔██╗ ██║██║██╔████╔██║███████║ ╚███╔╝${C.reset}`,
+    `echo ${C.mmSecondary}    ██║╚██╔╝██║██║██║╚██╗██║██║██║╚██╔╝██║██╔══██║ ██╔██╗${C.reset}`,
+    `echo ${C.mmAccent}    ██║ ╚═╝ ██║██║██║ ╚████║██║██║ ╚═╝ ██║██║  ██║██╔╝ ██╗${C.reset}`,
+    `echo ${C.mmAccent}    ╚═╝     ╚═╝╚═╝╚═╝  ╚═══╝╚═╝╚═╝     ╚═╝╚═╝  ╚═╝╚═╝  ╚═╝${C.reset}`,
+    'echo.',
+    `echo ${C.mmDim}    ━━━━━━━━━━━━━━━━━━${C.mmPrimary}◆${C.mmDim}━━━━━━━━━━━━━━━━━━${C.reset}`,
+    `echo ${C.mmSecondary}           MiniMax-M2.1 ${C.mmDim}━${C.mmSecondary} AGI for All${C.reset}`,
+    'echo.',
+    'goto :end_splash',
+    '',
+    ':splash_openrouter',
+    `echo ${C.orPrimary}     ██████╗ ██████╗ ███████╗███╗   ██╗${C.reset}`,
+    `echo ${C.orPrimary}    ██╔═══██╗██╔══██╗██╔════╝████╗  ██║${C.reset}`,
+    `echo ${C.orSecondary}    ██║   ██║██████╔╝█████╗  ██╔██╗ ██║${C.reset}`,
+    `echo ${C.orSecondary}    ██║   ██║██╔═══╝ ██╔══╝  ██║╚██╗██║${C.reset}`,
+    `echo ${C.orAccent}    ╚██████╔╝██║     ███████╗██║ ╚████║${C.reset}`,
+    `echo ${C.orAccent}     ╚═════╝ ╚═╝     ╚══════╝╚═╝  ╚═══╝${C.reset}`,
+    `echo ${C.orPrimary}    ██████╗  ██████╗ ██╗   ██╗████████╗███████╗██████╗${C.reset}`,
+    `echo ${C.orPrimary}    ██╔══██╗██╔═══██╗██║   ██║╚══██╔══╝██╔════╝██╔══██╗${C.reset}`,
+    `echo ${C.orSecondary}    ██████╔╝██║   ██║██║   ██║   ██║   █████╗  ██████╔╝${C.reset}`,
+    `echo ${C.orSecondary}    ██╔══██╗██║   ██║██║   ██║   ██║   ██╔══╝  ██╔══██╗${C.reset}`,
+    `echo ${C.orAccent}    ██║  ██║╚██████╔╝╚██████╔╝   ██║   ███████╗██║  ██║${C.reset}`,
+    `echo ${C.orAccent}    ╚═╝  ╚═╝ ╚═════╝  ╚═════╝    ╚═╝   ╚══════╝╚═╝  ╚═╝${C.reset}`,
+    'echo.',
+    `echo ${C.orDim}    ━━━━━━━━━━━━━${C.orPrimary}◆${C.orDim}━━━━━━━━━━━━━${C.reset}`,
+    `echo ${C.orSecondary}      One API ${C.orDim}━${C.orSecondary} Any Model${C.reset}`,
+    'echo.',
+    'goto :end_splash',
+    '',
+    ':splash_gatewayz',
+    `echo ${C.gzPrimary}     ██████╗  █████╗ ████████╗███████╗██╗    ██╗ █████╗ ██╗   ██╗${C.gzCyan}███████╗${C.reset}`,
+    `echo ${C.gzPrimary}    ██╔════╝ ██╔══██╗╚══██╔══╝██╔════╝██║    ██║██╔══██╗╚██╗ ██╔╝${C.gzCyan}╚══███╔╝${C.reset}`,
+    `echo ${C.gzSecondary}    ██║  ███╗███████║   ██║   █████╗  ██║ █╗ ██║███████║ ╚████╔╝ ${C.gzCyan}  ███╔╝${C.reset}`,
+    `echo ${C.gzSecondary}    ██║   ██║██╔══██║   ██║   ██╔══╝  ██║███╗██║██╔══██║  ╚██╔╝  ${C.gzCyan} ███╔╝${C.reset}`,
+    `echo ${C.gzAccent}    ╚██████╔╝██║  ██║   ██║   ███████╗╚███╔███╔╝██║  ██║   ██║   ${C.gzCyan}███████╗${C.reset}`,
+    `echo ${C.gzAccent}     ╚═════╝ ╚═╝  ╚═╝   ╚═╝   ╚══════╝ ╚══╝╚══╝ ╚═╝  ╚═╝   ╚═╝   ${C.gzCyan}╚══════╝${C.reset}`,
+    'echo.',
+    `echo ${C.gzDim}    ━━━━━━━━━━━━━━━━${C.gzPrimary}◆${C.gzDim}━━━━━━━━━━━━━━━━${C.reset}`,
+    `echo ${C.gzSecondary}       Your Gateway to AI${C.reset}`,
+    'echo.',
+    'goto :end_splash',
+    '',
+    ':splash_nanogpt',
+    `echo ${C.ngPrimary}    ███╗   ██╗ █████╗ ███╗   ██╗ ██████╗  ██████╗ ██████╗ ████████╗${C.reset}`,
+    `echo ${C.ngPrimary}    ████╗  ██║██╔══██╗████╗  ██║██╔═══██╗██╔════╝ ██╔══██╗╚══██╔══╝${C.reset}`,
+    `echo ${C.ngSecondary}    ██╔██╗ ██║███████║██╔██╗ ██║██║   ██║██║  ███╗██████╔╝   ██║${C.reset}`,
+    `echo ${C.ngSecondary}    ██║╚██╗██║██╔══██║██║╚██╗██║██║   ██║██║   ██║██╔═══╝    ██║${C.reset}`,
+    `echo ${C.ngAccent}    ██║ ╚████║██║  ██║██║ ╚████║╚██████╔╝╚██████╔╝██║        ██║${C.reset}`,
+    `echo ${C.ngAccent}    ╚═╝  ╚═══╝╚═╝  ╚═╝╚═╝  ╚═══╝ ╚═════╝  ╚═════╝ ╚═╝        ╚═╝${C.reset}`,
+    'echo.',
+    `echo ${C.ngDim}    ━━━━━━━━━━━━━━${C.ngPrimary}◆${C.ngDim}━━━━━━━━━━━━━━${C.reset}`,
+    `echo ${C.ngSecondary}      One API ${C.ngDim}━${C.ngSecondary} Many Models${C.reset}`,
+    'echo.',
+    'goto :end_splash',
+    '',
+    ':splash_ccrouter',
+    `echo ${C.ccrPrimary}     ██████╗ ██████╗██████╗  ██████╗ ██╗   ██╗████████╗███████╗██████╗${C.reset}`,
+    `echo ${C.ccrPrimary}    ██╔════╝██╔════╝██╔══██╗██╔═══██╗██║   ██║╚══██╔══╝██╔════╝██╔══██╗${C.reset}`,
+    `echo ${C.ccrSecondary}    ██║     ██║     ██████╔╝██║   ██║██║   ██║   ██║   █████╗  ██████╔╝${C.reset}`,
+    `echo ${C.ccrSecondary}    ██║     ██║     ██╔══██╗██║   ██║██║   ██║   ██║   ██╔══╝  ██╔══██╗${C.reset}`,
+    `echo ${C.ccrAccent}    ╚██████╗╚██████╗██║  ██║╚██████╔╝╚██████╔╝   ██║   ███████╗██║  ██║${C.reset}`,
+    `echo ${C.ccrAccent}     ╚═════╝ ╚═════╝╚═╝  ╚═╝ ╚═════╝  ╚═════╝    ╚═╝   ╚══════╝╚═╝  ╚═╝${C.reset}`,
+    'echo.',
+    `echo ${C.ccrDim}    ━━━━━━━━━━━━━━━━${C.ccrPrimary}◆${C.ccrDim}━━━━━━━━━━━━━━━━${C.reset}`,
+    `echo ${C.ccrSecondary}      Claude Code Router ${C.ccrDim}━${C.ccrSecondary} Any Model${C.reset}`,
+    'echo.',
+    'goto :end_splash',
+    '',
+    ':splash_mirror',
+    `echo ${C.mirPrimary}    ███╗   ███╗██╗██████╗ ██████╗  ██████╗ ██████╗${C.reset}`,
+    `echo ${C.mirPrimary}    ████╗ ████║██║██╔══██╗██╔══██╗██╔═══██╗██╔══██╗${C.reset}`,
+    `echo ${C.mirSecondary}    ██╔████╔██║██║██████╔╝██████╔╝██║   ██║██████╔╝${C.reset}`,
+    `echo ${C.mirSecondary}    ██║╚██╔╝██║██║██╔══██╗██╔══██╗██║   ██║██╔══██╗${C.reset}`,
+    `echo ${C.mirAccent}    ██║ ╚═╝ ██║██║██║  ██║██║  ██║╚██████╔╝██║  ██║${C.reset}`,
+    `echo ${C.mirAccent}    ╚═╝     ╚═╝╚═╝╚═╝  ╚═╝╚═╝  ╚═╝ ╚═════╝ ╚═╝  ╚═╝${C.reset}`,
+    'echo.',
+    `echo ${C.mirDim}    ━━━━━━━━━━━━${C.mirAccent}◇${C.mirDim}━━━━━━━━━━━━${C.reset}`,
+    `echo ${C.mirSecondary}      Claude ${C.mirDim}━${C.mirSecondary} Pure Reflection${C.reset}`,
+    'echo.',
+    'goto :end_splash',
+    '',
+    ':splash_default',
+    `echo ${C.defPrimary}    ██████╗ ██████╗   ${C.defDim}━━  M I R R O R${C.reset}`,
+    `echo ${C.defPrimary}   ██╔════╝██╔════╝${C.reset}`,
+    `echo ${C.defPrimary}   ██║     ██║     ${C.defDim}Claude Code Variants${C.reset}`,
+    `echo ${C.defPrimary}   ██║     ██║     ${C.defDim}Custom Providers${C.reset}`,
+    `echo ${C.defPrimary}   ╚██████╗╚██████╗${C.reset}`,
+    `echo ${C.defPrimary}    ╚═════╝ ╚═════╝${C.reset}`,
+    'echo.',
+    'echo         %CC_MIRROR_PROVIDER_LABEL%',
+    'echo.',
+    'goto :end_splash',
+    '',
+    ':end_splash',
+    'echo.',
+    '',
+    ':skip_splash',
+  ];
+
+  const content = [
+    '@echo off',
+    'setlocal enabledelayedexpansion',
+    '',
+    `set "CLAUDE_CONFIG_DIR=${configDirWin}"`,
+    `set "TWEAKCC_CONFIG_DIR=${tweakDirWin}"`,
+    '',
+    'rem === Load environment from settings.json ===',
+    'where node >nul 2>nul',
+    'if %errorlevel% neq 0 goto :skip_env_load',
+    '',
+    'set "__cc_mirror_env_file=%TEMP%\\cc_mirror_env_%RANDOM%.cmd"',
+    '',
+    `for /f "delims=" %%i in ('node "%~dp0${helperScriptName}" 2^>nul') do (`,
+    '  echo %%i>>"%__cc_mirror_env_file%"',
+    ')',
+    '',
+    'if exist "%__cc_mirror_env_file%" (',
+    '  call "%__cc_mirror_env_file%"',
+    '  del "%__cc_mirror_env_file%" >nul 2>nul',
+    ')',
+    '',
+    ':skip_env_load',
+    '',
+    'rem === Unset auth token if requested ===',
+    'if defined CC_MIRROR_UNSET_AUTH_TOKEN (',
+    '  if not "%CC_MIRROR_UNSET_AUTH_TOKEN%"=="0" (',
+    '    set "ANTHROPIC_AUTH_TOKEN="',
+    '  )',
+    ')',
+    '',
+    'rem === Dynamic team name ===',
+    'if defined CLAUDE_CODE_TEAM_MODE goto :set_team_name',
+    'if defined TEAM goto :set_team_name',
+    'goto :skip_team_name',
+    '',
+    ':set_team_name',
+    'set "__cc_git_root="',
+    'for /f "delims=" %%i in (\'git rev-parse --show-toplevel 2^>nul\') do set "__cc_git_root=%%i"',
+    'if not defined __cc_git_root set "__cc_git_root=%CD%"',
+    'for %%i in ("%__cc_git_root%") do set "__cc_folder_name=%%~nxi"',
+    'if defined TEAM (',
+    '  set "CLAUDE_CODE_TEAM_NAME=%__cc_folder_name%-%TEAM%"',
+    ') else (',
+    '  set "CLAUDE_CODE_TEAM_NAME=%__cc_folder_name%"',
+    ')',
+    'goto :skip_team_name',
+    '',
+    ':skip_team_name',
+    ...splashLines,
+    '',
+    'rem === Execute Claude ===',
+    execLine,
+    '',
+    'endlocal',
+    '',
+  ].join('\r\n');
+
+  fs.writeFileSync(wrapperPath, content);
+};
+
+export const writeWrapperForPlatform = (
+  wrapperPath: string,
+  configDir: string,
+  binaryPath: string,
+  runtime: WrapperRuntime = 'node'
+): string => {
+  if (process.platform === 'win32') {
+    writeWindowsWrapper(wrapperPath, configDir, binaryPath, runtime);
+    return wrapperPath;
+  }
+  writeWrapper(wrapperPath, configDir, binaryPath, runtime);
+  return wrapperPath;
 };
