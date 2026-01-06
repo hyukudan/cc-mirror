@@ -295,7 +295,7 @@ npx cc-mirror create --provider zai --name zai-team --enable-team-mode
 npx cc-mirror quick --provider mirror --name mclaude
 ```
 
-Team mode enables: `TaskCreate`, `TaskGet`, `TaskUpdate`, `TaskList` tools plus an **orchestrator skill** that teaches Claude effective multi-agent coordination patterns.
+Team mode enables: `TaskCreate`, `TaskGet`, `TaskUpdate`, `TaskList` tools plus an **orchestrator skill** and **task-manager skill** for CLI task hygiene.
 
 ### Tasks CLI (v1.4.0+)
 

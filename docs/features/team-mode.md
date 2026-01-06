@@ -136,7 +136,10 @@ Each team has its own isolated task storage.
 
 ## 🎯 Orchestration Skill
 
-When team mode is enabled, cc-mirror automatically installs an **orchestration skill** that teaches Claude how to effectively coordinate work using the team mode tools.
+When team mode is enabled, cc-mirror automatically installs two bundled skills:
+
+- **Orchestration** — guides multi-agent coordination patterns inside Claude Code
+- **Task Manager** — enables the `npx cc-mirror tasks` CLI for archiving, cleanup, and task graphs
 
 ### The Conductor Identity
 
@@ -207,17 +210,20 @@ Milestone celebrations:
 └────────────────────────────────────────┘
 ```
 
-### Skill Location
+### Skill Locations
 
 ```
-~/.cc-mirror/<variant>/config/skills/orchestration/
-├── SKILL.md              # Identity, philosophy, core workflow
-└── references/
-    ├── patterns.md       # All patterns with visual diagrams
-    ├── tools.md          # AskUserQuestion (#1), agents, task tools
-    ├── examples.md       # End-to-end workflow examples
-    ├── guide.md          # User-facing explanations
-    └── domains/          # Domain-specific guidance (8 domains)
+~/.cc-mirror/<variant>/config/skills/
+├── orchestration/
+│   ├── SKILL.md           # Identity, philosophy, core workflow
+│   └── references/
+│       ├── patterns.md    # All patterns with visual diagrams
+│       ├── tools.md       # AskUserQuestion (#1), agents, task tools
+│       ├── examples.md    # End-to-end workflow examples
+│       ├── guide.md       # User-facing explanations
+│       └── domains/       # Domain-specific guidance (8 domains)
+└── task-manager/
+    └── SKILL.md           # CLI task management helpers
 ```
 
 ---

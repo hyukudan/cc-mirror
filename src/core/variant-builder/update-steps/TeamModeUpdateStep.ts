@@ -195,8 +195,10 @@ export class TeamModeUpdateStep implements UpdateStep {
         // Add orchestration skill to auto-approve list
         settings.permissions = settings.permissions || {};
         settings.permissions.allow = settings.permissions.allow || [];
-        if (!settings.permissions.allow.includes('Skill(orchestration)')) {
-          settings.permissions.allow.push('Skill(orchestration)');
+        for (const skill of ['Skill(orchestration)', 'Skill(task-manager)']) {
+          if (!settings.permissions.allow.includes(skill)) {
+            settings.permissions.allow.push(skill);
+          }
         }
 
         fs.writeFileSync(settingsPath, JSON.stringify(settings, null, 2));

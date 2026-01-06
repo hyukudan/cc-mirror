@@ -12,6 +12,7 @@ All notable changes to this project will be documented in this file.
 - TUI sync flow now lets you choose which items to copy.
 - MCP server setup guidance in README and configuration reference.
 - GatewayZ and NanoGPT providers with themes, splash art, and model mapping defaults.
+- Team mode now auto-approves the task-manager skill and documents both bundled skills.
 - Provider education updates (placeholders, haikus, setup links).
 - Z.ai `Z_AI_BASE_URL` support for China endpoint defaults in CLI/TUI flows.
 - Ctrl+C interrupt patch for Claude Code CLI (ESC fallback, double-press exit).
