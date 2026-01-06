@@ -35,6 +35,7 @@ test('printHelp outputs usage information', () => {
   assert.ok(text.includes('doctor'), 'Should include doctor command');
   assert.ok(text.includes('tweak'), 'Should include tweak command');
   assert.ok(text.includes('path'), 'Should include path command');
+  assert.ok(text.includes('sync'), 'Should include sync command');
 });
 
 test('printHelp documents provider options', () => {
@@ -78,6 +79,9 @@ test('printHelp documents flag options', () => {
   assert.ok(text.includes('--tui') || text.includes('tui'), 'Should document tui flag');
   assert.ok(text.includes('--no-prompt-pack'), 'Should document no-prompt-pack flag');
   assert.ok(text.includes('--shell-env') || text.includes('shell'), 'Should document shell-env flag');
+  assert.ok(text.includes('--apply'), 'Should document path apply flag');
+  assert.ok(text.includes('--npm-package'), 'Should document npm-package flag');
+  assert.ok(text.includes('--npm-version'), 'Should document npm-version flag');
 });
 
 test('printHelp documents CLI sections', () => {

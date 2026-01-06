@@ -5,6 +5,7 @@
  */
 
 import React, { useMemo, useState, useRef } from 'react';
+import path from 'node:path';
 import { Box, Text, useStdout } from 'ink';
 import { ScreenLayout } from '../components/ui/ScreenLayout.js';
 import { Code, SummaryRow } from '../components/ui/Typography.js';
@@ -46,6 +47,7 @@ export const CompletionScreen: React.FC<CompletionScreenProps> = ({
 }) => {
   const [selectedIndex, setSelectedIndex] = useState(0);
   const { stdout } = useStdout();
+  const help = useMemo(() => (_help || []).filter((line) => line && line.trim()), [_help]);
 
   // Generate haiku once and keep it stable across re-renders
   const haikuRef = useRef<HaikuLines>(getRandomHaiku(providerKey));
@@ -81,6 +83,23 @@ export const CompletionScreen: React.FC<CompletionScreenProps> = ({
     const columns = stdout?.columns ?? 80;
     return Math.min(columns - 10, 72);
   }, [stdout?.columns]);
+
+  const pathTip = useMemo(() => {
+    if (!wrapperPath) return null;
+    if (isWrapperInPath(wrapperPath)) return null;
+    const wrapperDir = path.dirname(wrapperPath);
+    const pathCommand = getPathCommand();
+    return `Add ${wrapperDir} to PATH (${pathCommand})`;
+  }, [wrapperPath]);
+
+  const nextSteps = useMemo(() => {
+    const steps = (_nextSteps || []).filter((line) => line && line.trim());
+    if (variantName) {
+      const runLine = `Run: ${variantName}`;
+      return [...steps.filter((line) => line !== runLine), ...(pathTip ? [pathTip] : [])];
+    }
+    return [...steps, ...(pathTip ? [pathTip] : [])];
+  }, [_nextSteps, variantName, pathTip]);
 
   const actions: MenuItem[] = [
     { value: 'home', label: 'Back to Home' },
@@ -143,6 +162,42 @@ export const CompletionScreen: React.FC<CompletionScreenProps> = ({
           </Box>
         )}
 
+        {nextSteps.length > 0 && (
+          <Box flexDirection="column" marginTop={1}>
+            <Text color={colors.text} bold>
+              {icons.arrowRight} Next steps
+            </Text>
+            <Box flexDirection="column" marginLeft={2}>
+              {nextSteps.flatMap((line, idx) => {
+                const wrapped = wrapText(line, maxWidth - 4);
+                return wrapped.map((part, partIdx) => (
+                  <Text key={`next-${idx}-${partIdx}`} color={colors.textMuted}>
+                    {partIdx === 0 ? `• ${part}` : `  ${part}`}
+                  </Text>
+                ));
+              })}
+            </Box>
+          </Box>
+        )}
+
+        {help.length > 0 && (
+          <Box flexDirection="column" marginTop={1}>
+            <Text color={colors.textMuted} bold>
+              Help
+            </Text>
+            <Box flexDirection="column" marginLeft={2}>
+              {help.flatMap((line, idx) => {
+                const wrapped = wrapText(line, maxWidth - 4);
+                return wrapped.map((part, partIdx) => (
+                  <Text key={`help-${idx}-${partIdx}`} color={colors.textMuted}>
+                    {partIdx === 0 ? `• ${part}` : `  ${part}`}
+                  </Text>
+                ));
+              })}
+            </Box>
+          </Box>
+        )}
+
         {lines.length > 0 && !lines[0]?.includes('Variant created') && !summary && (
           <Box flexDirection="column" marginTop={1}>
             {lines.flatMap((line, idx) => {
@@ -166,3 +221,17 @@ export const CompletionScreen: React.FC<CompletionScreenProps> = ({
     </ScreenLayout>
   );
 };
+
+function isWrapperInPath(wrapperPath: string): boolean {
+  const wrapperDir = path.dirname(wrapperPath);
+  const envPath = process.env.PATH || '';
+  if (!envPath) return false;
+  return envPath.split(path.delimiter).some((entry) => entry === wrapperDir || path.resolve(entry) === wrapperDir);
+}
+
+function getPathCommand(): string {
+  if (process.platform === 'win32') return 'npx cc-mirror path';
+  const shellName = path.basename(process.env.SHELL || '');
+  if (shellName === 'fish') return 'npx cc-mirror path';
+  return 'npx cc-mirror path --apply';
+}

@@ -63,7 +63,8 @@ export function printSummary(opts: PrintSummaryOptions): void {
   console.log(`  Run: ${meta.name}`);
   if (wrapperPath && !isWrapperInPath(wrapperPath)) {
     const wrapperDir = path.dirname(wrapperPath);
-    console.log(`  Tip: add ${wrapperDir} to PATH or run ${wrapperPath}`);
+    const pathCommand = getPathCommand();
+    console.log(`  Tip: add ${wrapperDir} to PATH (${pathCommand}) or run ${wrapperPath}`);
   }
   console.log('');
 }
@@ -73,4 +74,11 @@ function isWrapperInPath(wrapperPath: string): boolean {
   const envPath = process.env.PATH || '';
   if (!envPath) return false;
   return envPath.split(path.delimiter).some((entry) => entry === wrapperDir || path.resolve(entry) === wrapperDir);
+}
+
+function getPathCommand(): string {
+  if (process.platform === 'win32') return 'npx cc-mirror path';
+  const shellName = path.basename(process.env.SHELL || '');
+  if (shellName === 'fish') return 'npx cc-mirror path';
+  return 'npx cc-mirror path --apply';
 }

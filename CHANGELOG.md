@@ -7,18 +7,28 @@ All notable changes to this project will be documented in this file.
 ### Added
 
 - Sync Variants flow to copy skills, MCP servers, permissions, and `CLAUDE.md`.
+- `cc-mirror sync` CLI command for syncing configs between variants.
 - GatewayZ and NanoGPT providers with themes, splash art, and model mapping defaults.
 - Provider education updates (placeholders, haikus, setup links).
 - Z.ai `Z_AI_BASE_URL` support for China endpoint defaults in CLI/TUI flows.
 - Ctrl+C interrupt patch for Claude Code CLI (ESC fallback, double-press exit).
 - Windows support: `.cmd` wrappers, PowerShell profile integration, and `~/.cc-mirror/bin` defaults.
 - `--prefer-ipv4` flag to set `NODE_OPTIONS=--dns-result-order=ipv4first`.
+- `CC_MIRROR_SPLASH_UTF8=0` to skip `chcp 65001` in Windows splash rendering.
+- Termux PATH troubleshooting guidance for `~/.local/bin`.
+- `npx cc-mirror path --apply` to append PATH exports to shell profiles on POSIX.
+- Termux/Android setup guide in docs.
+- Added reference docs for CLI, configuration layout, and environment variables.
+- `--npm-version` flag to override Claude Code package version during create/update.
 
 ### Changed
 
 - Model-mapping checks now use provider flags instead of hardcoded OpenRouter logic.
 - Create/update summaries now surface PATH tips when wrapper directory is not exported.
 - Wrapper paths are platform-aware (`.cmd` on Windows).
+- Summary PATH tip now points to `npx cc-mirror path` for setup instructions.
+- TUI completion screens now render next steps/help and show a PATH tip when wrappers are missing from `PATH`.
+- PATH tips now use `--apply` only when supported (non-Windows, non-fish).
 
 ### Fixed
 

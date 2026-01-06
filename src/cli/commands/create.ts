@@ -31,6 +31,7 @@ interface CreateParams {
   rootDir: string;
   binDir: string;
   npmPackage: string;
+  npmVersion: string;
   extraEnv: string[];
   requiresCredential: boolean;
   shouldPromptApiKey: boolean;
@@ -76,6 +77,7 @@ async function prepareCreateParams(opts: ParsedArgs): Promise<CreateParams> {
   const rootDir = (opts.root as string) || core.DEFAULT_ROOT;
   const binDir = (opts['bin-dir'] as string) || core.DEFAULT_BIN_DIR;
   const npmPackage = (opts['npm-package'] as string) || core.DEFAULT_NPM_PACKAGE;
+  const npmVersion = (opts['npm-version'] as string) || core.DEFAULT_NPM_VERSION;
   const extraEnv = buildExtraEnv(opts);
   const requiresCredential = !provider.credentialOptional;
   // Don't prompt for API key if credential is optional (mirror, ccrouter)
@@ -92,6 +94,7 @@ async function prepareCreateParams(opts: ParsedArgs): Promise<CreateParams> {
     rootDir,
     binDir,
     npmPackage,
+    npmVersion,
     extraEnv,
     requiresCredential,
     shouldPromptApiKey,
@@ -150,6 +153,7 @@ async function handleQuickMode(opts: ParsedArgs, params: CreateParams): Promise<
     rootDir: params.rootDir,
     binDir: params.binDir,
     npmPackage: params.npmPackage,
+    npmVersion: params.npmVersion,
     noTweak: Boolean(opts.noTweak),
     promptPack,
     skillInstall,
@@ -203,6 +207,7 @@ async function handleInteractiveMode(opts: ParsedArgs, params: CreateParams): Pr
   const nextRoot = await prompt('Variants root directory', params.rootDir);
   const nextBin = await prompt('Wrapper install directory', params.binDir);
   const nextNpmPackage = await prompt('NPM package', params.npmPackage);
+  const nextNpmVersion = await prompt('NPM version', params.npmVersion);
 
   const envInput = await prompt('Extra env (KEY=VALUE, comma separated)', params.extraEnv.join(','));
   const parsedEnv = envInput
@@ -238,6 +243,7 @@ async function handleInteractiveMode(opts: ParsedArgs, params: CreateParams): Pr
     rootDir: nextRoot,
     binDir: nextBin,
     npmPackage: nextNpmPackage,
+    npmVersion: nextNpmVersion,
     noTweak: Boolean(opts.noTweak),
     promptPack,
     skillInstall,
@@ -287,6 +293,7 @@ async function handleNonInteractiveMode(opts: ParsedArgs, params: CreateParams):
     rootDir: params.rootDir,
     binDir: params.binDir,
     npmPackage: params.npmPackage,
+    npmVersion: params.npmVersion,
     noTweak: Boolean(opts.noTweak),
     promptPack,
     skillInstall,

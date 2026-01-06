@@ -14,6 +14,7 @@ import {
   runCreateCommand,
   runTasksCommand,
   runPathCommand,
+  runSyncCommand,
 } from './commands/index.js';
 
 const main = async () => {
@@ -74,6 +75,10 @@ const main = async () => {
 
     case 'path':
       runPathCommand({ opts });
+      break;
+
+    case 'sync':
+      runSyncCommand({ opts });
       break;
 
     case 'create':

@@ -147,7 +147,7 @@ test('TUI manage -> update flow', async () => {
   await selectMenuItem(app, 'Manage Variants');
   await send(app.stdin, enter);
   await waitForText(app, 'Manage Variants');
-  await waitForText(app, 'alpha');
+  await selectMenuItem(app, 'alpha');
   await send(app.stdin, enter); // pick alpha
   await waitForText(app, 'Details');
   await send(app.stdin, enter); // update
@@ -175,7 +175,7 @@ test('TUI manage -> remove flow', async () => {
   await selectMenuItem(app, 'Manage Variants');
   await send(app.stdin, enter);
   await waitForText(app, 'Manage Variants');
-  await waitForText(app, 'alpha');
+  await selectMenuItem(app, 'alpha');
   await send(app.stdin, enter); // pick alpha
   await waitForText(app, 'Details');
   await selectMenuItem(app, 'Remove');

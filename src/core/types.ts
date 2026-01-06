@@ -50,6 +50,7 @@ export interface CreateVariantParams {
   rootDir?: string;
   binDir?: string;
   npmPackage?: string;
+  npmVersion?: string;
   brand?: string;
   noTweak?: boolean;
   promptPack?: boolean;
@@ -66,6 +67,7 @@ export interface CreateVariantParams {
 export interface UpdateVariantOptions {
   binDir?: string;
   npmPackage?: string;
+  npmVersion?: string;
   brand?: string;
   noTweak?: boolean;
   extraEnv?: string[];

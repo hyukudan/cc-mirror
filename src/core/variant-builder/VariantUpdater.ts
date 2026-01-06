@@ -28,7 +28,7 @@ import { FinalizeUpdateStep } from './update-steps/FinalizeUpdateStep.js';
 // Helper functions
 const normalizeNpmPackage = (value?: string) => (value && value.trim().length > 0 ? value.trim() : DEFAULT_NPM_PACKAGE);
 
-const normalizeNpmVersion = () => DEFAULT_NPM_VERSION;
+const normalizeNpmVersion = (value?: string) => (value && value.trim().length > 0 ? value.trim() : DEFAULT_NPM_VERSION);
 
 const shouldEnablePromptPack = (providerKey: string) => {
   // Check if provider has noPromptPack set (e.g., mirror provider)
@@ -77,7 +77,7 @@ export class VariantUpdater {
     if (!meta) throw new Error(`Variant not found: ${name}`);
 
     const resolvedNpmPackage = normalizeNpmPackage(opts.npmPackage ?? meta.npmPackage);
-    const resolvedNpmVersion = normalizeNpmVersion();
+    const resolvedNpmVersion = normalizeNpmVersion(opts.npmVersion ?? meta.npmVersion);
     const promptPackPreference = opts.promptPack ?? meta.promptPack ?? shouldEnablePromptPack(meta.provider);
     const promptPackEnabled = !opts.noTweak && promptPackPreference;
     const skillInstallEnabled = opts.skillInstall ?? meta.skillInstall ?? shouldInstallSkills(meta.provider);

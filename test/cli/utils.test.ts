@@ -4,6 +4,7 @@
 
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import path from 'node:path';
 import {
   buildShareUrl,
   getModelOverridesFromArgs,
@@ -289,6 +290,46 @@ test('printSummary prints wrapper path when provided', () => {
     console.log = originalLog;
   }
 });
+
+test('printSummary suggests path command when wrapper not in PATH', () => {
+  const logs: string[] = [];
+  const originalLog = console.log;
+  const originalPath = process.env.PATH;
+  const originalShell = process.env.SHELL;
+  console.log = (...args: unknown[]) => logs.push(args.join(' '));
+
+  try {
+    process.env.PATH = '/usr/bin';
+    process.env.SHELL = '/bin/bash';
+    printSummary({
+      action: 'Created',
+      meta: createMeta(),
+      wrapperPath: '/tmp/bin/test',
+    });
+
+    const expected = getExpectedPathCommand();
+    assert.ok(logs.some((line) => line.includes(expected)));
+  } finally {
+    console.log = originalLog;
+    if (originalPath === undefined) {
+      delete process.env.PATH;
+    } else {
+      process.env.PATH = originalPath;
+    }
+    if (originalShell === undefined) {
+      delete process.env.SHELL;
+    } else {
+      process.env.SHELL = originalShell;
+    }
+  }
+});
+
+function getExpectedPathCommand(): string {
+  if (process.platform === 'win32') return 'npx cc-mirror path';
+  const shellName = path.basename(process.env.SHELL || '');
+  if (shellName === 'fish') return 'npx cc-mirror path';
+  return 'npx cc-mirror path --apply';
+}
 
 test('printSummary prints skill install status', () => {
   const logs: string[] = [];

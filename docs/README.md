@@ -29,6 +29,7 @@
 | ------------------------------------------ | ------------------------------------------- |
 | [Team Mode](features/team-mode.md)         | Multi-agent collaboration with shared tasks |
 | [Mirror Claude](features/mirror-claude.md) | Pure Claude Code with advanced features     |
+| [Termux/Android](features/termux.md)       | Android setup and PATH guidance             |
 | [Brand Themes](features/brand-themes.md)   | Custom color schemes per provider           |
 | [Prompt Packs](features/prompt-packs.md)   | Enhanced system prompts                     |
 
@@ -46,6 +47,7 @@
 | ----------------------------------------------------------- | -------------------------- |
 | [Configuration](reference/configuration.md)                 | All config files explained |
 | [Environment Variables](reference/environment-variables.md) | Env var reference          |
+| [CLI Reference](reference/cli-reference.md)                 | Commands and flags         |
 | [Tweakcc Guide](TWEAKCC-GUIDE.md)                           | Theme customization        |
 
 ---
@@ -58,6 +60,7 @@ docs/
 ├── features/
 │   ├── team-mode.md         # 🤖 Multi-agent collaboration
 │   ├── mirror-claude.md     # 🪞 Pure Claude Code variant
+│   ├── termux.md            # 📱 Android setup
 │   ├── brand-themes.md      # 🎨 Custom themes
 │   └── prompt-packs.md      # 📝 System prompt enhancements
 ├── architecture/
@@ -77,6 +80,7 @@ docs/
 - **New to cc-mirror?** Start with the [Quick Start](../README.md#quick-start)
 - **Want team features?** Read about [Team Mode](features/team-mode.md)
 - **Pure Claude experience?** Try [Mirror Claude](features/mirror-claude.md)
+- **On Android?** Follow [Termux/Android](features/termux.md)
 - **Adding a provider?** See [Provider System](architecture/provider-system.md)
 
 ---

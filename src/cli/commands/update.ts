@@ -37,6 +37,7 @@ export function runUpdateCommand({ opts }: UpdateCommandOptions): void {
     const result = core.updateVariant(rootDir, name, {
       binDir,
       npmPackage: opts['npm-package'] as string | undefined,
+      npmVersion: opts['npm-version'] as string | undefined,
       brand: opts.brand as string | undefined,
       noTweak: Boolean(opts.noTweak),
       extraEnv,

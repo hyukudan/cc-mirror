@@ -16,6 +16,10 @@ export interface ParsedArgs {
   ['prefer-ipv4']?: boolean;
   ['enable-team-mode']?: boolean;
   ['disable-team-mode']?: boolean;
+  ['no-backup']?: boolean;
+  items?: string;
+  source?: string;
+  targets?: string;
   [key: string]: string | boolean | string[] | undefined;
 }
 

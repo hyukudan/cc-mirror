@@ -2,6 +2,7 @@
  * Path command - prints PATH setup instructions
  */
 
+import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import * as core from '../../core/index.js';
@@ -40,11 +41,48 @@ const isInPath = (binDir: string): boolean => {
 export function runPathCommand({ opts }: PathCommandOptions): void {
   const binDir = resolveBinDir(opts['bin-dir'] as string | undefined);
   const inPath = isInPath(binDir);
+  const apply = Boolean(opts.apply);
 
   console.log(`Bin directory: ${binDir}`);
   if (inPath) {
     console.log('Status: already in PATH');
     return;
+  }
+
+  if (apply) {
+    if (process.platform === 'win32') {
+      console.log('Automatic PATH updates are not supported on Windows.');
+      console.log('Run the commands below instead.');
+    } else {
+      const shellName = path.basename(process.env.SHELL || '');
+      if (shellName === 'fish') {
+        console.log('Automatic PATH updates are not supported for fish.');
+        console.log(`Run: set -Ux fish_user_paths ${binDir} $fish_user_paths`);
+        return;
+      }
+
+      const profile = shellName === 'zsh' ? '~/.zshrc' : shellName === 'bash' ? '~/.bashrc' : '~/.profile';
+      const exportLine = `export PATH="${binDir}:$PATH"`;
+      const profilePath = expandHome(profile);
+
+      try {
+        fs.mkdirSync(path.dirname(profilePath), { recursive: true });
+        const current = fs.existsSync(profilePath) ? fs.readFileSync(profilePath, 'utf8') : '';
+        if (current.includes(binDir)) {
+          console.log(`Status: ${profile} already includes ${binDir}`);
+          return;
+        }
+        const prefix = current && !current.endsWith('\n') ? '\n' : '';
+        fs.appendFileSync(profilePath, `${prefix}# cc-mirror\n${exportLine}\n`, 'utf8');
+        console.log(`Updated ${profile}.`);
+        console.log(`Run: source ${profile}`);
+        console.log('Or open a new terminal.');
+        return;
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        console.log(`Failed to update ${profile}: ${message}`);
+      }
+    }
   }
 
   console.log('');

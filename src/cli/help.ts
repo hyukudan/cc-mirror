@@ -26,7 +26,8 @@ COMMANDS
   doctor                       Health check all variants
   tweak <name>                 Launch tweakcc customization
   tasks [operation]            Manage team tasks (list, show, create, update, delete, clean)
-  path                         Show PATH setup instructions
+  path [--apply]               Show PATH setup instructions
+  sync <source> <target...>    Sync config between variants
 
 OPTIONS (create/quick)
   --name <name>                Variant name (becomes CLI command)
@@ -43,13 +44,28 @@ OPTIONS (advanced)
   --model-haiku <name>         Default Haiku model
   --root <path>                Variants root (default: ~/.cc-mirror)
   --bin-dir <path>             Wrapper install dir (default: ${DEFAULT_BIN_DIR})
+  --npm-package <name>         Claude Code package override
+  --npm-version <ver>          Claude Code package version override
   --no-tweak                   Skip tweakcc theming
   --no-prompt-pack             Skip provider prompt pack
   --prompt-pack-mode <mode>    minimal | maximal
   --shell-env                  Write env vars to shell profile (Z.ai)
+  --no-skill-install           Skip dev-browser skill install
+  --skill-update               Refresh managed skills during update
   --env KEY=VALUE              Extra env var override (repeatable)
   --timeout-ms <ms>            API timeout override (ms)
   --prefer-ipv4                Set NODE_OPTIONS=--dns-result-order=ipv4first
+  --enable-team-mode           Enable team mode
+  --disable-team-mode          Disable team mode (quick setup)
+
+OPTIONS (path)
+  --apply                      Append PATH export to shell profile (POSIX only)
+
+OPTIONS (sync)
+  --items <list>               skills,mcp-servers,permissions,claude-md
+  --source <name>              Source variant (optional if positional)
+  --targets <list>             Comma-separated targets (optional if positional)
+  --no-backup                  Skip config backup
 
 EXAMPLES
   npx cc-mirror quick --provider zai

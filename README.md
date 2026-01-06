@@ -179,6 +179,7 @@ npx cc-mirror list                # List all variants
 npx cc-mirror update [name]       # Update one or all variants
 npx cc-mirror remove <name>       # Delete a variant
 npx cc-mirror doctor              # Health check all variants
+npx cc-mirror sync <source> <target...>  # Sync skills/MCP/permissions/CLAUDE.md
 
 # Task management (team mode)
 npx cc-mirror tasks               # List open tasks
@@ -194,6 +195,11 @@ npx cc-mirror tasks graph         # Visualize dependencies
 zai                           # Run Z.ai variant
 minimax                       # Run MiniMax variant
 mclaude                       # Run Mirror Claude variant
+
+# Sync variants
+npx cc-mirror sync source target1 target2
+npx cc-mirror sync source --targets team-a,team-b --items skills,mcp-servers
+npx cc-mirror sync source target --no-backup
 ```
 
 ---
@@ -209,6 +215,8 @@ mclaude                       # Run Mirror Claude variant
 --model-opus <name>      Map to opus model (OpenRouter/GatewayZ/NanoGPT)
 --model-haiku <name>     Map to haiku model (OpenRouter/GatewayZ/NanoGPT)
 --brand <preset>         Theme: auto | zai | minimax | gatewayz | openrouter | nanogpt | ccrouter | mirror
+--npm-package <name>     Claude Code package override
+--npm-version <ver>      Claude Code version override
 --enable-team-mode       Enable team mode (TaskCreate, TaskGet, TaskUpdate, TaskList)
 --no-tweak               Skip tweakcc theme
 --no-prompt-pack         Skip prompt pack
@@ -218,12 +226,39 @@ mclaude                       # Run Mirror Claude variant
 --prefer-ipv4            Set NODE_OPTIONS=--dns-result-order=ipv4first
 ```
 
+Sync options:
+
+```
+--items <list>           skills,mcp-servers,permissions,claude-md
+--source <name>          Source variant (optional if positional)
+--targets <list>         Comma-separated targets (optional if positional)
+--no-backup              Skip config backup
+```
+
 ---
 
 ## 🛠️ Troubleshooting
 
 - IPv6 connection resets (often Z.ai): use `--prefer-ipv4` or add `NODE_OPTIONS=--dns-result-order=ipv4first` via `--env`.
-- Command not found after create: run `npx cc-mirror path` and follow the PATH instructions.
+- Command not found after create: run `npx cc-mirror path` (or `--apply` on Linux/macOS/Termux) and follow the PATH instructions.
+- Android/Termux: add `export PATH="$HOME/.local/bin:$PATH"` to `~/.bashrc` (or `~/.profile`) and `source` it.
+- Windows splash weirdness or slow shells: set `CC_MIRROR_SPLASH_UTF8=0` via `--env` to skip `chcp 65001`.
+
+## 🤖 Termux / Android
+
+If you're using Termux, see the full guide: [docs/features/termux.md](docs/features/termux.md).
+
+Quick PATH fix:
+
+```bash
+npx cc-mirror path --apply
+```
+
+Prefer installing wrappers into Termux's default bin:
+
+```bash
+npx cc-mirror create --provider mirror --name claude-termux --bin-dir "$PREFIX/bin"
+```
 
 ## 🎨 Brand Themes
 
@@ -333,6 +368,7 @@ mclaude-personal
 | ----------------------------------------------- | ------------------------------------------- |
 | [Team Mode](docs/features/team-mode.md)         | Multi-agent collaboration with shared tasks |
 | [Mirror Claude](docs/features/mirror-claude.md) | Pure Claude Code with enhanced features     |
+| [Termux/Android](docs/features/termux.md)       | Android setup and PATH guidance             |
 | [Architecture](docs/architecture/overview.md)   | How cc-mirror works under the hood          |
 | [Full Documentation](docs/README.md)            | Complete documentation index                |
 

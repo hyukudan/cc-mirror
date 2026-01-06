@@ -29,7 +29,7 @@ import { FinalizeStep } from './steps/FinalizeStep.js';
 // Helper functions
 const normalizeNpmPackage = (value?: string) => (value && value.trim().length > 0 ? value.trim() : DEFAULT_NPM_PACKAGE);
 
-const normalizeNpmVersion = () => DEFAULT_NPM_VERSION;
+const normalizeNpmVersion = (value?: string) => (value && value.trim().length > 0 ? value.trim() : DEFAULT_NPM_VERSION);
 
 const shouldEnablePromptPack = (providerKey: string, provider?: ProviderTemplate) => {
   // Providers with noPromptPack: true skip prompt pack overlays
@@ -97,7 +97,7 @@ export class VariantBuilder {
     };
 
     const resolvedNpmPackage = normalizeNpmPackage(params.npmPackage);
-    const resolvedNpmVersion = normalizeNpmVersion();
+    const resolvedNpmVersion = normalizeNpmVersion(params.npmVersion);
     const promptPackPreference = params.promptPack ?? shouldEnablePromptPack(params.providerKey, provider);
     const promptPackEnabled = !params.noTweak && promptPackPreference;
     const skillInstallEnabled = params.skillInstall ?? shouldInstallSkills(params.providerKey);

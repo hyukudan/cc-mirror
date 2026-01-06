@@ -10,3 +10,4 @@ export { runUpdateCommand, type UpdateCommandOptions } from './update.js';
 export { runCreateCommand, type CreateCommandOptions } from './create.js';
 export { runTasksCommand, type TasksCommandOptions } from './tasks.js';
 export { runPathCommand, type PathCommandOptions } from './path.js';
+export { runSyncCommand, type SyncCommandOptions } from './sync.js';

@@ -4,6 +4,7 @@
 
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import path from 'node:path';
 import React from 'react';
 import { render } from 'ink-testing-library';
 import { CompletionScreen } from '../../src/tui/screens/CompletionScreen.js';
@@ -30,6 +31,48 @@ test('CompletionScreen renders success message', async () => {
 
   app.unmount();
 });
+
+test('CompletionScreen shows PATH tip when wrapper is missing from PATH', async () => {
+  const originalPath = process.env.PATH;
+  const originalShell = process.env.SHELL;
+  process.env.PATH = '/usr/bin';
+  process.env.SHELL = '/bin/bash';
+
+  const app = render(
+    React.createElement(CompletionScreen, {
+      title: 'Test Complete',
+      lines: [],
+      variantName: 'my-variant',
+      wrapperPath: '/tmp/bin/my-variant',
+      onDone: () => {},
+    })
+  );
+
+  try {
+    const frame = app.lastFrame() || '';
+    const expected = getExpectedPathCommand();
+    assert.ok(frame.includes(expected), 'PATH hint should be visible');
+  } finally {
+    app.unmount();
+    if (originalPath === undefined) {
+      delete process.env.PATH;
+    } else {
+      process.env.PATH = originalPath;
+    }
+    if (originalShell === undefined) {
+      delete process.env.SHELL;
+    } else {
+      process.env.SHELL = originalShell;
+    }
+  }
+});
+
+function getExpectedPathCommand(): string {
+  if (process.platform === 'win32') return 'npx cc-mirror path';
+  const shellName = path.basename(process.env.SHELL || '');
+  if (shellName === 'fish') return 'npx cc-mirror path';
+  return 'npx cc-mirror path --apply';
+}
 
 test('CompletionScreen action selection', async () => {
   let doneValue = '';
