@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [1.5.0] - 2026-01-06
+
 ### Added
 
 - Sync Variants flow to copy skills, MCP servers, permissions, and `CLAUDE.md`.
