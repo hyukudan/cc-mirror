@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Box, Text, useApp, useInput } from 'ink';
 import SelectInput from 'ink-select-input';
 import path from 'node:path';
+import { applyPathUpdate } from '../cli/commands/path.js';
 import type { BrandPreset } from '../brands/index.js';
 import * as defaultBrands from '../brands/index.js';
 import type { ProviderEnv, ProviderTemplate } from '../providers/index.js';
@@ -49,6 +50,7 @@ import {
   FeedbackScreen,
   TeamModeScreen,
   SyncSourceScreen,
+  SyncItemsScreen,
   SyncTargetsScreen,
 } from './screens/index.js';
 
@@ -58,6 +60,8 @@ import { YesNoSelect } from './components/ui/YesNoSelect.js';
 import { Header } from './components/ui/Typography.js';
 import { TextField } from './components/ui/Input.js';
 import { colors } from './components/ui/theme.js';
+
+const DEFAULT_SYNC_ITEMS: SyncItem[] = ['skills', 'mcp-servers', 'permissions', 'claude-md'];
 
 export interface CoreModule {
   DEFAULT_ROOT: string;
@@ -240,7 +244,7 @@ export const App: React.FC<AppProps> = ({
   const [apiKeyDetectedFrom, setApiKeyDetectedFrom] = useState<string | null>(null);
   const [syncSourceVariant, setSyncSourceVariant] = useState<string>('');
   const [syncTargetVariants, setSyncTargetVariants] = useState<string[]>([]);
-  const syncItems: SyncItem[] = ['skills', 'mcp-servers', 'permissions', 'claude-md'];
+  const [syncItems, setSyncItems] = useState<SyncItem[]>(DEFAULT_SYNC_ITEMS);
 
   // Include experimental providers to show "Coming Soon" in UI
   const providerList = useMemo(() => providers.listProviders(true), [providers]);
@@ -363,8 +367,11 @@ export const App: React.FC<AppProps> = ({
         case 'sync-source':
           setScreen('home');
           break;
-        case 'sync-targets':
+        case 'sync-items':
           setScreen('sync-source');
+          break;
+        case 'sync-targets':
+          setScreen('sync-items');
           break;
         case 'sync-running':
           break;
@@ -510,13 +517,26 @@ export const App: React.FC<AppProps> = ({
 
   useEffect(() => {
     if (screen !== 'manage-path') return;
-    const pathCommand = getPathCommandForTui();
-    setDoneLines(['To update your PATH, run:']);
-    setCompletionSummary([pathCommand]);
-    setCompletionNextSteps(['Exit this TUI first (press ESC or q)', 'Then run the command above in your terminal']);
-    setCompletionHelp(['Adds the wrapper directory to PATH for new shells.']);
+    const result = applyPathUpdate(binDir);
+    if (result.ok) {
+      setDoneLines(['PATH updated.']);
+      setCompletionSummary([result.message]);
+      setCompletionNextSteps(result.nextSteps || ['Open a new terminal to pick up PATH changes.']);
+      setCompletionHelp([]);
+    } else if (result.command) {
+      setDoneLines(['Automatic PATH update not supported.']);
+      setCompletionSummary([result.command]);
+      setCompletionNextSteps(['Exit this TUI first (press ESC or q)', 'Then run the command above in your terminal']);
+      setCompletionHelp([result.message]);
+    } else {
+      const pathCommand = getPathCommandForTui();
+      setDoneLines(['PATH update failed.']);
+      setCompletionSummary([pathCommand]);
+      setCompletionNextSteps(['Exit this TUI first (press ESC or q)', 'Then run the command above in your terminal']);
+      setCompletionHelp([result.message]);
+    }
     setScreen('manage-path-done');
-  }, [screen]);
+  }, [screen, binDir]);
 
   // Save model configuration operation (extracted to useModelConfig hook)
   useModelConfig({
@@ -623,6 +643,7 @@ export const App: React.FC<AppProps> = ({
           if (value === 'sync') {
             setSyncSourceVariant('');
             setSyncTargetVariants([]);
+            setSyncItems(DEFAULT_SYNC_ITEMS);
             setScreen('sync-source');
           }
           if (value === 'updateAll') setScreen('updateAll');
@@ -1384,9 +1405,22 @@ export const App: React.FC<AppProps> = ({
         }))}
         onSelect={(variantName) => {
           setSyncSourceVariant(variantName);
-          setScreen('sync-targets');
+          setScreen('sync-items');
         }}
         onBack={() => setScreen('home')}
+      />
+    );
+  }
+
+  if (screen === 'sync-items') {
+    return (
+      <SyncItemsScreen
+        selectedItems={syncItems}
+        onConfirm={(items) => {
+          setSyncItems(items);
+          setScreen('sync-targets');
+        }}
+        onBack={() => setScreen('sync-source')}
       />
     );
   }
@@ -1404,7 +1438,7 @@ export const App: React.FC<AppProps> = ({
           setProgressLines([]);
           setScreen('sync-running');
         }}
-        onBack={() => setScreen('sync-source')}
+        onBack={() => setScreen('sync-items')}
       />
     );
   }

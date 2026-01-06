@@ -9,6 +9,7 @@ All notable changes to this project will be documented in this file.
 - Sync Variants flow to copy skills, MCP servers, permissions, and `CLAUDE.md`.
 - `cc-mirror sync` CLI command for syncing configs between variants.
 - Sync options for `tasks`, `provider-env`, and `--dry-run`.
+- TUI sync flow now lets you choose which items to copy.
 - GatewayZ and NanoGPT providers with themes, splash art, and model mapping defaults.
 - Provider education updates (placeholders, haikus, setup links).
 - Z.ai `Z_AI_BASE_URL` support for China endpoint defaults in CLI/TUI flows.
@@ -20,6 +21,7 @@ All notable changes to this project will be documented in this file.
 - `CC_MIRROR_SPLASH_UTF8=0` to skip `chcp 65001` in Windows splash rendering.
 - Termux PATH troubleshooting guidance for `~/.local/bin`.
 - `npx cc-mirror path --apply` to append PATH exports to shell profiles on POSIX/PowerShell.
+- TUI manage flow can apply PATH updates directly.
 - Termux/Android setup guide in docs.
 - Added reference docs for CLI, configuration layout, and environment variables.
 - `--npm-version` flag to override Claude Code package version during create/update.

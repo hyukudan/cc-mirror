@@ -12,6 +12,13 @@ export interface PathCommandOptions {
   opts: ParsedArgs;
 }
 
+export interface PathApplyResult {
+  ok: boolean;
+  message: string;
+  command?: string;
+  nextSteps?: string[];
+}
+
 const expandHome = (value: string): string => {
   if (!value.startsWith('~')) return value;
   const trimmed = value.slice(1);
@@ -73,6 +80,63 @@ const applyPowerShellProfile = (binDir: string): { ok: boolean; message: string;
   }
 };
 
+const applyPosixProfile = (binDir: string, shellName: string): PathApplyResult => {
+  if (shellName === 'fish') {
+    return {
+      ok: false,
+      message: 'Automatic PATH updates are not supported for fish.',
+      command: `set -Ux fish_user_paths ${binDir} $fish_user_paths`,
+    };
+  }
+
+  const profileLabel = shellName === 'zsh' ? '~/.zshrc' : shellName === 'bash' ? '~/.bashrc' : '~/.profile';
+  const exportLine = `export PATH="${binDir}:$PATH"`;
+  const profilePath = expandHome(profileLabel);
+
+  try {
+    fs.mkdirSync(path.dirname(profilePath), { recursive: true });
+    const current = fs.existsSync(profilePath) ? fs.readFileSync(profilePath, 'utf8') : '';
+    if (current.includes(binDir)) {
+      return {
+        ok: true,
+        message: `Status: ${profileLabel} already includes ${binDir}`,
+        nextSteps: [`Run: source ${profileLabel}`, 'Or open a new terminal.'],
+      };
+    }
+    const prefix = current && !current.endsWith('\n') ? '\n' : '';
+    fs.appendFileSync(profilePath, `${prefix}# cc-mirror\n${exportLine}\n`, 'utf8');
+    return {
+      ok: true,
+      message: `Updated ${profileLabel}.`,
+      nextSteps: [`Run: source ${profileLabel}`, 'Or open a new terminal.'],
+    };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    return { ok: false, message: `Failed to update ${profileLabel}: ${message}` };
+  }
+};
+
+export const applyPathUpdate = (binDir: string): PathApplyResult => {
+  if (isInPath(binDir)) {
+    return { ok: true, message: 'Status: already in PATH' };
+  }
+
+  if (process.platform === 'win32') {
+    const result = applyPowerShellProfile(binDir);
+    if (!result.ok) {
+      return { ok: false, message: result.message };
+    }
+    return {
+      ok: true,
+      message: result.message,
+      nextSteps: ['Open a new PowerShell window to pick up PATH changes.'],
+    };
+  }
+
+  const shellName = path.basename(process.env.SHELL || '');
+  return applyPosixProfile(binDir, shellName);
+};
+
 export function runPathCommand({ opts }: PathCommandOptions): void {
   const binDir = resolveBinDir(opts['bin-dir'] as string | undefined);
   const inPath = isInPath(binDir);
@@ -85,42 +149,19 @@ export function runPathCommand({ opts }: PathCommandOptions): void {
   }
 
   if (apply) {
-    if (process.platform === 'win32') {
-      const result = applyPowerShellProfile(binDir);
-      console.log(result.message);
-      if (result.ok) {
-        console.log('Open a new PowerShell window to pick up PATH changes.');
-        return;
+    const result = applyPathUpdate(binDir);
+    console.log(result.message);
+    if (result.command) {
+      console.log(`Run: ${result.command}`);
+      return;
+    }
+    if (result.nextSteps && result.nextSteps.length > 0) {
+      for (const step of result.nextSteps) {
+        console.log(step);
       }
-    } else {
-      const shellName = path.basename(process.env.SHELL || '');
-      if (shellName === 'fish') {
-        console.log('Automatic PATH updates are not supported for fish.');
-        console.log(`Run: set -Ux fish_user_paths ${binDir} $fish_user_paths`);
-        return;
-      }
-
-      const profile = shellName === 'zsh' ? '~/.zshrc' : shellName === 'bash' ? '~/.bashrc' : '~/.profile';
-      const exportLine = `export PATH="${binDir}:$PATH"`;
-      const profilePath = expandHome(profile);
-
-      try {
-        fs.mkdirSync(path.dirname(profilePath), { recursive: true });
-        const current = fs.existsSync(profilePath) ? fs.readFileSync(profilePath, 'utf8') : '';
-        if (current.includes(binDir)) {
-          console.log(`Status: ${profile} already includes ${binDir}`);
-          return;
-        }
-        const prefix = current && !current.endsWith('\n') ? '\n' : '';
-        fs.appendFileSync(profilePath, `${prefix}# cc-mirror\n${exportLine}\n`, 'utf8');
-        console.log(`Updated ${profile}.`);
-        console.log(`Run: source ${profile}`);
-        console.log('Or open a new terminal.');
-        return;
-      } catch (error) {
-        const message = error instanceof Error ? error.message : String(error);
-        console.log(`Failed to update ${profile}: ${message}`);
-      }
+    }
+    if (result.ok) {
+      return;
     }
   }
 
