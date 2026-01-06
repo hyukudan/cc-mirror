@@ -9,8 +9,6 @@ All notable changes to this project will be documented in this file.
 - Sync Variants flow to copy skills, MCP servers, permissions, and `CLAUDE.md`.
 - GatewayZ and NanoGPT providers with themes, splash art, and model mapping defaults.
 - Provider education updates (placeholders, haikus, setup links).
-- Module-level `AGENTS.md` references for core, TUI, and tests.
-- Orchestration skill refresh with domain guides, coordination rules, and updated workflow guidance.
 - Z.ai `Z_AI_BASE_URL` support for China endpoint defaults in CLI/TUI flows.
 - Ctrl+C interrupt patch for Claude Code CLI (ESC fallback, double-press exit).
 - Windows support: `.cmd` wrappers, PowerShell profile integration, and `~/.cc-mirror/bin` defaults.
@@ -19,9 +17,6 @@ All notable changes to this project will be documented in this file.
 ### Changed
 
 - Model-mapping checks now use provider flags instead of hardcoded OpenRouter logic.
-- CLI help and provider comparison messaging to include new providers.
-- Team mode now uses `CLAUDE_CODE_TEAM_MODE`, deriving team names from the project folder with optional `TEAM` modifiers.
-- Team mode updates refresh orchestrator skill/tooling when already enabled.
 - Create/update summaries now surface PATH tips when wrapper directory is not exported.
 - Wrapper paths are platform-aware (`.cmd` on Windows).
 
@@ -74,6 +69,22 @@ All notable changes to this project will be documented in this file.
 ### Changed
 
 - Args parser fix for boolean flags consuming next argument.
+
+## [1.3.0] - 2025-01-05
+
+### Changed
+
+- Team mode now uses `CLAUDE_CODE_TEAM_MODE`, deriving team names from the project folder with optional `TEAM` modifiers.
+
+### Fixed
+
+- Prevent cross-project task pollution when settings.json overwrote dynamic team names.
+
+## [1.2.1] - 2025-01-05
+
+### Fixed
+
+- Team mode updates now refresh the orchestration skill when already enabled.
 
 ## [1.1.5] - 2025-01-05
 
