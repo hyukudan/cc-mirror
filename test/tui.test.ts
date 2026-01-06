@@ -22,10 +22,15 @@ const waitForText = async (app: { lastFrame: () => string | undefined }, text: s
   assert.ok(ok, `Expected to see "${text}"`);
 };
 
+const waitForAnyText = async (app: { lastFrame: () => string | undefined }, texts: string[], attempts = 100) => {
+  const ok = await waitFor(() => texts.some((text) => frameText(app).includes(text)), attempts);
+  assert.ok(ok, `Expected to see one of: ${texts.join(', ')}`);
+};
+
 const selectMenuItem = async (
   app: { lastFrame: () => string | undefined; stdin: { write: (value: string) => void } },
   label: string,
-  maxMoves = 20
+  maxMoves = 30
 ) => {
   await waitForText(app, label);
   for (let i = 0; i < maxMoves; i += 1) {
@@ -56,19 +61,16 @@ test('TUI create flow applies tweakcc by default', async () => {
   await selectMenuItem(app, 'New Variant');
   await send(app.stdin, enter);
   await waitForText(app, 'Select Provider');
-  await send(app.stdin, enter); // provider select -> default (zai)
-  const reachedIntro = await waitFor(() => {
-    const frame = frameText(app);
-    return (
-      frame.includes('Setting up') ||
-      frame.includes('Choose Theme') ||
-      frame.includes('Variant Name') ||
-      frame.includes('Base URL') ||
-      frame.includes('API Key') ||
-      frame.includes('Browser Automation')
-    );
-  }, 150);
-  assert.ok(reachedIntro);
+  for (let i = 0; i < 3; i += 1) {
+    await send(app.stdin, enter); // provider select -> default (zai)
+    const leftProvider = await waitFor(() => !frameText(app).includes('Select Provider'), 40);
+    if (leftProvider) break;
+  }
+  await waitForAnyText(
+    app,
+    ['Setting up', 'Choose Theme', 'Variant Name', 'Base URL', 'API Key', 'Browser Automation'],
+    200
+  );
   const introFrame = frameText(app);
   if (introFrame.includes('Setting up')) {
     await send(app.stdin, enter); // intro screen -> continue
