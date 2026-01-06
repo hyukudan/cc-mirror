@@ -42,6 +42,18 @@ CC-MIRROR creates **isolated Claude Code instances** that connect to different A
 
 ---
 
+## Fork Notes
+
+This repository is a fork of https://github.com/numman-ali/cc-mirror. It keeps upstream behavior and adds extra tooling for managing variants and configs.
+
+Additions in this fork:
+- `cc-mirror mcp` to list/add/remove MCP servers per variant.
+- `cc-mirror export/import` to snapshot and restore config state.
+- `cc-mirror config` operations (`list/show/set/unset`) to inspect or edit settings env + permissions.
+- Extra docs/tests covering the above commands.
+
+---
+
 ## ⚡ Quick Start
 
 ```bash
