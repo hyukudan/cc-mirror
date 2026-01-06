@@ -66,7 +66,7 @@ export function useTeamModeToggle(options: UseTeamModeToggleOptions): void {
           doneLines: [`Team mode ${newStatus} for ${selectedVariant.name}`],
           summary: [...(result.notes || [])],
           nextSteps: [`Run: ${selectedVariant.name}`],
-          help: ['Team mode adds TaskCreate, TaskGet, TaskUpdate, TaskList tools for multi-agent coordination'],
+          help: ['Team mode adds TaskCreate, TaskGet, TaskUpdate, TaskList tools plus bundled skills'],
         };
 
         onComplete(completion);

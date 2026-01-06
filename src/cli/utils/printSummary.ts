@@ -26,7 +26,7 @@ export function printSummary(opts: PrintSummaryOptions): void {
   // Helper to get team mode description
   const getTeamModeDescription = (): string => {
     if (!meta.teamModeEnabled) return 'off';
-    return 'on (orchestrator skill, TodoWrite blocked)';
+    return 'on (orchestrator + task-manager skills, TodoWrite blocked)';
   };
 
   // Header

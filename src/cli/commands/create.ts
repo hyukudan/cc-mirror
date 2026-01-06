@@ -140,7 +140,7 @@ async function handleQuickMode(opts: ParsedArgs, params: CreateParams): Promise<
   // Team mode enabled by default for quick setup (use --disable-team-mode to opt out)
   const enableTeamMode = opts['disable-team-mode'] ? false : true;
   if (enableTeamMode) {
-    console.log('Team mode will be enabled (orchestrator skill installed)');
+    console.log('Team mode will be enabled (orchestrator + task-manager skills installed)');
   }
 
   const result = core.createVariant({

@@ -40,7 +40,7 @@ export function buildUpdateSummary(meta: VariantMeta, notes?: string[]): string[
   // Build team mode description
   const getTeamModeDescription = (): string => {
     if (!meta.teamModeEnabled) return 'off';
-    return 'on (orchestrator skill, TodoWrite blocked)';
+    return 'on (orchestrator + task-manager skills, TodoWrite blocked)';
   };
 
   return [

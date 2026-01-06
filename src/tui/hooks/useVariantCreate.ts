@@ -56,7 +56,7 @@ export function buildCreateSummary(params: {
   // Build team mode description
   const getTeamModeDescription = (): string => {
     if (!enableTeamMode) return 'off';
-    return 'on (orchestrator skill, TodoWrite blocked)';
+    return 'on (orchestrator + task-manager skills, TodoWrite blocked)';
   };
 
   return [

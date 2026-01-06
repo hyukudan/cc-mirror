@@ -26,7 +26,7 @@ test('buildCreateSummary includes all expected fields', () => {
   assert.ok(summary.some((line) => line.includes('Prompt pack: on (zai-cli routing)')));
   assert.ok(summary.some((line) => line.includes('dev-browser skill: on')));
   assert.ok(summary.some((line) => line.includes('Team mode: on')));
-  assert.ok(summary.some((line) => line.includes('orchestrator skill')));
+  assert.ok(summary.some((line) => line.includes('orchestrator + task-manager skills')));
   assert.ok(summary.some((line) => line.includes('Models:')));
   assert.ok(summary.some((line) => line.includes('Shell env:')));
   assert.ok(summary.some((line) => line.includes('Note 1')));
@@ -143,7 +143,7 @@ test('buildUpdateSummary includes provider info', () => {
   assert.ok(summary.some((line) => line.includes('Prompt pack: on (zai-cli routing)')));
   assert.ok(summary.some((line) => line.includes('dev-browser skill: on')));
   assert.ok(summary.some((line) => line.includes('Team mode: on')));
-  assert.ok(summary.some((line) => line.includes('orchestrator skill')));
+  assert.ok(summary.some((line) => line.includes('orchestrator + task-manager skills')));
   assert.ok(summary.some((line) => line.includes('Shell env:')));
   assert.ok(summary.some((line) => line.includes('Update note')));
 });

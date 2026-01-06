@@ -3,7 +3,7 @@
  *
  * Tests team mode enable/disable functionality:
  * - cli.js patching
- * - orchestrator skill installation
+ * - bundled skill installation
  * - variant.json metadata
  */
 
@@ -56,14 +56,19 @@ test('E2E: Team Mode', async (t) => {
       assert.ok(cliContent.includes(TEAM_MODE_ENABLED), 'cli.js should have team mode enabled');
       assert.ok(!cliContent.includes(TEAM_MODE_DISABLED), 'cli.js should not have team mode disabled');
 
-      // Verify orchestrator skill installed
-      const skillPath = path.join(variantDir, 'config', 'skills', 'orchestration');
-      assert.ok(fs.existsSync(skillPath), 'orchestrator skill directory should exist');
-      assert.ok(fs.existsSync(path.join(skillPath, 'SKILL.md')), 'SKILL.md should exist');
+      // Verify bundled skills installed
+      const orchestratorPath = path.join(variantDir, 'config', 'skills', 'orchestration');
+      const taskManagerPath = path.join(variantDir, 'config', 'skills', 'task-manager');
+      assert.ok(fs.existsSync(orchestratorPath), 'orchestrator skill directory should exist');
+      assert.ok(fs.existsSync(path.join(orchestratorPath, 'SKILL.md')), 'orchestrator SKILL.md should exist');
+      assert.ok(fs.existsSync(taskManagerPath), 'task-manager skill directory should exist');
+      assert.ok(fs.existsSync(path.join(taskManagerPath, 'SKILL.md')), 'task-manager SKILL.md should exist');
 
       // Verify marker file
-      const markerPath = path.join(skillPath, '.cc-mirror-managed');
-      assert.ok(fs.existsSync(markerPath), 'managed marker should exist');
+      const orchestratorMarker = path.join(orchestratorPath, '.cc-mirror-managed');
+      const taskManagerMarker = path.join(taskManagerPath, '.cc-mirror-managed');
+      assert.ok(fs.existsSync(orchestratorMarker), 'orchestrator managed marker should exist');
+      assert.ok(fs.existsSync(taskManagerMarker), 'task-manager managed marker should exist');
 
       // Verify variant.json has teamModeEnabled
       const metaPath = path.join(variantDir, 'variant.json');
@@ -105,9 +110,11 @@ test('E2E: Team Mode', async (t) => {
       assert.ok(cliContent.includes(TEAM_MODE_DISABLED), 'cli.js should have team mode disabled');
       assert.ok(!cliContent.includes(TEAM_MODE_ENABLED), 'cli.js should not have team mode enabled');
 
-      // Verify orchestrator skill NOT installed
-      const skillPath = path.join(variantDir, 'config', 'skills', 'orchestration');
-      assert.ok(!fs.existsSync(skillPath), 'orchestrator skill should not be installed');
+      // Verify bundled skills NOT installed
+      const orchestratorPath = path.join(variantDir, 'config', 'skills', 'orchestration');
+      const taskManagerPath = path.join(variantDir, 'config', 'skills', 'task-manager');
+      assert.ok(!fs.existsSync(orchestratorPath), 'orchestrator skill should not be installed');
+      assert.ok(!fs.existsSync(taskManagerPath), 'task-manager skill should not be installed');
 
       // Verify variant.json does not have teamModeEnabled
       const metaPath = path.join(variantDir, 'variant.json');
@@ -140,9 +147,11 @@ test('E2E: Team Mode', async (t) => {
       const cliContent = readFile(cliPath);
       assert.ok(cliContent.includes(TEAM_MODE_ENABLED), 'mirror should auto-enable team mode');
 
-      // Verify orchestrator skill installed
-      const skillPath = path.join(variantDir, 'config', 'skills', 'orchestration');
-      assert.ok(fs.existsSync(skillPath), 'orchestrator skill should be auto-installed for mirror');
+      // Verify bundled skills installed
+      const orchestratorPath = path.join(variantDir, 'config', 'skills', 'orchestration');
+      const taskManagerPath = path.join(variantDir, 'config', 'skills', 'task-manager');
+      assert.ok(fs.existsSync(orchestratorPath), 'orchestrator skill should be auto-installed for mirror');
+      assert.ok(fs.existsSync(taskManagerPath), 'task-manager skill should be auto-installed for mirror');
     });
   });
 
@@ -184,9 +193,11 @@ test('E2E: Team Mode', async (t) => {
       cliContent = readFile(cliPath);
       assert.ok(cliContent.includes(TEAM_MODE_ENABLED), 'should have team mode enabled after update');
 
-      // Verify skill installed
-      const skillPath = path.join(variantDir, 'config', 'skills', 'orchestration');
-      assert.ok(fs.existsSync(skillPath), 'skill should be installed after enabling');
+      // Verify bundled skills installed
+      const orchestratorPath = path.join(variantDir, 'config', 'skills', 'orchestration');
+      const taskManagerPath = path.join(variantDir, 'config', 'skills', 'task-manager');
+      assert.ok(fs.existsSync(orchestratorPath), 'orchestrator skill should be installed after enabling');
+      assert.ok(fs.existsSync(taskManagerPath), 'task-manager skill should be installed after enabling');
 
       // Disable via update (noTweak to avoid tweakcc async issues with fake npm)
       core.updateVariant(rootDir, 'test-toggle', {
@@ -199,8 +210,9 @@ test('E2E: Team Mode', async (t) => {
       cliContent = readFile(cliPath);
       assert.ok(cliContent.includes(TEAM_MODE_DISABLED), 'should have team mode disabled after update');
 
-      // Verify skill removed
-      assert.ok(!fs.existsSync(skillPath), 'skill should be removed after disabling');
+      // Verify bundled skills removed
+      assert.ok(!fs.existsSync(orchestratorPath), 'orchestrator skill should be removed after disabling');
+      assert.ok(!fs.existsSync(taskManagerPath), 'task-manager skill should be removed after disabling');
     });
   });
 
