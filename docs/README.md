@@ -89,7 +89,9 @@ docs/
 ├──────────────┼─────────────────┼──────────────┼────────────┼────────────┤
 │ zai          │ GLM-4.7         │ API Key      │ ✓ Full     │ Optional   │
 │ minimax      │ MiniMax-M2.1    │ API Key      │ ✓ Full     │ Optional   │
+│ gatewayz     │ Claude via GWZ  │ Auth Token   │ ✗          │ Optional   │
 │ openrouter   │ You choose      │ Auth Token   │ ✗          │ Optional   │
+│ nanogpt      │ You choose      │ Auth Token   │ ✗          │ Optional   │
 │ ccrouter     │ Local LLMs      │ Optional     │ ✗          │ Optional   │
 │ mirror       │ Claude (native) │ OAuth/Key    │ ✗ Pure     │ ✓ Default  │
 └──────────────┴─────────────────┴──────────────┴────────────┴────────────┘
