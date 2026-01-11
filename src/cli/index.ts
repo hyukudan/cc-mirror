@@ -2,6 +2,9 @@
  * CLI entry point - routes commands to handlers
  */
 
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { parseArgs } from './args.js';
 import { printHelp, printHaiku } from './help.js';
 import { runTui, shouldLaunchTui } from './tui.js';
@@ -22,6 +25,26 @@ import {
   runSyncCommand,
 } from './commands/index.js';
 
+const readPackageVersion = (): string => {
+  const startDir = path.dirname(fileURLToPath(import.meta.url));
+  let dir = startDir;
+  while (true) {
+    const candidate = path.join(dir, 'package.json');
+    if (fs.existsSync(candidate)) {
+      try {
+        const data = JSON.parse(fs.readFileSync(candidate, 'utf8')) as { version?: string };
+        if (data?.version) return data.version;
+      } catch {
+        return 'unknown';
+      }
+    }
+    const parent = path.dirname(dir);
+    if (parent === dir) break;
+    dir = parent;
+  }
+  return 'unknown';
+};
+
 const main = async () => {
   const argv = process.argv.slice(2);
 
@@ -35,6 +58,11 @@ const main = async () => {
   const opts = parseArgs(argv);
   const quickMode = cmd === 'quick' || Boolean(opts.quick || opts.simple);
   if (cmd === 'quick') cmd = 'create';
+
+  if (cmd === 'version' || opts.version) {
+    console.log(readPackageVersion());
+    return;
+  }
 
   // Help command (only for main help, not subcommand help)
   // Subcommands like 'tasks' handle their own --help

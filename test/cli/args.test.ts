@@ -16,6 +16,27 @@ test('parseArgs handles --yes flag', () => {
   assert.equal(result.yes, true);
 });
 
+test('parseArgs handles --help flag', () => {
+  const result = parseArgs(['--help']);
+  assert.equal(result.help, true);
+});
+
+test('parseArgs handles -h flag', () => {
+  const result = parseArgs(['-h']);
+  assert.equal(result.help, true);
+  assert.equal(result.h, true);
+});
+
+test('parseArgs handles --version flag', () => {
+  const result = parseArgs(['--version']);
+  assert.equal(result.version, true);
+});
+
+test('parseArgs handles -v flag', () => {
+  const result = parseArgs(['-v']);
+  assert.equal(result.version, true);
+});
+
 test('parseArgs handles --no-tweak flag', () => {
   const result = parseArgs(['create', '--no-tweak']);
   assert.equal(result.noTweak, true);

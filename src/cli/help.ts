@@ -23,6 +23,7 @@ COMMANDS
   list                         List all variants
   update [name]                Update to latest Claude Code
   remove <name>                Remove a variant
+  version                      Print CLI version
   doctor                       Health check all variants
   tweak <name>                 Launch tweakcc customization
   run <name>                   Launch a variant wrapper
@@ -33,6 +34,10 @@ COMMANDS
   tasks [operation]            Manage team tasks (list, show, create, update, delete, clean)
   path [--apply]               Show PATH setup instructions
   sync <source> <target...>    Sync config between variants
+
+OPTIONS (global)
+  --help, -h                   Show help
+  --version, -v                Print CLI version
 
 OPTIONS (create/quick)
   --name <name>                Variant name (becomes CLI command)

@@ -7,6 +7,8 @@ export interface ParsedArgs {
   noTui?: boolean;
   quick?: boolean;
   help?: boolean;
+  h?: boolean;
+  version?: boolean;
   ['no-prompt-pack']?: boolean;
   ['prompt-pack-mode']?: string;
   ['no-skill-install']?: boolean;
@@ -39,6 +41,15 @@ export const parseArgs = (argv: string[]): ParsedArgs => {
     }
     if (arg === '--yes') {
       opts.yes = true;
+      continue;
+    }
+    if (arg === '--help' || arg === '-h') {
+      opts.help = true;
+      opts.h = true;
+      continue;
+    }
+    if (arg === '--version' || arg === '-v') {
+      opts.version = true;
       continue;
     }
     if (arg === '--no-tweak') {
