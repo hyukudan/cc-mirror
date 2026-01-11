@@ -7,6 +7,7 @@ import { ensureTweakccConfig, launchTweakccUi } from './tweakcc.js';
 import { getWrapperPath } from './wrapper.js';
 import { formatTweakccFailure } from './errors.js';
 import { listVariants as listVariantsImpl, loadVariantMeta } from './variants.js';
+import { assertValidVariantName } from './validation.js';
 import { VariantBuilder, VariantUpdater } from './variant-builder/index.js';
 import type {
   CreateVariantParams,
@@ -58,9 +59,10 @@ export const updateVariant = (rootDir: string, name: string, opts: UpdateVariant
 };
 
 export const removeVariant = (rootDir: string, name: string) => {
+  const safeName = assertValidVariantName(name);
   const resolvedRoot = expandTilde(rootDir || DEFAULT_ROOT) ?? rootDir;
-  const variantDir = path.join(resolvedRoot, name);
-  if (!fs.existsSync(variantDir)) throw new Error(`Variant not found: ${name}`);
+  const variantDir = path.join(resolvedRoot, safeName);
+  if (!fs.existsSync(variantDir)) throw new Error(`Variant not found: ${safeName}`);
   fs.rmSync(variantDir, { recursive: true, force: true });
 };
 
@@ -83,10 +85,11 @@ export const doctor = (rootDir: string, binDir: string): DoctorReportItem[] => {
 export const listVariants = (rootDir: string): VariantEntry[] => listVariantsImpl(rootDir);
 
 export const tweakVariant = (rootDir: string, name: string): void => {
+  const safeName = assertValidVariantName(name);
   const resolvedRoot = expandTilde(rootDir || DEFAULT_ROOT) ?? rootDir;
-  const variantDir = path.join(resolvedRoot, name);
+  const variantDir = path.join(resolvedRoot, safeName);
   const meta = loadVariantMeta(variantDir);
-  if (!meta) throw new Error(`Variant not found: ${name}`);
+  if (!meta) throw new Error(`Variant not found: ${safeName}`);
   ensureDir(meta.tweakDir);
   const brandKey = meta.brand ?? null;
   ensureTweakccConfig(meta.tweakDir, brandKey);

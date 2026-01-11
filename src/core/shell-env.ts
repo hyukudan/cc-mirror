@@ -34,6 +34,10 @@ const stripQuotes = (value: string): string => {
   return value;
 };
 
+const escapePosix = (value: string): string => `'${value.replace(/'/g, "'\"'\"'")}'`;
+
+const escapePowerShell = (value: string): string => `'${value.replace(/'/g, "''")}'`;
+
 const isWindows = (): boolean => process.platform === 'win32';
 
 const resolveShellProfile = (): string | null => {
@@ -77,9 +81,9 @@ const readSettingsApiKey = (configDir: string): string | null => {
 
 const renderBlock = (apiKey: string): string => {
   if (isWindows()) {
-    return `${BLOCK_START}\n$env:Z_AI_API_KEY = "${apiKey}"\n${BLOCK_END}\n`;
+    return `${BLOCK_START}\n$env:Z_AI_API_KEY = ${escapePowerShell(apiKey)}\n${BLOCK_END}\n`;
   }
-  return `${BLOCK_START}\nexport Z_AI_API_KEY="${apiKey}"\n${BLOCK_END}\n`;
+  return `${BLOCK_START}\nexport Z_AI_API_KEY=${escapePosix(apiKey)}\n${BLOCK_END}\n`;
 };
 
 const upsertBlock = (content: string, block: string) => {

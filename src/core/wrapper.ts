@@ -21,6 +21,7 @@ export const writeWrapper = (
     'const dir = process.env.CLAUDE_CONFIG_DIR;',
     'if (!dir) process.exit(0);',
     "const file = path.join(dir, 'settings.json');",
+    'const keyPattern = /^[A-Za-z_][A-Za-z0-9_]*$/;',
     'const escape = (value) => "\'" + String(value).replace(/\'/g, "\'\\"\'\\"\'") + "\'";',
     'try {',
     '  if (fs.existsSync(file)) {',
@@ -28,7 +29,7 @@ export const writeWrapper = (
     "    const env = data && typeof data === 'object' ? data.env : null;",
     "    if (env && typeof env === 'object') {",
     '      for (const [key, value] of Object.entries(env)) {',
-    '        if (!key) continue;',
+    '        if (!key || !keyPattern.test(key)) continue;',
     '        process.stdout.write(`export ${key}=${escape(value)}\\n`);',
     '      }',
     '    }',
@@ -253,13 +254,14 @@ const path = require('path');
 const dir = process.env.CLAUDE_CONFIG_DIR;
 if (!dir) process.exit(0);
 const file = path.join(dir, 'settings.json');
+const keyPattern = /^[A-Za-z_][A-Za-z0-9_]*$/;
 try {
   if (fs.existsSync(file)) {
     const data = JSON.parse(fs.readFileSync(file, 'utf8'));
     const env = data && typeof data === 'object' ? data.env : null;
     if (env && typeof env === 'object') {
       for (const [key, value] of Object.entries(env)) {
-        if (!key) continue;
+        if (!key || !keyPattern.test(key)) continue;
         const raw = String(value);
         const escaped = raw.replace(/"/g, '""').replace(/%/g, '%%');
         console.log('SET "' + key + '=' + escaped + '"');

@@ -51,5 +51,5 @@ test('ensureZaiShellEnv writes a cc-mirror block when missing', () => {
   assert.equal(result.status, 'updated');
   const content = fs.readFileSync(profilePath, 'utf8');
   assert.ok(content.includes('cc-mirror: Z.ai env start'));
-  assert.ok(content.includes('export Z_AI_API_KEY="abc123"'));
+  assert.ok(content.includes("export Z_AI_API_KEY='abc123'"));
 });

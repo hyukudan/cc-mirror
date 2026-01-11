@@ -3,7 +3,13 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { exportVariant, importVariant, readExportArchive, writeExportArchive } from '../src/core/export.js';
+import {
+  exportVariant,
+  importVariant,
+  readExportArchive,
+  writeExportArchive,
+  type ExportArchive,
+} from '../src/core/export.js';
 
 const makeTempDir = () => fs.mkdtempSync(path.join(os.tmpdir(), 'cc-mirror-export-'));
 
@@ -98,4 +104,40 @@ test('exportVariant and importVariant round-trip config data', () => {
     id: number;
   };
   assert.equal(targetTask.id, 1);
+});
+
+test('importVariant rejects entries that escape the config directory', () => {
+  const rootDir = makeTempDir();
+  const targetVariant = path.join(rootDir, 'target');
+  const targetConfig = path.join(targetVariant, 'config');
+  ensureDir(targetConfig);
+
+  const archive: ExportArchive = {
+    version: 1,
+    createdAt: new Date().toISOString(),
+    source: { variant: 'source' },
+    items: ['tasks'],
+    data: {
+      tasks: [
+        {
+          path: '../escape.txt',
+          content: Buffer.from('nope', 'utf8').toString('base64'),
+        },
+        {
+          path: '/absolute.txt',
+          content: Buffer.from('nope', 'utf8').toString('base64'),
+        },
+      ],
+    },
+  };
+
+  const result = importVariant(targetVariant, archive, {
+    items: archive.items,
+    createBackup: false,
+  });
+
+  assert.equal(result.success, false);
+  assert.ok(result.itemResults.tasks?.errors.length);
+  assert.equal(fs.existsSync(path.join(targetConfig, 'escape.txt')), false);
+  assert.equal(fs.existsSync(path.join(targetConfig, 'absolute.txt')), false);
 });

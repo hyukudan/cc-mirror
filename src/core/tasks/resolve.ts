@@ -6,7 +6,8 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { execSync } from 'node:child_process';
 import { listVariants } from '../variants.js';
-import { listTeams } from './store.js';
+import { assertValidTeamName, assertValidVariantName } from '../validation.js';
+import { getTasksDir, listTeams } from './store.js';
 import type { ResolvedContext, TaskLocation } from './types.js';
 
 export interface ResolveOptions {
@@ -26,9 +27,14 @@ export function detectVariantFromEnv(): string | null {
   const configDir = process.env.CLAUDE_CONFIG_DIR;
   if (!configDir) return null;
 
-  // Extract variant name from path: ~/.cc-mirror/<variant>/config
-  const match = configDir.match(/\.cc-mirror\/([^/]+)\/config/);
-  return match ? match[1] : null;
+  const normalized = path.normalize(configDir.replace(/\\/g, path.sep));
+  const parts = normalized.split(path.sep).filter(Boolean);
+  const mirrorIndex = parts.lastIndexOf('.cc-mirror');
+  if (mirrorIndex === -1) return null;
+  const variant = parts[mirrorIndex + 1];
+  const configPart = parts[mirrorIndex + 2];
+  if (!variant || configPart !== 'config') return null;
+  return variant;
 }
 
 /**
@@ -105,15 +111,16 @@ export function resolveContext(opts: ResolveOptions): ResolvedContext {
 
   // For each variant, determine teams
   for (const v of variants) {
+    const safeVariant = assertValidVariantName(v);
     let teams: string[];
     if (allTeams) {
-      teams = listTeams(rootDir, v);
+      teams = listTeams(rootDir, safeVariant);
     } else if (team) {
-      teams = [team];
+      teams = [assertValidTeamName(team)];
     } else {
       // Auto-detect team from cwd
-      const detectedTeam = detectCurrentTeam(cwd);
-      const availableTeams = listTeams(rootDir, v);
+      const detectedTeam = assertValidTeamName(detectCurrentTeam(cwd));
+      const availableTeams = listTeams(rootDir, safeVariant);
       // Only use detected team if it exists, otherwise show all teams
       if (availableTeams.includes(detectedTeam)) {
         teams = [detectedTeam];
@@ -126,9 +133,9 @@ export function resolveContext(opts: ResolveOptions): ResolvedContext {
     }
 
     for (const t of teams) {
-      const tasksDir = path.join(rootDir, v, 'config', 'tasks', t);
+      const tasksDir = getTasksDir(rootDir, safeVariant, t);
       if (fs.existsSync(tasksDir)) {
-        locations.push({ variant: v, team: t, tasksDir });
+        locations.push({ variant: safeVariant, team: t, tasksDir });
       }
     }
   }

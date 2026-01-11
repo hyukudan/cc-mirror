@@ -5,13 +5,16 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { readJson, writeJson } from '../fs.js';
+import { assertValidTeamName, assertValidVariantName } from '../validation.js';
 import type { Task } from './types.js';
 
 /**
  * Get the tasks directory for a variant/team
  */
 export function getTasksDir(rootDir: string, variant: string, team: string): string {
-  return path.join(rootDir, variant, 'config', 'tasks', team);
+  const safeVariant = assertValidVariantName(variant);
+  const safeTeam = assertValidTeamName(team);
+  return path.join(rootDir, safeVariant, 'config', 'tasks', safeTeam);
 }
 
 /**
@@ -105,7 +108,8 @@ export function createTask(
  * List all teams in a variant's tasks directory
  */
 export function listTeams(rootDir: string, variant: string): string[] {
-  const tasksRoot = path.join(rootDir, variant, 'config', 'tasks');
+  const safeVariant = assertValidVariantName(variant);
+  const tasksRoot = path.join(rootDir, safeVariant, 'config', 'tasks');
   if (!fs.existsSync(tasksRoot)) return [];
   return fs
     .readdirSync(tasksRoot, { withFileTypes: true })

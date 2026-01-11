@@ -10,6 +10,7 @@ import { getProvider } from '../../providers/index.js';
 import { DEFAULT_NPM_PACKAGE, DEFAULT_NPM_VERSION, DEFAULT_ROOT } from '../constants.js';
 import { expandTilde } from '../paths.js';
 import { loadVariantMeta } from '../variants.js';
+import { assertValidVariantName } from '../validation.js';
 import type { UpdateVariantOptions, UpdateVariantResult } from '../types.js';
 import type { ReportFn, UpdateContext, UpdatePaths, UpdatePreferences, UpdateState, UpdateStep } from './types.js';
 
@@ -71,10 +72,11 @@ export class VariantUpdater {
    * Initialize the update context
    */
   private initContext(rootDir: string, name: string, opts: UpdateVariantOptions): UpdateContext {
+    const safeName = assertValidVariantName(name);
     const resolvedRoot = expandTilde(rootDir || DEFAULT_ROOT) ?? rootDir;
-    const variantDir = path.join(resolvedRoot, name);
+    const variantDir = path.join(resolvedRoot, safeName);
     const meta = loadVariantMeta(variantDir);
-    if (!meta) throw new Error(`Variant not found: ${name}`);
+    if (!meta) throw new Error(`Variant not found: ${safeName}`);
 
     const resolvedNpmPackage = normalizeNpmPackage(opts.npmPackage ?? meta.npmPackage);
     const resolvedNpmVersion = normalizeNpmVersion(opts.npmVersion ?? meta.npmVersion);
@@ -120,7 +122,7 @@ export class VariantUpdater {
         };
 
     return {
-      name,
+      name: safeName,
       opts,
       meta,
       paths,

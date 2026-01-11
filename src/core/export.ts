@@ -12,6 +12,11 @@ export type FileEntry = {
   mode?: number;
 };
 
+type ValidatedEntry = FileEntry & {
+  normalizedPath: string;
+  resolvedPath: string;
+};
+
 type SettingsFile = {
   env?: Record<string, string | number | undefined>;
   permissions?: {
@@ -93,6 +98,32 @@ const isProviderEnvKey = (key: string): boolean => PROVIDER_ENV_PREFIXES.some((p
 
 const toPosixPath = (value: string): string => value.split(path.sep).join(path.posix.sep);
 
+const normalizeEntryPath = (
+  rootDir: string,
+  entryPath: string
+): { normalizedPath: string; resolvedPath: string } | { error: string } => {
+  const trimmed = entryPath.trim();
+  if (!trimmed) return { error: 'empty path' };
+  const normalizedPath = trimmed.split('/').join(path.sep);
+  if (path.isAbsolute(normalizedPath)) {
+    return { error: 'absolute paths are not allowed' };
+  }
+  const rootResolved = path.resolve(rootDir);
+  const resolvedPath = path.resolve(rootResolved, normalizedPath);
+  if (resolvedPath === rootResolved || !resolvedPath.startsWith(`${rootResolved}${path.sep}`)) {
+    return { error: 'path escapes target directory' };
+  }
+  return { normalizedPath, resolvedPath };
+};
+
+const getTopLevelDir = (entryPath: string): string | null => {
+  const [first] = entryPath.split('/').filter(Boolean);
+  if (!first) return null;
+  if (first === '.' || first === '..') return null;
+  if (first.includes('/') || first.includes('\\')) return null;
+  return first;
+};
+
 const collectFiles = (rootDir: string): FileEntry[] => {
   if (!fs.existsSync(rootDir)) return [];
 
@@ -119,22 +150,56 @@ const collectFiles = (rootDir: string): FileEntry[] => {
   return entries;
 };
 
-const writeFiles = (rootDir: string, entries: FileEntry[], dryRun: boolean) => {
-  if (dryRun) return;
-  ensureDir(rootDir);
+const validateEntries = (
+  rootDir: string,
+  entries: FileEntry[]
+): { validEntries: ValidatedEntry[]; errors: string[]; topLevelDirs: Set<string> } => {
+  const validEntries: ValidatedEntry[] = [];
+  const errors: string[] = [];
+  const topLevelDirs = new Set<string>();
+
   for (const entry of entries) {
-    const normalized = entry.path.split('/').join(path.sep);
-    const filePath = path.join(rootDir, normalized);
-    ensureDir(path.dirname(filePath));
-    fs.writeFileSync(filePath, Buffer.from(entry.content, 'base64'));
-    if (entry.mode !== undefined) {
-      try {
-        fs.chmodSync(filePath, entry.mode);
-      } catch {
-        // Ignore chmod failures (e.g., Windows).
+    const validation = normalizeEntryPath(rootDir, entry.path);
+    if ('error' in validation) {
+      errors.push(`Invalid path "${entry.path}": ${validation.error}`);
+      continue;
+    }
+    const topLevel = getTopLevelDir(entry.path);
+    if (topLevel) topLevelDirs.add(topLevel);
+    validEntries.push({
+      ...entry,
+      normalizedPath: validation.normalizedPath,
+      resolvedPath: validation.resolvedPath,
+    });
+  }
+
+  return { validEntries, errors, topLevelDirs };
+};
+
+const writeFiles = (entries: ValidatedEntry[], dryRun: boolean) => {
+  const result = { applied: 0, skipped: 0, errors: [] as string[] };
+  if (dryRun) {
+    result.applied = entries.length;
+    return result;
+  }
+  for (const entry of entries) {
+    try {
+      ensureDir(path.dirname(entry.resolvedPath));
+      fs.writeFileSync(entry.resolvedPath, Buffer.from(entry.content, 'base64'));
+      if (entry.mode !== undefined) {
+        try {
+          fs.chmodSync(entry.resolvedPath, entry.mode);
+        } catch {
+          // Ignore chmod failures (e.g., Windows).
+        }
       }
+      result.applied += 1;
+    } catch (error) {
+      result.errors.push(`Failed to write ${entry.path}: ${error instanceof Error ? error.message : String(error)}`);
+      result.skipped += 1;
     }
   }
+  return result;
 };
 
 const countPermissions = (permissions?: SettingsFile['permissions']): number => {
@@ -293,18 +358,21 @@ export const importVariant = (variantDir: string, archive: ExportArchive, option
             break;
           }
           const skillsDir = path.join(configDir, SKILLS_DIR);
-          const skillNames = new Set(entries.map((entry) => entry.path.split('/')[0]).filter(Boolean));
+          const validation = validateEntries(skillsDir, entries);
+          itemResult.errors.push(...validation.errors);
           if (!options.dryRun) {
             ensureDir(skillsDir);
-            for (const name of skillNames) {
+            for (const name of validation.topLevelDirs) {
               const targetDir = path.join(skillsDir, name);
               if (fs.existsSync(targetDir)) {
                 fs.rmSync(targetDir, { recursive: true, force: true });
               }
             }
           }
-          writeFiles(skillsDir, entries, Boolean(options.dryRun));
-          itemResult.applied = entries.length;
+          const writeResult = writeFiles(validation.validEntries, Boolean(options.dryRun));
+          itemResult.applied = writeResult.applied;
+          itemResult.skipped += entries.length - validation.validEntries.length + writeResult.skipped;
+          if (writeResult.errors.length > 0) itemResult.errors.push(...writeResult.errors);
           break;
         }
         case 'tasks': {
@@ -314,8 +382,12 @@ export const importVariant = (variantDir: string, archive: ExportArchive, option
             break;
           }
           const tasksDir = path.join(configDir, TASKS_DIR);
-          writeFiles(tasksDir, entries, Boolean(options.dryRun));
-          itemResult.applied = entries.length;
+          const validation = validateEntries(tasksDir, entries);
+          itemResult.errors.push(...validation.errors);
+          const writeResult = writeFiles(validation.validEntries, Boolean(options.dryRun));
+          itemResult.applied = writeResult.applied;
+          itemResult.skipped += entries.length - validation.validEntries.length + writeResult.skipped;
+          if (writeResult.errors.length > 0) itemResult.errors.push(...writeResult.errors);
           break;
         }
         case 'mcp-servers': {

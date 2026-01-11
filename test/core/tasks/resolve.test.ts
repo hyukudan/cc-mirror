@@ -66,6 +66,12 @@ test('Task Resolve', async (t) => {
       assert.equal(result, 'my-long-variant');
     });
 
+    await st.test('handles Windows-style paths', () => {
+      setEnv('CLAUDE_CONFIG_DIR', 'C:\\Users\\test\\.cc-mirror\\myvariant\\config');
+      const result = detectVariantFromEnv();
+      assert.equal(result, 'myvariant');
+    });
+
     await st.test('returns null for non-matching path', () => {
       setEnv('CLAUDE_CONFIG_DIR', '/some/other/path');
       const result = detectVariantFromEnv();
