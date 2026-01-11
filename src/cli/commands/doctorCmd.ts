@@ -17,7 +17,11 @@ export function runDoctorCommand({ opts }: DoctorCommandOptions): void {
   const rootDir = (opts.root as string) || core.DEFAULT_ROOT;
   const binDir = (opts['bin-dir'] as string) || core.DEFAULT_BIN_DIR;
   const report = core.doctor(rootDir, binDir, { strict: Boolean(opts.strict) });
-  printDoctor(report);
+  if (opts.json === true) {
+    console.log(JSON.stringify(report, null, 2));
+  } else {
+    printDoctor(report);
+  }
   if (opts.strict && report.some((item) => !item.ok)) {
     process.exitCode = 1;
   }
