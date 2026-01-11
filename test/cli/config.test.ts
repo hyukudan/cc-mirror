@@ -44,6 +44,18 @@ const readSettings = (configDir: string) => {
   };
 };
 
+const captureError = (fn: () => void): string[] => {
+  const logs: string[] = [];
+  const originalError = console.error;
+  console.error = (...args: unknown[]) => logs.push(args.join(' '));
+  try {
+    fn();
+  } finally {
+    console.error = originalError;
+  }
+  return logs;
+};
+
 test('config set updates env overrides', () => {
   const rootDir = makeTempDir();
   const { configDir } = setupVariant(rootDir, 'alpha');
@@ -152,6 +164,70 @@ test('config unset updates permissions', () => {
   assert.deepEqual(settings.permissions?.allow, ['TaskUpdate']);
   assert.equal(settings.permissions?.deny, undefined);
 
+  if (originalConfigDir) {
+    process.env.CLAUDE_CONFIG_DIR = originalConfigDir;
+  }
+  cleanup(rootDir);
+});
+
+test('config set rejects invalid env keys', () => {
+  const rootDir = makeTempDir();
+  const { configDir } = setupVariant(rootDir, 'epsilon');
+  writeJson(path.join(configDir, 'settings.json'), { env: { FOO: 'old' } });
+
+  const originalConfigDir = process.env.CLAUDE_CONFIG_DIR;
+  const originalExitCode = process.exitCode;
+  delete process.env.CLAUDE_CONFIG_DIR;
+  process.exitCode = 0;
+
+  const output = captureError(() => {
+    runConfigCommand({
+      opts: {
+        _: ['set', 'epsilon'],
+        env: ['1INVALID=value'],
+        root: rootDir,
+      },
+    });
+  });
+
+  assert.equal(process.exitCode, 1);
+  assert.ok(output.some((line) => line.includes('invalid env keys')));
+  const settings = readSettings(configDir);
+  assert.equal(settings.env?.FOO, 'old');
+
+  process.exitCode = originalExitCode;
+  if (originalConfigDir) {
+    process.env.CLAUDE_CONFIG_DIR = originalConfigDir;
+  }
+  cleanup(rootDir);
+});
+
+test('config set rejects CLAUDE_CODE_TEAM_NAME', () => {
+  const rootDir = makeTempDir();
+  const { configDir } = setupVariant(rootDir, 'zeta');
+  writeJson(path.join(configDir, 'settings.json'), { env: { FOO: 'old' } });
+
+  const originalConfigDir = process.env.CLAUDE_CONFIG_DIR;
+  const originalExitCode = process.exitCode;
+  delete process.env.CLAUDE_CONFIG_DIR;
+  process.exitCode = 0;
+
+  const output = captureError(() => {
+    runConfigCommand({
+      opts: {
+        _: ['set', 'zeta'],
+        env: ['CLAUDE_CODE_TEAM_NAME=myteam'],
+        root: rootDir,
+      },
+    });
+  });
+
+  assert.equal(process.exitCode, 1);
+  assert.ok(output.some((line) => line.includes('managed dynamically')));
+  const settings = readSettings(configDir);
+  assert.equal(settings.env?.FOO, 'old');
+
+  process.exitCode = originalExitCode;
   if (originalConfigDir) {
     process.env.CLAUDE_CONFIG_DIR = originalConfigDir;
   }

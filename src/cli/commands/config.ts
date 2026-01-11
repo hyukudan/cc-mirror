@@ -7,6 +7,7 @@ import path from 'node:path';
 import * as core from '../../core/index.js';
 import { getWrapperPath } from '../../core/wrapper.js';
 import { readJson, writeJson } from '../../core/fs.js';
+import { isValidEnvKey } from '../../core/validation.js';
 import { detectVariantFromEnv } from '../../core/tasks/index.js';
 import type { ClaudeConfig } from '../../core/claude-config.js';
 import type { VariantEntry } from '../../core/types.js';
@@ -29,6 +30,7 @@ const SETTINGS_FILE = 'settings.json';
 const CLAUDE_FILE = '.claude.json';
 const SENSITIVE_TOKENS = ['KEY', 'TOKEN', 'SECRET', 'PASSWORD'];
 const CONFIG_OPERATIONS = new Set(['show', 'list', 'set', 'unset']);
+const RESERVED_ENV_KEYS = new Set(['CLAUDE_CODE_TEAM_NAME']);
 
 type ConfigOperation = 'show' | 'list' | 'set' | 'unset';
 
@@ -181,6 +183,10 @@ function parseEnvUpdates(entries: string[]): { updates: Record<string, string>; 
     updates[key] = entry.slice(idx + 1);
   }
   return { updates, invalid };
+}
+
+function unique(values: string[]): string[] {
+  return Array.from(new Set(values));
 }
 
 function parseEnvKeys(entries: string[]): { keys: string[]; invalid: string[] } {
@@ -474,6 +480,18 @@ export function runConfigCommand({ opts }: ConfigCommandOptions): void {
         const envKeys = Object.keys(updates);
         if (envKeys.length === 0) {
           console.error('Error: no valid --env entries provided.');
+          process.exitCode = 1;
+          return;
+        }
+        const invalidKeys = unique(envKeys.filter((key) => !isValidEnvKey(key)));
+        if (invalidKeys.length > 0) {
+          console.error(`Error: invalid env keys: ${invalidKeys.join(', ')}`);
+          process.exitCode = 1;
+          return;
+        }
+        const reservedKeys = unique(envKeys.filter((key) => RESERVED_ENV_KEYS.has(key)));
+        if (reservedKeys.length > 0) {
+          console.error(`Error: ${reservedKeys.join(', ')} are managed dynamically; remove them from settings.json.`);
           process.exitCode = 1;
           return;
         }

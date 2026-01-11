@@ -18,4 +18,7 @@ export function runDoctorCommand({ opts }: DoctorCommandOptions): void {
   const binDir = (opts['bin-dir'] as string) || core.DEFAULT_BIN_DIR;
   const report = core.doctor(rootDir, binDir, { strict: Boolean(opts.strict) });
   printDoctor(report);
+  if (opts.strict && report.some((item) => !item.ok)) {
+    process.exitCode = 1;
+  }
 }
