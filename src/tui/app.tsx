@@ -14,6 +14,7 @@ import type {
   VariantMeta,
 } from '../core/types.js';
 import * as defaultCore from '../core/index.js';
+import { assertValidVariantName } from '../core/validation.js';
 import * as defaultProviders from '../providers/index.js';
 // State management and router modules (available for future refactoring)
 // import { useCreateAppState, getProviderDefaults, resolveZaiApiKey } from './state/index.js';
@@ -216,6 +217,7 @@ export const App: React.FC<AppProps> = ({
   const [providerKey, setProviderKey] = useState<string | null>(null);
   const [brandKey, setBrandKey] = useState('auto');
   const [name, setName] = useState('');
+  const [nameError, setNameError] = useState<string | null>(null);
   const [baseUrl, setBaseUrl] = useState('');
   const [apiKey, setApiKey] = useState('');
   const [modelSonnet, setModelSonnet] = useState('');
@@ -302,6 +304,12 @@ export const App: React.FC<AppProps> = ({
   const resolveZaiBaseUrl = (): string => {
     return process.env.Z_AI_BASE_URL?.trim() || '';
   };
+
+  useEffect(() => {
+    if (screen !== 'quick-name' && screen !== 'create-name') {
+      setNameError(null);
+    }
+  }, [screen]);
 
   const getPathCommandForTui = (): string => {
     if (process.platform === 'win32') return 'npx cc-mirror path --apply';
@@ -670,6 +678,7 @@ export const App: React.FC<AppProps> = ({
             value === 'zai' ? resolveZaiBaseUrl() || selected?.baseUrl || '' : selected?.baseUrl || '';
           setProviderKey(value);
           setName(value === 'mirror' ? 'mclaude' : value);
+          setNameError(null);
           setBaseUrl(baseUrlValue);
           setApiKey(keyDefaults.value);
           setApiKeyDetectedFrom(keyDefaults.detectedFrom);
@@ -770,13 +779,25 @@ export const App: React.FC<AppProps> = ({
           <TextField
             label="Command name"
             value={name}
-            onChange={setName}
+            onChange={(value) => {
+              setName(value);
+              if (nameError) setNameError(null);
+            }}
             onSubmit={() => {
-              setProgressLines([]);
-              setScreen('create-running');
+              try {
+                const safeName = assertValidVariantName(name);
+                setName(safeName);
+                setNameError(null);
+                setProgressLines([]);
+                setScreen('create-running');
+              } catch (error) {
+                const message = error instanceof Error ? error.message : String(error);
+                setNameError(message);
+              }
             }}
             placeholder={providerKey || 'my-variant'}
             hint="Press Enter to continue"
+            error={nameError || undefined}
           />
         </Box>
         <Divider />
@@ -872,10 +893,24 @@ export const App: React.FC<AppProps> = ({
           <TextField
             label="Command name"
             value={name}
-            onChange={setName}
-            onSubmit={() => setScreen(nextScreen)}
+            onChange={(value) => {
+              setName(value);
+              if (nameError) setNameError(null);
+            }}
+            onSubmit={() => {
+              try {
+                const safeName = assertValidVariantName(name);
+                setName(safeName);
+                setNameError(null);
+                setScreen(nextScreen);
+              } catch (error) {
+                const message = error instanceof Error ? error.message : String(error);
+                setNameError(message);
+              }
+            }}
             placeholder={providerKey || 'my-variant'}
             hint="Press Enter to continue"
+            error={nameError || undefined}
           />
         </Box>
         <Divider />

@@ -7,6 +7,10 @@ const hasControlChars = (value: string): boolean => {
   }
   return false;
 };
+
+const ENV_KEY_PATTERN = /^[A-Za-z_][A-Za-z0-9_]*$/;
+
+export const isValidEnvKey = (key: string): boolean => ENV_KEY_PATTERN.test(key);
 const WINDOWS_RESERVED_NAMES = new Set([
   'CON',
   'PRN',

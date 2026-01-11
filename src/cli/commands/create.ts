@@ -5,6 +5,7 @@
 import { listProviders, getProvider, type ProviderTemplate } from '../../providers/index.js';
 import { listBrandPresets } from '../../brands/index.js';
 import * as core from '../../core/index.js';
+import { assertValidVariantName } from '../../core/validation.js';
 import type { ParsedArgs } from '../args.js';
 import { prompt } from '../prompt.js';
 import {
@@ -37,6 +38,30 @@ interface CreateParams {
   shouldPromptApiKey: boolean;
   hasZaiEnv: boolean;
 }
+
+const promptForValidVariantName = async (
+  label: string,
+  initialValue: string,
+  opts: ParsedArgs,
+  promptFirst: boolean
+): Promise<string> => {
+  let current = initialValue;
+  if (promptFirst) {
+    current = await prompt(label, current);
+  }
+  while (true) {
+    try {
+      return assertValidVariantName(current);
+    } catch (error) {
+      if (opts.yes) {
+        throw error;
+      }
+      const message = error instanceof Error ? error.message : String(error);
+      console.log(`Invalid variant name: ${message}`);
+      current = await prompt(label, current);
+    }
+  }
+};
 
 /**
  * Prepare common parameters for create command
@@ -112,6 +137,7 @@ async function handleQuickMode(opts: ParsedArgs, params: CreateParams): Promise<
   const skillUpdate = Boolean(opts['skill-update']);
   let shellEnv = opts['no-shell-env'] ? false : opts['shell-env'] ? true : undefined;
   const modelOverrides = getModelOverridesFromArgs(opts);
+  const name = await promptForValidVariantName('Variant name', params.name, opts, false);
 
   let apiKey = params.apiKey;
   if (params.shouldPromptApiKey) {
@@ -144,7 +170,7 @@ async function handleQuickMode(opts: ParsedArgs, params: CreateParams): Promise<
   }
 
   const result = core.createVariant({
-    name: params.name,
+    name,
     providerKey: params.providerKey,
     baseUrl: params.baseUrl,
     apiKey,
@@ -185,7 +211,7 @@ async function handleInteractiveMode(opts: ParsedArgs, params: CreateParams): Pr
   let shellEnv = opts['no-shell-env'] ? false : opts['shell-env'] ? true : undefined;
   const modelOverrides = getModelOverridesFromArgs(opts);
 
-  const nextName = await prompt('Variant name', params.name);
+  const nextName = await promptForValidVariantName('Variant name', params.name, opts, true);
   const nextBase = await prompt('ANTHROPIC_BASE_URL', params.baseUrl);
 
   let nextKey = params.shouldPromptApiKey
@@ -273,6 +299,7 @@ async function handleNonInteractiveMode(opts: ParsedArgs, params: CreateParams):
   const skillUpdate = Boolean(opts['skill-update']);
   const shellEnv = opts['no-shell-env'] ? false : opts['shell-env'] ? true : undefined;
   const modelOverrides = getModelOverridesFromArgs(opts);
+  const name = assertValidVariantName(params.name);
 
   if (params.requiresCredential && !params.apiKey) {
     throw new Error('Provider API key required (use --api-key)');
@@ -284,7 +311,7 @@ async function handleNonInteractiveMode(opts: ParsedArgs, params: CreateParams):
   const enableTeamMode = opts['disable-team-mode'] ? false : true;
 
   const result = core.createVariant({
-    name: params.name,
+    name,
     providerKey: params.providerKey,
     baseUrl: params.baseUrl,
     apiKey: params.apiKey,

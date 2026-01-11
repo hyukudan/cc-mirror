@@ -7,6 +7,7 @@ import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import * as core from '../../core/index.js';
 import { getWrapperPath } from '../../core/wrapper.js';
+import { assertValidVariantName } from '../../core/validation.js';
 import type { ParsedArgs } from '../args.js';
 
 export interface RunCommandOptions {
@@ -17,9 +18,16 @@ export interface RunCommandOptions {
  * Execute the run command
  */
 export function runRunCommand({ opts }: RunCommandOptions): void {
-  const target = opts._ && opts._[0];
+  let target = opts._ && opts._[0];
   if (!target) {
     console.error('run requires a variant name');
+    process.exit(1);
+  }
+  try {
+    target = assertValidVariantName(target);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    console.error(message);
     process.exit(1);
   }
 

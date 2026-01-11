@@ -99,6 +99,12 @@ export interface DoctorReportItem {
   ok: boolean;
   binaryPath?: string;
   wrapperPath: string;
+  issues?: string[];
+  warnings?: string[];
+}
+
+export interface DoctorOptions {
+  strict?: boolean;
 }
 
 export interface CreateVariantResult {

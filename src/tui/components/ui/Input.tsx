@@ -15,18 +15,35 @@ interface TextFieldProps {
   placeholder?: string;
   mask?: string;
   hint?: string;
+  error?: string;
 }
 
 /**
  * Text input field with label
  */
-export const TextField: React.FC<TextFieldProps> = ({ label, value, onChange, onSubmit, placeholder, mask, hint }) => (
+export const TextField: React.FC<TextFieldProps> = ({
+  label,
+  value,
+  onChange,
+  onSubmit,
+  placeholder,
+  mask,
+  hint,
+  error,
+}) => (
   <Box flexDirection="column">
     <Text color={colors.textMuted}>{label}</Text>
     <Box marginTop={1}>
       <Text color={colors.primary}>{icons.pointer} </Text>
       <TextInput value={value} onChange={onChange} onSubmit={onSubmit} placeholder={placeholder} mask={mask} />
     </Box>
+    {error && (
+      <Box marginTop={1}>
+        <Text color={colors.error}>
+          {icons.warning} {error}
+        </Text>
+      </Box>
+    )}
     {hint && (
       <Box marginTop={1}>
         <Text color={colors.textMuted} dimColor>

@@ -14,6 +14,7 @@
  */
 
 import * as core from '../../core/index.js';
+import { assertValidTeamName, assertValidVariantName } from '../../core/validation.js';
 import type { ParsedArgs } from '../args.js';
 import {
   runTasksList,
@@ -133,6 +134,26 @@ export async function runTasksCommand({ opts }: TasksCommandOptions): Promise<vo
   const allVariants = Boolean(opts['all-variants']);
   const allTeams = Boolean(opts.all);
   const json = Boolean(opts.json);
+  if (variant) {
+    try {
+      assertValidVariantName(variant);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      console.error(message);
+      process.exitCode = 1;
+      return;
+    }
+  }
+  if (team) {
+    try {
+      assertValidTeamName(team);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      console.error(message);
+      process.exitCode = 1;
+      return;
+    }
+  }
 
   switch (operation) {
     case 'show': {

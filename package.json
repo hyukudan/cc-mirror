@@ -47,6 +47,7 @@
     "lint:fix": "eslint --fix src test scripts",
     "format": "prettier --write \"**/*.{ts,tsx,json,md}\"",
     "format:check": "prettier --check \"**/*.{ts,tsx,json,md}\"",
+    "update:dev-browser-pin": "tsx scripts/update-dev-browser-pin.ts",
     "check": "npm run typecheck && npm run lint && npm run test:coverage && npm run bundle",
     "prepare": "lefthook install || true"
   },

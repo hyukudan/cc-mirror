@@ -4,6 +4,7 @@
 
 import * as core from '../../core/index.js';
 import { getWrapperPath } from '../../core/wrapper.js';
+import { assertValidVariantName } from '../../core/validation.js';
 import type { ParsedArgs } from '../args.js';
 import { buildExtraEnv, printSummary } from '../utils/index.js';
 
@@ -15,9 +16,18 @@ export interface UpdateCommandOptions {
  * Execute the update command
  */
 export function runUpdateCommand({ opts }: UpdateCommandOptions): void {
-  const target = opts._ && opts._[0];
+  let target = opts._ && opts._[0];
   const rootDir = (opts.root as string) || core.DEFAULT_ROOT;
   const binDir = (opts['bin-dir'] as string) || core.DEFAULT_BIN_DIR;
+  if (target) {
+    try {
+      target = assertValidVariantName(target);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      console.error(message);
+      process.exit(1);
+    }
+  }
   const names = target ? [target] : core.listVariants(rootDir).map((entry) => entry.name);
 
   if (names.length === 0) {

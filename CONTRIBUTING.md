@@ -66,6 +66,17 @@ npm test
 npm test -- test/core.test.ts
 ```
 
+## Updating dev-browser Pin
+
+The dev-browser skill is pinned to a specific commit and checksum. To update it:
+
+```bash
+npm run update:dev-browser-pin
+```
+
+This updates `DEV_BROWSER_REF` and `DEV_BROWSER_ARCHIVE_SHA256` in `src/core/skills.ts`.
+Review the changes, run tests, and include the update in your PR.
+
 ## Commits
 
 Use conventional commits:

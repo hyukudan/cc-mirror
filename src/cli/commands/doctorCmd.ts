@@ -16,6 +16,6 @@ export interface DoctorCommandOptions {
 export function runDoctorCommand({ opts }: DoctorCommandOptions): void {
   const rootDir = (opts.root as string) || core.DEFAULT_ROOT;
   const binDir = (opts['bin-dir'] as string) || core.DEFAULT_BIN_DIR;
-  const report = core.doctor(rootDir, binDir);
+  const report = core.doctor(rootDir, binDir, { strict: Boolean(opts.strict) });
   printDoctor(report);
 }

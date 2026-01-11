@@ -66,6 +66,9 @@ OPTIONS (advanced)
 OPTIONS (path)
   --apply                      Append PATH export to shell profile (POSIX/PowerShell)
 
+OPTIONS (doctor)
+  --strict                     Run extra validation checks (names, settings, team mode)
+
 OPTIONS (sync)
   --items <list>               skills,mcp-servers,permissions,claude-md,tasks,provider-env
   --source <name>              Source variant (optional if positional)

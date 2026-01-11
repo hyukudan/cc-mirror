@@ -1,21 +1,23 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { DEFAULT_BIN_DIR, DEFAULT_NPM_PACKAGE, DEFAULT_NPM_VERSION, DEFAULT_ROOT } from './constants.js';
-import { ensureDir } from './fs.js';
+import { ensureDir, readJson } from './fs.js';
 import { expandTilde } from './paths.js';
 import { ensureTweakccConfig, launchTweakccUi } from './tweakcc.js';
 import { getWrapperPath } from './wrapper.js';
 import { formatTweakccFailure } from './errors.js';
 import { listVariants as listVariantsImpl, loadVariantMeta } from './variants.js';
-import { assertValidVariantName } from './validation.js';
+import { assertValidTeamName, assertValidVariantName, isValidEnvKey } from './validation.js';
 import { VariantBuilder, VariantUpdater } from './variant-builder/index.js';
 import type {
   CreateVariantParams,
   CreateVariantResult,
+  DoctorOptions,
   DoctorReportItem,
   UpdateVariantOptions,
   UpdateVariantResult,
   VariantEntry,
+  VariantConfig,
 } from './types.js';
 
 export { DEFAULT_ROOT, DEFAULT_BIN_DIR, DEFAULT_NPM_PACKAGE, DEFAULT_NPM_VERSION };
@@ -66,19 +68,86 @@ export const removeVariant = (rootDir: string, name: string) => {
   fs.rmSync(variantDir, { recursive: true, force: true });
 };
 
-export const doctor = (rootDir: string, binDir: string): DoctorReportItem[] => {
+export const doctor = (rootDir: string, binDir: string, opts: DoctorOptions = {}): DoctorReportItem[] => {
   const resolvedRoot = expandTilde(rootDir || DEFAULT_ROOT) ?? rootDir;
   const resolvedBin = expandTilde(binDir || DEFAULT_BIN_DIR) ?? binDir;
   const variants = listVariantsImpl(resolvedRoot);
   return variants.map(({ name, meta }) => {
     const wrapperPath = getWrapperPath(resolvedBin, name);
     const ok = Boolean(meta && fs.existsSync(meta.binaryPath) && fs.existsSync(wrapperPath));
-    return {
+    const report: DoctorReportItem = {
       name,
       ok,
       binaryPath: meta?.binaryPath,
       wrapperPath,
     };
+    if (!opts.strict) return report;
+
+    const issues: string[] = [];
+    const warnings: string[] = [];
+    try {
+      assertValidVariantName(name);
+    } catch (error) {
+      issues.push(error instanceof Error ? error.message : String(error));
+    }
+
+    if (!meta) {
+      issues.push('variant.json missing or invalid');
+    } else {
+      if (meta.name && meta.name !== name) {
+        warnings.push(`variant.json name "${meta.name}" does not match folder "${name}"`);
+      }
+      const configDir = meta.configDir || path.join(resolvedRoot, name, 'config');
+      const settingsPath = path.join(configDir, 'settings.json');
+      if (!fs.existsSync(settingsPath)) {
+        issues.push('settings.json missing');
+      } else {
+        const settings = readJson<VariantConfig>(settingsPath);
+        if (!settings) {
+          issues.push('settings.json invalid JSON');
+        } else {
+          const env = settings.env || {};
+          const invalidKeys = Object.keys(env).filter((key) => !isValidEnvKey(key));
+          if (invalidKeys.length > 0) {
+            issues.push(`settings.json has invalid env keys: ${invalidKeys.join(', ')}`);
+          }
+          if (Object.hasOwn(env, 'CLAUDE_CODE_TEAM_NAME')) {
+            issues.push('settings.json sets CLAUDE_CODE_TEAM_NAME; remove it to allow dynamic team naming');
+          }
+        }
+      }
+
+      const tasksRoot = path.join(configDir, 'tasks');
+      if (fs.existsSync(tasksRoot)) {
+        const entries = fs.readdirSync(tasksRoot, { withFileTypes: true }).filter((entry) => entry.isDirectory());
+        for (const entry of entries) {
+          try {
+            assertValidTeamName(entry.name);
+          } catch (error) {
+            const message = error instanceof Error ? error.message : String(error);
+            issues.push(`invalid team name "${entry.name}": ${message}`);
+          }
+        }
+      }
+
+      if (meta.teamModeEnabled) {
+        const npmDir = meta.npmDir || path.join(path.dirname(configDir), 'npm');
+        const cliPath = path.join(npmDir, 'node_modules', '@anthropic-ai', 'claude-code', 'cli.js');
+        if (!fs.existsSync(cliPath)) {
+          issues.push('team mode enabled but cli.js not found');
+        } else {
+          const cliContent = fs.readFileSync(cliPath, 'utf8');
+          if (!cliContent.includes('function sU(){return!0}')) {
+            issues.push('team mode enabled but cli.js patch missing');
+          }
+        }
+      }
+    }
+
+    report.issues = issues.length > 0 ? issues : undefined;
+    report.warnings = warnings.length > 0 ? warnings : undefined;
+    report.ok = report.ok && issues.length === 0;
+    return report;
   });
 };
 
