@@ -126,6 +126,32 @@ const resolveLocalTweakcc = (args: string[]) => {
   return null;
 };
 
+const CTRL_G_HINT_PATTERN = /ctrl-g to edit prompt in /i;
+
+const maybeDisableCtrlGPromptPatch = (tweakDir: string, binaryPath: string): void => {
+  const configPath = path.join(tweakDir, 'config.json');
+  if (!fs.existsSync(configPath) || !fs.existsSync(binaryPath)) return;
+  let config: { settings?: { misc?: Record<string, unknown> } };
+  try {
+    config = JSON.parse(fs.readFileSync(configPath, 'utf8')) as {
+      settings?: { misc?: Record<string, unknown> };
+    };
+  } catch {
+    return;
+  }
+  const misc = config.settings?.misc;
+  if (!misc || misc.hideCtrlGToEditPrompt !== true) return;
+  let cliText: string;
+  try {
+    cliText = fs.readFileSync(binaryPath, 'utf8');
+  } catch {
+    return;
+  }
+  if (CTRL_G_HINT_PATTERN.test(cliText)) return;
+  config.settings = { ...config.settings, misc: { ...misc, hideCtrlGToEditPrompt: false } };
+  fs.writeFileSync(configPath, JSON.stringify(config, null, 2));
+};
+
 export const runTweakcc = (
   tweakDir: string,
   binaryPath: string,
@@ -136,6 +162,8 @@ export const runTweakcc = (
     TWEAKCC_CONFIG_DIR: tweakDir,
     TWEAKCC_CC_INSTALLATION_PATH: binaryPath,
   } as NodeJS.ProcessEnv;
+
+  maybeDisableCtrlGPromptPatch(tweakDir, binaryPath);
 
   const local = resolveLocalTweakcc(['--apply']);
   if (local) {
@@ -179,6 +207,8 @@ export const launchTweakccUi = (tweakDir: string, binaryPath: string): TweakccRe
     TWEAKCC_CONFIG_DIR: tweakDir,
     TWEAKCC_CC_INSTALLATION_PATH: binaryPath,
   } as NodeJS.ProcessEnv;
+
+  maybeDisableCtrlGPromptPatch(tweakDir, binaryPath);
 
   const local = resolveLocalTweakcc([]);
   if (local) {
@@ -234,6 +264,8 @@ export const runTweakccAsync = async (
     TWEAKCC_CONFIG_DIR: tweakDir,
     TWEAKCC_CC_INSTALLATION_PATH: binaryPath,
   } as NodeJS.ProcessEnv;
+
+  maybeDisableCtrlGPromptPatch(tweakDir, binaryPath);
 
   const local = resolveLocalTweakcc(['--apply']);
   if (local) {
