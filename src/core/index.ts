@@ -8,6 +8,7 @@ import { getWrapperPath } from './wrapper.js';
 import { formatTweakccFailure } from './errors.js';
 import { listVariants as listVariantsImpl, loadVariantMeta } from './variants.js';
 import { assertValidTeamName, assertValidVariantName, isValidEnvKey } from './validation.js';
+import { getProvider } from '../providers/index.js';
 import { VariantBuilder, VariantUpdater } from './variant-builder/index.js';
 import type {
   CreateVariantParams,
@@ -97,7 +98,18 @@ export const doctor = (rootDir: string, binDir: string, opts: DoctorOptions = {}
       if (meta.name && meta.name !== name) {
         warnings.push(`variant.json name "${meta.name}" does not match folder "${name}"`);
       }
+      if (!meta.provider) {
+        warnings.push('variant.json missing provider');
+      } else if (!getProvider(meta.provider)) {
+        warnings.push(`variant.json provider "${meta.provider}" not recognized`);
+      }
+      if (!meta.binaryPath) {
+        issues.push('variant.json missing binaryPath');
+      }
       const configDir = meta.configDir || path.join(resolvedRoot, name, 'config');
+      if (!fs.existsSync(configDir)) {
+        issues.push('config directory missing');
+      }
       const settingsPath = path.join(configDir, 'settings.json');
       if (!fs.existsSync(settingsPath)) {
         issues.push('settings.json missing');
