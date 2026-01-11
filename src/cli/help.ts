@@ -58,7 +58,7 @@ OPTIONS (advanced)
   --npm-version <ver>          Claude Code package version override
   --no-tweak                   Skip tweakcc theming
   --no-prompt-pack             Skip provider prompt pack
-  --prompt-pack-mode <mode>    minimal | maximal
+  --prompt-pack-mode <mode>    minimal (maximal deprecated)
   --shell-env                  Write env vars to shell profile (Z.ai)
   --no-skill-install           Skip dev-browser skill install
   --skill-update               Refresh managed skills during update

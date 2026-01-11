@@ -14,13 +14,14 @@ export interface ListCommandOptions {
  */
 export function runListCommand({ opts }: ListCommandOptions): void {
   const rootDir = (opts.root as string) || core.DEFAULT_ROOT;
-  const variants = core.listVariants(rootDir);
+  const resolvedRoot = core.expandTilde(rootDir) ?? rootDir;
+  const variants = core.listVariants(resolvedRoot);
   if (opts.json === true) {
     console.log(JSON.stringify(variants, null, 2));
     return;
   }
   if (variants.length === 0) {
-    console.log(`No variants found in ${rootDir}`);
+    console.log(`No variants found in ${resolvedRoot}`);
     return;
   }
   for (const entry of variants) {

@@ -401,6 +401,10 @@ export function runConfigCommand({ opts }: ConfigCommandOptions): void {
 
   if (operation === 'list') {
     if (variants.length === 0) {
+      if (opts.json === true) {
+        console.log('[]');
+        return;
+      }
       console.log(`No variants found in ${resolvedRoot}`);
       return;
     }

@@ -44,6 +44,18 @@ const readSettings = (configDir: string) => {
   };
 };
 
+const captureOutput = (fn: () => void): string[] => {
+  const logs: string[] = [];
+  const originalLog = console.log;
+  console.log = (...args: unknown[]) => logs.push(args.join(' '));
+  try {
+    fn();
+  } finally {
+    console.log = originalLog;
+  }
+  return logs;
+};
+
 const captureError = (fn: () => void): string[] => {
   const logs: string[] = [];
   const originalError = console.error;
@@ -80,6 +92,26 @@ test('config set updates env overrides', () => {
   if (originalConfigDir) {
     process.env.CLAUDE_CONFIG_DIR = originalConfigDir;
   }
+  cleanup(rootDir);
+});
+
+test('config list --json outputs empty array when no variants', () => {
+  const rootDir = makeTempDir();
+
+  const output = captureOutput(() => {
+    runConfigCommand({
+      opts: {
+        _: ['list'],
+        env: [],
+        root: rootDir,
+        json: true,
+      },
+    });
+  });
+
+  const report = JSON.parse(output.join('\n')) as unknown[];
+  assert.deepEqual(report, []);
+
   cleanup(rootDir);
 });
 

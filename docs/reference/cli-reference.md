@@ -42,7 +42,7 @@ All commands are available through `npx cc-mirror`.
 - `--npm-version <ver>` - Override Claude Code package version (default: `2.0.76`)
 - `--no-tweak` - Skip tweakcc theming
 - `--no-prompt-pack` - Skip provider prompt pack
-- `--prompt-pack-mode <mode>` - minimal | maximal
+- `--prompt-pack-mode <mode>` - minimal (maximal deprecated)
 - `--shell-env` - Write env vars to shell profile (Z.ai)
 - `--env KEY=VALUE` - Extra env var override (repeatable)
 - `--timeout-ms <ms>` - API timeout override (ms)
@@ -56,6 +56,15 @@ All commands are available through `npx cc-mirror`.
 
 - `--apply` - Append PATH export to shell profile (POSIX/PowerShell)
 - `--bin-dir <path>` - Check a custom wrapper directory
+
+## Options (doctor)
+
+- `--strict` - Run extra validation checks (names, settings, team mode)
+- `--json` - Output doctor report as JSON
+
+## Options (list)
+
+- `--json` - Output variant list as JSON
 
 ## Options (sync)
 
