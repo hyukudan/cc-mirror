@@ -75,6 +75,9 @@ OPTIONS (doctor)
   --strict                     Run extra validation checks (names, settings, team mode)
   --json                       Output doctor report as JSON
 
+OPTIONS (list)
+  --json                       Output variant list as JSON
+
 OPTIONS (sync)
   --items <list>               skills,mcp-servers,permissions,claude-md,tasks,provider-env
   --source <name>              Source variant (optional if positional)
