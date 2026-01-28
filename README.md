@@ -491,14 +491,20 @@ npx cc-mirror quick --provider mirror --name mclaude-personal
 
 ### Windows
 
-Add the wrapper directory to your PATH once:
-
+**PowerShell** (recommended):
 ```powershell
-[Environment]::SetEnvironmentVariable(
-  "Path",
-  [Environment]::GetEnvironmentVariable("Path", "User") + ";$env:USERPROFILE\.cc-mirror\bin",
-  "User"
-)
+npx cc-mirror path --apply
+# Then open a new PowerShell window
+```
+
+**CMD**: `path --apply` only updates PowerShell profile. For CMD, add manually:
+1. Open System Properties → Environment Variables
+2. Edit user `Path` → Add `%USERPROFILE%\.cc-mirror\bin`
+3. Open a new CMD window
+
+Or run the wrapper directly:
+```cmd
+%USERPROFILE%\.cc-mirror\bin\<variant>.cmd
 ```
 
 ### Termux / Android
@@ -524,7 +530,7 @@ npx cc-mirror create --provider mirror --name claude-termux --bin-dir "$PREFIX/b
 | Issue | Solution |
 |-------|----------|
 | IPv6 connection resets (Z.ai) | Use `--prefer-ipv4` or `--env CC_MIRROR_PREFER_IPV4=1` |
-| Command not found after create | Run `npx cc-mirror path --apply` and follow PATH instructions |
+| Command not found after create | Run `npx cc-mirror path --apply` (PowerShell) or add bin dir to PATH manually (CMD) |
 | Windows splash weirdness | Set `--env CC_MIRROR_SPLASH_UTF8=0` to skip `chcp 65001` |
 
 ---
