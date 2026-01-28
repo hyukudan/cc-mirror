@@ -16,16 +16,9 @@ export interface TweakCommandOptions {
 export function runTweakCommand({ opts }: TweakCommandOptions): void {
   let target = opts._ && opts._[0];
   if (!target) {
-    console.error('tweak requires a variant name');
-    process.exit(1);
+    throw new Error('tweak requires a variant name');
   }
-  try {
-    target = assertValidVariantName(target);
-  } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    console.error(message);
-    process.exit(1);
-  }
+  target = assertValidVariantName(target);
   const rootDir = (opts.root as string) || core.DEFAULT_ROOT;
   core.tweakVariant(rootDir, target);
 }

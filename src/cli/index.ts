@@ -148,6 +148,11 @@ const main = async () => {
 };
 
 main().catch((error) => {
-  console.error(error instanceof Error ? error.message : String(error));
-  process.exit(1);
+  const message = error instanceof Error ? error.message : String(error);
+  // Use write callback to ensure buffer flushes before exit (critical for Windows CMD)
+  process.stderr.write(`${message}\n`, () => {
+    process.exit(1);
+  });
+  // Fallback timeout in case callback doesn't fire
+  setTimeout(() => process.exit(1), 200);
 });

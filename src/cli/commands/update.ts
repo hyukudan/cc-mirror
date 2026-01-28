@@ -20,13 +20,7 @@ export function runUpdateCommand({ opts }: UpdateCommandOptions): void {
   const rootDir = (opts.root as string) || core.DEFAULT_ROOT;
   const binDir = (opts['bin-dir'] as string) || core.DEFAULT_BIN_DIR;
   if (target) {
-    try {
-      target = assertValidVariantName(target);
-    } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      console.error(message);
-      process.exit(1);
-    }
+    target = assertValidVariantName(target);
   }
   const names = target ? [target] : core.listVariants(rootDir).map((entry) => entry.name);
 

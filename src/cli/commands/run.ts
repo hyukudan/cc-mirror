@@ -20,16 +20,9 @@ export interface RunCommandOptions {
 export function runRunCommand({ opts }: RunCommandOptions): void {
   let target = opts._ && opts._[0];
   if (!target) {
-    console.error('run requires a variant name');
-    process.exit(1);
+    throw new Error('run requires a variant name');
   }
-  try {
-    target = assertValidVariantName(target);
-  } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    console.error(message);
-    process.exit(1);
-  }
+  target = assertValidVariantName(target);
 
   const rootDir = (opts.root as string) || core.DEFAULT_ROOT;
   const binDir = (opts['bin-dir'] as string) || core.DEFAULT_BIN_DIR;
@@ -38,24 +31,22 @@ export function runRunCommand({ opts }: RunCommandOptions): void {
 
   const variantDir = path.join(resolvedRoot, target);
   if (!fs.existsSync(variantDir)) {
-    console.error(`Variant not found: ${target}`);
-    process.exit(1);
+    throw new Error(`Variant not found: ${target}`);
   }
 
   const wrapperPath = getWrapperPath(resolvedBin, target);
   if (!fs.existsSync(wrapperPath)) {
-    console.error(`Wrapper not found: ${wrapperPath}`);
-    console.error('Run `cc-mirror update <name>` or `cc-mirror path --apply` to fix.');
-    process.exit(1);
+    throw new Error(
+      `Wrapper not found: ${wrapperPath}\nRun \`cc-mirror update <name>\` or \`cc-mirror path --apply\` to fix.`
+    );
   }
 
   const args = opts._.slice(1);
   const result = spawnSync(wrapperPath, args, { stdio: 'inherit', shell: process.platform === 'win32' });
   if (result.error) {
-    console.error(result.error.message);
-    process.exit(1);
+    throw result.error;
   }
-  if (typeof result.status === 'number') {
-    process.exit(result.status);
+  if (typeof result.status === 'number' && result.status !== 0) {
+    process.exitCode = result.status;
   }
 }
