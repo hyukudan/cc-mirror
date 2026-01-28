@@ -20,43 +20,52 @@
 
 CC-MIRROR lets you run **multiple isolated Claude Code instances**, each connecting to a different AI provider. Every variant has its own configuration, sessions, themes, and credentials — completely independent from each other.
 
-```
-┌─────────────────────────────────────────────────────────────────────────────────────┐
-│                           CC-MIRROR Architecture                                    │
-│                                                                                     │
-│   ┌─────────────────────────────────────────────────────────────────────────────┐  │
-│   │                        AI Provider Ecosystem                                 │  │
-│   │                                                                              │  │
-│   │  ┌─────────┐ ┌─────────┐ ┌─────────┐ ┌─────────┐ ┌─────────┐ ┌─────────┐   │  │
-│   │  │  Z.ai   │ │ MiniMax │ │OpenRoute│ │  Kimi   │ │ Vercel  │ │   Poe   │   │  │
-│   │  │ GLM-4.7 │ │  M2.1   │ │ 100+LLM │ │   K2    │ │ Gateway │ │  Multi  │   │  │
-│   │  └────┬────┘ └────┬────┘ └────┬────┘ └────┬────┘ └────┬────┘ └────┬────┘   │  │
-│   │       │           │           │           │           │           │         │  │
-│   │  ┌─────────┐ ┌─────────┐ ┌─────────┐ ┌─────────┐ ┌─────────┐ ┌─────────┐   │  │
-│   │  │ Vertex  │ │ Bedrock │ │ Foundry │ │CCRouter │ │ Mirror  │ │ NanoGPT │   │  │
-│   │  │  GCP    │ │  AWS    │ │  Azure  │ │  Local  │ │ Native  │ │ 100+LLM │   │  │
-│   │  └────┬────┘ └────┬────┘ └────┬────┘ └────┬────┘ └────┬────┘ └────┬────┘   │  │
-│   │       │           │           │           │           │           │         │  │
-│   └───────┴───────────┴───────────┴───────────┴───────────┴───────────┴─────────┘  │
-│                                       │                                             │
-│                          ┌────────────▼────────────┐                               │
-│                          │      CC-MIRROR CLI      │                               │
-│                          │  Variant Manager + TUI  │                               │
-│                          └────────────┬────────────┘                               │
-│                                       │                                             │
-│           ┌───────────────────────────┼───────────────────────────┐                │
-│           │                           │                           │                │
-│           ▼                           ▼                           ▼                │
-│   ┌───────────────┐           ┌───────────────┐           ┌───────────────┐       │
-│   │   ~/.cc-mirror/zai        │   ~/.cc-mirror/vertex     │   ~/.cc-mirror/kimi   │
-│   │   ├── npm/                │   ├── npm/                │   ├── npm/            │
-│   │   ├── config/             │   ├── config/             │   ├── config/         │
-│   │   └── tweakcc/            │   └── tweakcc/            │   └── tweakcc/        │
-│   └───────────────┘           └───────────────┘           └───────────────┘       │
-│         zai                         vertex                       kimi             │
-│      (wrapper)                    (wrapper)                   (wrapper)           │
-│                                                                                     │
-└─────────────────────────────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TB
+    subgraph providers["🔌 AI Providers"]
+        direction LR
+        subgraph gateways["API Gateways"]
+            zai["Z.ai<br/><small>GLM-4.7</small>"]
+            minimax["MiniMax<br/><small>M2.1</small>"]
+            openrouter["OpenRouter<br/><small>100+ LLMs</small>"]
+            vercel["Vercel<br/><small>AI Gateway</small>"]
+            poe["Poe<br/><small>Multi-model</small>"]
+        end
+        subgraph cloud["Cloud Enterprise"]
+            vertex["Vertex AI<br/><small>GCP</small>"]
+            bedrock["Bedrock<br/><small>AWS</small>"]
+            foundry["Foundry<br/><small>Azure</small>"]
+        end
+        subgraph local["Local & Native"]
+            kimi["Kimi<br/><small>Moonshot K2</small>"]
+            ccrouter["CCRouter<br/><small>Ollama</small>"]
+            mirror["Mirror<br/><small>Claude Native</small>"]
+        end
+    end
+
+    subgraph ccmirror["⚡ CC-MIRROR CLI"]
+        cli["Variant Manager + TUI"]
+    end
+
+    subgraph variants["📁 Isolated Variants (~/.cc-mirror/)"]
+        direction LR
+        v1["<b>zai/</b><br/>npm/ config/ tweakcc/"]
+        v2["<b>vertex/</b><br/>npm/ config/ tweakcc/"]
+        v3["<b>kimi/</b><br/>npm/ config/ tweakcc/"]
+    end
+
+    subgraph wrappers["🚀 CLI Wrappers"]
+        direction LR
+        w1["$ zai"]
+        w2["$ vertex"]
+        w3["$ kimi"]
+    end
+
+    providers --> cli
+    cli --> variants
+    v1 -.-> w1
+    v2 -.-> w2
+    v3 -.-> w3
 ```
 
 **Key benefits:**
@@ -208,6 +217,15 @@ npx cc-mirror quick --provider kimi --api-key "$MOONSHOT_API_KEY"
 ---
 
 ## How It Works
+
+```mermaid
+flowchart LR
+    A["🎯 npx cc-mirror quick<br/>--provider zai"] --> B["📦 Install Claude Code<br/>in isolated npm/"]
+    B --> C["⚙️ Configure API keys<br/>& environment"]
+    C --> D["🎨 Apply theme<br/>via tweakcc"]
+    D --> E["🔗 Create wrapper<br/>~/.local/bin/zai"]
+    E --> F["🚀 Run: $ zai"]
+```
 
 Each variant lives in its own directory with complete isolation:
 
@@ -396,6 +414,26 @@ npx cc-mirror tasks graph         # Visualize dependencies
 ## Team Mode
 
 Enable multi-agent collaboration with shared task management:
+
+```mermaid
+flowchart TB
+    subgraph team["🤝 Team Mode"]
+        direction TB
+        tools["TaskCreate / TaskGet<br/>TaskUpdate / TaskList"]
+        orchestrator["Orchestrator Skill"]
+        manager["Task Manager Skill"]
+    end
+
+    subgraph projects["📂 Project Isolation"]
+        direction LR
+        p1["~/projects/api<br/><small>Team: api</small>"]
+        p2["~/projects/frontend<br/><small>Team: frontend</small>"]
+    end
+
+    team --> projects
+    p1 -.- t1[("tasks.json")]
+    p2 -.- t2[("tasks.json")]
+```
 
 ```bash
 # Enable on any variant
