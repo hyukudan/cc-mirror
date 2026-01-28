@@ -93,6 +93,12 @@ Open a new terminal and run your variant name (e.g., `mclaude`).
 | **NanoGPT**    | 100+ models            | Auth Token | Model flexibility, pay-per-use  |
 | **CCRouter**   | Ollama, DeepSeek, etc. | Optional   | Local-first development         |
 | **Mirror**     | Claude (native)        | OAuth/Key  | Pure Claude with team mode      |
+| **Kimi**       | Kimi K2, K2.5          | API Key    | Moonshot AI reasoning models    |
+| **Vercel**     | Multi-provider         | Auth Token | Vercel AI Gateway access        |
+| **Poe**        | Claude via Poe         | Auth Token | Quora's Poe API                 |
+| **Vertex AI**  | Claude (native)        | GCP Auth   | Google Cloud enterprise         |
+| **Bedrock**    | Claude (native)        | AWS Auth   | AWS enterprise                  |
+| **Foundry**    | Claude (native)        | Azure Auth | Azure AI enterprise             |
 
 ```bash
 # Z.ai (GLM Coding Plan)
@@ -124,6 +130,31 @@ npx cc-mirror quick --provider ccrouter
 
 # Mirror Claude (pure Claude with team mode)
 npx cc-mirror quick --provider mirror --name mclaude
+
+# Kimi (Moonshot AI)
+npx cc-mirror quick --provider kimi --api-key "$MOONSHOT_API_KEY"
+
+# Vercel AI Gateway (requires model mapping)
+npx cc-mirror quick --provider vercel --api-key "$VERCEL_API_KEY" \
+  --model-sonnet "anthropic/claude-sonnet-4" \
+  --model-opus "anthropic/claude-opus-4"
+
+# Poe API (requires model mapping)
+npx cc-mirror quick --provider poe --api-key "$POE_API_KEY" \
+  --model-sonnet "Claude-3.5-Sonnet"
+
+# Google Vertex AI (requires GCP auth setup)
+npx cc-mirror quick --provider vertex \
+  --env "ANTHROPIC_VERTEX_PROJECT_ID=your-project-id"
+
+# AWS Bedrock (requires AWS credentials)
+npx cc-mirror quick --provider bedrock \
+  --env "AWS_REGION=us-east-1"
+
+# Azure AI Foundry (requires Azure auth)
+npx cc-mirror quick --provider foundry \
+  --env "ANTHROPIC_FOUNDRY_RESOURCE=your-resource" \
+  --env "ANTHROPIC_FOUNDRY_API_KEY=your-key"
 ```
 
 ---

@@ -11,6 +11,7 @@ const hasControlChars = (value: string): boolean => {
 const ENV_KEY_PATTERN = /^[A-Za-z_][A-Za-z0-9_]*$/;
 
 export const isValidEnvKey = (key: string): boolean => ENV_KEY_PATTERN.test(key);
+
 const WINDOWS_RESERVED_NAMES = new Set([
   'CON',
   'PRN',
@@ -36,46 +37,31 @@ const WINDOWS_RESERVED_NAMES = new Set([
   'LPT9',
 ]);
 
-export const assertValidVariantName = (name: string): string => {
+type NameType = 'Variant' | 'Team';
+
+const assertValidName = (name: string, type: NameType): string => {
+  const label = `${type} name`;
   if (!name || !name.trim()) {
-    throw new Error('Variant name is required.');
+    throw new Error(`${label} is required.`);
   }
   if (name.trim() !== name) {
-    throw new Error('Variant name must not include leading or trailing whitespace.');
+    throw new Error(`${label} must not include leading or trailing whitespace.`);
   }
   if (name === '.' || name === '..') {
-    throw new Error('Variant name must not be "." or "..".');
+    throw new Error(`${label} must not be "." or "..".`);
   }
   if (name.endsWith('.') || name.endsWith(' ')) {
-    throw new Error('Variant name must not end with a dot or space.');
+    throw new Error(`${label} must not end with a dot or space.`);
   }
   if (INVALID_NAME_CHARS.test(name) || hasControlChars(name)) {
-    throw new Error('Variant name contains invalid characters.');
+    throw new Error(`${label} contains invalid characters.`);
   }
   if (WINDOWS_RESERVED_NAMES.has(name.toUpperCase())) {
-    throw new Error('Variant name is reserved on Windows.');
+    throw new Error(`${label} is reserved on Windows.`);
   }
   return name;
 };
 
-export const assertValidTeamName = (name: string): string => {
-  if (!name || !name.trim()) {
-    throw new Error('Team name is required.');
-  }
-  if (name.trim() !== name) {
-    throw new Error('Team name must not include leading or trailing whitespace.');
-  }
-  if (name === '.' || name === '..') {
-    throw new Error('Team name must not be "." or "..".');
-  }
-  if (name.endsWith('.') || name.endsWith(' ')) {
-    throw new Error('Team name must not end with a dot or space.');
-  }
-  if (INVALID_NAME_CHARS.test(name) || hasControlChars(name)) {
-    throw new Error('Team name contains invalid characters.');
-  }
-  if (WINDOWS_RESERVED_NAMES.has(name.toUpperCase())) {
-    throw new Error('Team name is reserved on Windows.');
-  }
-  return name;
-};
+export const assertValidVariantName = (name: string): string => assertValidName(name, 'Variant');
+
+export const assertValidTeamName = (name: string): string => assertValidName(name, 'Team');
