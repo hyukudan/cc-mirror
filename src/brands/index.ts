@@ -6,6 +6,12 @@ import { buildNanoGPTTweakccConfig } from './nanogpt.js';
 import { buildOpenRouterTweakccConfig } from './openrouter.js';
 import { buildCCRouterTweakccConfig } from './ccrouter.js';
 import { buildMirrorTweakccConfig } from './mirror.js';
+import { buildKimiTweakccConfig } from './kimi.js';
+import { buildVercelTweakccConfig } from './vercel.js';
+import { buildPoeTweakccConfig } from './poe.js';
+import { buildVertexTweakccConfig } from './vertex.js';
+import { buildBedrockTweakccConfig } from './bedrock.js';
+import { buildFoundryTweakccConfig } from './foundry.js';
 
 export interface BrandPreset {
   key: string;
@@ -56,6 +62,42 @@ const BRAND_PRESETS: Record<string, BrandPreset> = {
     label: 'Mirror Claude',
     description: 'Reflective silver/chrome theme for pure Claude Code experience.',
     buildTweakccConfig: buildMirrorTweakccConfig,
+  },
+  kimi: {
+    key: 'kimi',
+    label: 'Kimi Lunar',
+    description: 'Lunar indigo/silver theme for Moonshot AI Kimi models.',
+    buildTweakccConfig: buildKimiTweakccConfig,
+  },
+  vercel: {
+    key: 'vercel',
+    label: 'Vercel Edge',
+    description: 'Clean black/white theme for Vercel AI Gateway.',
+    buildTweakccConfig: buildVercelTweakccConfig,
+  },
+  poe: {
+    key: 'poe',
+    label: 'Poe Violet',
+    description: 'Mystical violet/purple theme for Poe API.',
+    buildTweakccConfig: buildPoeTweakccConfig,
+  },
+  vertex: {
+    key: 'vertex',
+    label: 'Vertex Cloud',
+    description: 'Google Cloud colors for Vertex AI.',
+    buildTweakccConfig: buildVertexTweakccConfig,
+  },
+  bedrock: {
+    key: 'bedrock',
+    label: 'Bedrock Ember',
+    description: 'AWS orange/ember theme for Bedrock.',
+    buildTweakccConfig: buildBedrockTweakccConfig,
+  },
+  foundry: {
+    key: 'foundry',
+    label: 'Foundry Azure',
+    description: 'Azure blue theme for AI Foundry.',
+    buildTweakccConfig: buildFoundryTweakccConfig,
   },
 };
 

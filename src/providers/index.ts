@@ -147,6 +147,102 @@ const PROVIDERS: Record<string, ProviderTemplate> = {
     enablesTeamMode: true, // Auto-enable team mode patch
     noPromptPack: true, // Skip prompt pack (pure Claude experience)
   },
+  kimi: {
+    key: 'kimi',
+    label: 'Kimi (Moonshot AI)',
+    description: 'Kimi K2 models via Anthropic-compatible endpoint',
+    baseUrl: 'https://api.moonshot.ai/v1',
+    env: {
+      API_TIMEOUT_MS: DEFAULT_TIMEOUT_MS,
+      ANTHROPIC_DEFAULT_SONNET_MODEL: 'kimi-k2-preview',
+      ANTHROPIC_DEFAULT_OPUS_MODEL: 'kimi-k2-0905-preview',
+      ANTHROPIC_DEFAULT_HAIKU_MODEL: 'kimi-k2-preview',
+      CC_MIRROR_SPLASH: 1,
+      CC_MIRROR_PROVIDER_LABEL: 'Kimi',
+      CC_MIRROR_SPLASH_STYLE: 'kimi',
+    },
+    apiKeyLabel: 'Moonshot API key',
+    // Kimi uses API key authentication (Bearer token via ANTHROPIC_API_KEY)
+  },
+  vercel: {
+    key: 'vercel',
+    label: 'Vercel AI Gateway',
+    description: 'Vercel AI Gateway for multi-provider model access',
+    baseUrl: 'https://ai-gateway.vercel.sh',
+    env: {
+      API_TIMEOUT_MS: DEFAULT_TIMEOUT_MS,
+      CC_MIRROR_SPLASH: 1,
+      CC_MIRROR_PROVIDER_LABEL: 'Vercel AI Gateway',
+      CC_MIRROR_SPLASH_STYLE: 'vercel',
+    },
+    apiKeyLabel: 'Vercel AI Gateway API key',
+    authMode: 'authToken',
+    requiresModelMapping: true,
+  },
+  poe: {
+    key: 'poe',
+    label: 'Poe',
+    description: 'Poe API for Claude access via Quora',
+    baseUrl: 'https://api.poe.com/api',
+    env: {
+      API_TIMEOUT_MS: DEFAULT_TIMEOUT_MS,
+      CC_MIRROR_SPLASH: 1,
+      CC_MIRROR_PROVIDER_LABEL: 'Poe',
+      CC_MIRROR_SPLASH_STYLE: 'poe',
+    },
+    apiKeyLabel: 'Poe API key',
+    authMode: 'authToken',
+    requiresModelMapping: true,
+  },
+  vertex: {
+    key: 'vertex',
+    label: 'Google Vertex AI',
+    description: 'Claude via Google Cloud Vertex AI',
+    baseUrl: '', // No base URL - uses CLAUDE_CODE_USE_VERTEX
+    env: {
+      API_TIMEOUT_MS: DEFAULT_TIMEOUT_MS,
+      CLAUDE_CODE_USE_VERTEX: '1',
+      CLOUD_ML_REGION: 'global',
+      CC_MIRROR_SPLASH: 1,
+      CC_MIRROR_PROVIDER_LABEL: 'Vertex AI',
+      CC_MIRROR_SPLASH_STYLE: 'vertex',
+    },
+    apiKeyLabel: 'Vertex Project ID',
+    authMode: 'none',
+    noPromptPack: true, // Pure Claude experience
+  },
+  bedrock: {
+    key: 'bedrock',
+    label: 'AWS Bedrock',
+    description: 'Claude via AWS Bedrock',
+    baseUrl: '', // No base URL - uses CLAUDE_CODE_USE_BEDROCK
+    env: {
+      API_TIMEOUT_MS: DEFAULT_TIMEOUT_MS,
+      CLAUDE_CODE_USE_BEDROCK: '1',
+      CC_MIRROR_SPLASH: 1,
+      CC_MIRROR_PROVIDER_LABEL: 'AWS Bedrock',
+      CC_MIRROR_SPLASH_STYLE: 'bedrock',
+    },
+    apiKeyLabel: 'AWS Region (e.g., us-east-1)',
+    authMode: 'none',
+    noPromptPack: true, // Pure Claude experience
+  },
+  foundry: {
+    key: 'foundry',
+    label: 'Azure AI Foundry',
+    description: 'Claude via Azure AI Foundry',
+    baseUrl: '', // No base URL - uses CLAUDE_CODE_USE_FOUNDRY
+    env: {
+      API_TIMEOUT_MS: DEFAULT_TIMEOUT_MS,
+      CLAUDE_CODE_USE_FOUNDRY: '1',
+      CC_MIRROR_SPLASH: 1,
+      CC_MIRROR_PROVIDER_LABEL: 'Azure Foundry',
+      CC_MIRROR_SPLASH_STYLE: 'foundry',
+    },
+    apiKeyLabel: 'Foundry Resource Name',
+    authMode: 'none',
+    noPromptPack: true, // Pure Claude experience
+  },
   custom: {
     key: 'custom',
     label: 'Custom',
