@@ -150,13 +150,13 @@ const PROVIDERS: Record<string, ProviderTemplate> = {
   kimi: {
     key: 'kimi',
     label: 'Kimi (Moonshot AI)',
-    description: 'Kimi K2 models via Anthropic-compatible endpoint',
+    description: 'Kimi K2.5 models via Anthropic-compatible endpoint',
     baseUrl: 'https://api.moonshot.ai/v1',
     env: {
       API_TIMEOUT_MS: DEFAULT_TIMEOUT_MS,
-      ANTHROPIC_DEFAULT_SONNET_MODEL: 'kimi-k2-preview',
-      ANTHROPIC_DEFAULT_OPUS_MODEL: 'kimi-k2-0905-preview',
-      ANTHROPIC_DEFAULT_HAIKU_MODEL: 'kimi-k2-preview',
+      ANTHROPIC_DEFAULT_SONNET_MODEL: 'kimi-k2.5-instant',
+      ANTHROPIC_DEFAULT_OPUS_MODEL: 'kimi-k2.5-thinking',
+      ANTHROPIC_DEFAULT_HAIKU_MODEL: 'kimi-k2.5-instant',
       CC_MIRROR_SPLASH: 1,
       CC_MIRROR_PROVIDER_LABEL: 'Kimi',
       CC_MIRROR_SPLASH_STYLE: 'kimi',
