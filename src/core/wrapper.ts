@@ -1,17 +1,46 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { SPLASH_COLORS } from './constants.js';
 
+// Path to the translator launcher module
+// In development: src/core/translator/launcher.ts (run via tsx)
+// In production: dist/translator-launcher.mjs (bundled)
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const DEV_LAUNCHER_PATH = path.join(__dirname, 'translator', 'launcher.ts');
+const DIST_LAUNCHER_PATH = path.join(__dirname, '..', '..', 'dist', 'translator-launcher.mjs');
+
+// Check if running from bundled distribution or source
+const LAUNCHER_PATH = fs.existsSync(DIST_LAUNCHER_PATH) ? DIST_LAUNCHER_PATH : DEV_LAUNCHER_PATH;
+const LAUNCHER_NEEDS_TSX = LAUNCHER_PATH.endsWith('.ts');
+
 export type WrapperRuntime = 'native' | 'node';
+
+export interface WrapperOptions {
+  /** Use translation proxy for OpenAI-compatible providers */
+  requiresTranslation?: boolean;
+}
 
 export const writeWrapper = (
   wrapperPath: string,
   configDir: string,
   binaryPath: string,
-  runtime: WrapperRuntime = 'node'
+  runtime: WrapperRuntime = 'node',
+  options: WrapperOptions = {}
 ) => {
   const tweakDir = path.join(path.dirname(configDir), 'tweakcc');
-  const execLine = runtime === 'node' ? `exec node "${binaryPath}" "$@"` : `exec "${binaryPath}" "$@"`;
+
+  // For translation providers, use the launcher instead of direct exec
+  let execLine: string;
+  if (options.requiresTranslation) {
+    // Launcher handles proxy lifecycle and spawns Claude Code
+    // Use tsx for .ts files (development), node for .mjs (production)
+    const launcherCmd = LAUNCHER_NEEDS_TSX ? 'npx tsx' : 'node';
+    execLine = `exec ${launcherCmd} "${LAUNCHER_PATH}" "${binaryPath}" "${configDir}" -- "$@"`;
+  } else {
+    execLine = runtime === 'node' ? `exec node "${binaryPath}" "$@"` : `exec "${binaryPath}" "$@"`;
+  }
+
   const envLoader = [
     'if command -v node >/dev/null 2>&1; then',
     '  __cc_mirror_env_file="$(mktemp)"',
@@ -157,6 +186,118 @@ export const writeWrapper = (
     'CCMCCR',
     '        __cc_show_label="0"',
     '        ;;',
+    '      kimi)',
+    "        cat <<'CCMKIMI'",
+    '',
+    `${C.kimiPrimary}    ██╗  ██╗██╗███╗   ███╗██╗${C.reset}`,
+    `${C.kimiPrimary}    ██║ ██╔╝██║████╗ ████║██║${C.reset}`,
+    `${C.kimiSecondary}    █████╔╝ ██║██╔████╔██║██║${C.reset}`,
+    `${C.kimiSecondary}    ██╔═██╗ ██║██║╚██╔╝██║██║${C.reset}`,
+    `${C.kimiAccent}    ██║  ██╗██║██║ ╚═╝ ██║██║${C.reset}`,
+    `${C.kimiAccent}    ╚═╝  ╚═╝╚═╝╚═╝     ╚═╝╚═╝${C.reset}`,
+    '',
+    `${C.kimiDim}    ━━━━━━━━━━${C.kimiPrimary}◆${C.kimiDim}━━━━━━━━━━${C.reset}`,
+    `${C.kimiSecondary}      Kimi Code ${C.kimiDim}━${C.kimiSecondary} K2.5 Inside${C.reset}`,
+    '',
+    'CCMKIMI',
+    '        __cc_show_label="0"',
+    '        ;;',
+    '      deepseek)',
+    "        cat <<'CCMDS'",
+    '',
+    `${C.dsPrimary}    ██████╗ ███████╗███████╗██████╗ ███████╗███████╗███████╗██╗  ██╗${C.reset}`,
+    `${C.dsPrimary}    ██╔══██╗██╔════╝██╔════╝██╔══██╗██╔════╝██╔════╝██╔════╝██║ ██╔╝${C.reset}`,
+    `${C.dsSecondary}    ██║  ██║█████╗  █████╗  ██████╔╝███████╗█████╗  █████╗  █████╔╝${C.reset}`,
+    `${C.dsSecondary}    ██║  ██║██╔══╝  ██╔══╝  ██╔═══╝ ╚════██║██╔══╝  ██╔══╝  ██╔═██╗${C.reset}`,
+    `${C.dsAccent}    ██████╔╝███████╗███████╗██║     ███████║███████╗███████╗██║  ██╗${C.reset}`,
+    `${C.dsAccent}    ╚═════╝ ╚══════╝╚══════╝╚═╝     ╚══════╝╚══════╝╚══════╝╚═╝  ╚═╝${C.reset}`,
+    '',
+    `${C.dsDim}    ━━━━━━━━━━━━━━━${C.dsPrimary}◆${C.dsDim}━━━━━━━━━━━━━━━${C.reset}`,
+    `${C.dsSecondary}      DeepSeek ${C.dsDim}━${C.dsSecondary} Unmatched Intelligence${C.reset}`,
+    '',
+    'CCMDS',
+    '        __cc_show_label="0"',
+    '        ;;',
+    '      vercel)',
+    "        cat <<'CCMVER'",
+    '',
+    `${C.vercelPrimary}    ██╗   ██╗███████╗██████╗  ██████╗███████╗██╗${C.reset}`,
+    `${C.vercelPrimary}    ██║   ██║██╔════╝██╔══██╗██╔════╝██╔════╝██║${C.reset}`,
+    `${C.vercelSecondary}    ██║   ██║█████╗  ██████╔╝██║     █████╗  ██║${C.reset}`,
+    `${C.vercelSecondary}    ╚██╗ ██╔╝██╔══╝  ██╔══██╗██║     ██╔══╝  ██║${C.reset}`,
+    `${C.vercelAccent}     ╚████╔╝ ███████╗██║  ██║╚██████╗███████╗███████╗${C.reset}`,
+    `${C.vercelAccent}      ╚═══╝  ╚══════╝╚═╝  ╚═╝ ╚═════╝╚══════╝╚══════╝${C.reset}`,
+    '',
+    `${C.vercelDim}    ━━━━━━━━━━━━${C.vercelPrimary}▲${C.vercelDim}━━━━━━━━━━━━${C.reset}`,
+    `${C.vercelSecondary}      AI Gateway ${C.vercelDim}━${C.vercelSecondary} Edge${C.reset}`,
+    '',
+    'CCMVER',
+    '        __cc_show_label="0"',
+    '        ;;',
+    '      poe)',
+    "        cat <<'CCMPOE'",
+    '',
+    `${C.poePrimary}    ██████╗  ██████╗ ███████╗${C.reset}`,
+    `${C.poePrimary}    ██╔══██╗██╔═══██╗██╔════╝${C.reset}`,
+    `${C.poeSecondary}    ██████╔╝██║   ██║█████╗${C.reset}`,
+    `${C.poeSecondary}    ██╔═══╝ ██║   ██║██╔══╝${C.reset}`,
+    `${C.poeAccent}    ██║     ╚██████╔╝███████╗${C.reset}`,
+    `${C.poeAccent}    ╚═╝      ╚═════╝ ╚══════╝${C.reset}`,
+    '',
+    `${C.poeDim}    ━━━━━━━━${C.poePrimary}◆${C.poeDim}━━━━━━━━${C.reset}`,
+    `${C.poeSecondary}      Quora ${C.poeDim}━${C.poeSecondary} Multi-model${C.reset}`,
+    '',
+    'CCMPOE',
+    '        __cc_show_label="0"',
+    '        ;;',
+    '      vertex)',
+    "        cat <<'CCMVTX'",
+    '',
+    `${C.vertexPrimary}    ██╗   ██╗███████╗██████╗ ████████╗███████╗██╗  ██╗${C.reset}`,
+    `${C.vertexPrimary}    ██║   ██║██╔════╝██╔══██╗╚══██╔══╝██╔════╝╚██╗██╔╝${C.reset}`,
+    `${C.vertexSecondary}    ██║   ██║█████╗  ██████╔╝   ██║   █████╗   ╚███╔╝${C.reset}`,
+    `${C.vertexSecondary}    ╚██╗ ██╔╝██╔══╝  ██╔══██╗   ██║   ██╔══╝   ██╔██╗${C.reset}`,
+    `${C.vertexAccent}     ╚████╔╝ ███████╗██║  ██║   ██║   ███████╗██╔╝ ██╗${C.reset}`,
+    `${C.vertexAccent}      ╚═══╝  ╚══════╝╚═╝  ╚═╝   ╚═╝   ╚══════╝╚═╝  ╚═╝${C.reset}`,
+    '',
+    `${C.vertexDim}    ━━━━━━━━━━━━${C.vertexPrimary}◆${C.vertexDim}━━━━━━━━━━━━${C.reset}`,
+    `${C.vertexSecondary}      Google Cloud ${C.vertexDim}━${C.vertexSecondary} AI${C.reset}`,
+    '',
+    'CCMVTX',
+    '        __cc_show_label="0"',
+    '        ;;',
+    '      bedrock)',
+    "        cat <<'CCMBR'",
+    '',
+    `${C.bedrockPrimary}    ██████╗ ███████╗██████╗ ██████╗  ██████╗  ██████╗██╗  ██╗${C.reset}`,
+    `${C.bedrockPrimary}    ██╔══██╗██╔════╝██╔══██╗██╔══██╗██╔═══██╗██╔════╝██║ ██╔╝${C.reset}`,
+    `${C.bedrockSecondary}    ██████╔╝█████╗  ██║  ██║██████╔╝██║   ██║██║     █████╔╝${C.reset}`,
+    `${C.bedrockSecondary}    ██╔══██╗██╔══╝  ██║  ██║██╔══██╗██║   ██║██║     ██╔═██╗${C.reset}`,
+    `${C.bedrockAccent}    ██████╔╝███████╗██████╔╝██║  ██║╚██████╔╝╚██████╗██║  ██╗${C.reset}`,
+    `${C.bedrockAccent}    ╚═════╝ ╚══════╝╚═════╝ ╚═╝  ╚═╝ ╚═════╝  ╚═════╝╚═╝  ╚═╝${C.reset}`,
+    '',
+    `${C.bedrockDim}    ━━━━━━━━━━━━━━${C.bedrockPrimary}◆${C.bedrockDim}━━━━━━━━━━━━━━${C.reset}`,
+    `${C.bedrockSecondary}        AWS ${C.bedrockDim}━${C.bedrockSecondary} Claude${C.reset}`,
+    '',
+    'CCMBR',
+    '        __cc_show_label="0"',
+    '        ;;',
+    '      foundry)',
+    "        cat <<'CCMFND'",
+    '',
+    `${C.foundryPrimary}    ███████╗ ██████╗ ██╗   ██╗███╗   ██╗██████╗ ██████╗ ██╗   ██╗${C.reset}`,
+    `${C.foundryPrimary}    ██╔════╝██╔═══██╗██║   ██║████╗  ██║██╔══██╗██╔══██╗╚██╗ ██╔╝${C.reset}`,
+    `${C.foundrySecondary}    █████╗  ██║   ██║██║   ██║██╔██╗ ██║██║  ██║██████╔╝ ╚████╔╝${C.reset}`,
+    `${C.foundrySecondary}    ██╔══╝  ██║   ██║██║   ██║██║╚██╗██║██║  ██║██╔══██╗  ╚██╔╝${C.reset}`,
+    `${C.foundryAccent}    ██║     ╚██████╔╝╚██████╔╝██║ ╚████║██████╔╝██║  ██║   ██║${C.reset}`,
+    `${C.foundryAccent}    ╚═╝      ╚═════╝  ╚═════╝ ╚═╝  ╚═══╝╚═════╝ ╚═╝  ╚═╝   ╚═╝${C.reset}`,
+    '',
+    `${C.foundryDim}    ━━━━━━━━━━━━━━${C.foundryPrimary}◆${C.foundryDim}━━━━━━━━━━━━━━${C.reset}`,
+    `${C.foundrySecondary}       Azure ${C.foundryDim}━${C.foundrySecondary} AI Foundry${C.reset}`,
+    '',
+    'CCMFND',
+    '        __cc_show_label="0"',
+    '        ;;',
     '      mirror)',
     "        cat <<'CCMMIR'",
     '',
@@ -239,7 +380,8 @@ export const writeWindowsWrapper = (
   wrapperPath: string,
   configDir: string,
   binaryPath: string,
-  runtime: WrapperRuntime = 'node'
+  runtime: WrapperRuntime = 'node',
+  options: WrapperOptions = {}
 ) => {
   const tweakDir = path.join(path.dirname(configDir), 'tweakcc');
   const configDirWin = path.win32.normalize(configDir);
@@ -273,7 +415,16 @@ try {
   fs.writeFileSync(helperScriptPath, helperScript, { mode: 0o644 });
   const helperScriptName = path.basename(helperScriptPath);
 
-  const execLine = runtime === 'node' ? `node "${binaryPathWin}" %*` : `"${binaryPathWin}" %*`;
+  // For translation providers, use the launcher
+  const launcherPathWin = path.win32.normalize(LAUNCHER_PATH);
+  let execLine: string;
+  if (options.requiresTranslation) {
+    // Use npx tsx for .ts files (development), node for .mjs (production)
+    const launcherCmd = LAUNCHER_NEEDS_TSX ? 'npx tsx' : 'node';
+    execLine = `${launcherCmd} "${launcherPathWin}" "${binaryPathWin}" "${configDirWin}" -- %*`;
+  } else {
+    execLine = runtime === 'node' ? `node "${binaryPathWin}" %*` : `"${binaryPathWin}" %*`;
+  }
 
   const splashLines: string[] = [
     '',
@@ -298,6 +449,13 @@ try {
     'if "%CC_MIRROR_SPLASH_STYLE%"=="gatewayz" goto :splash_gatewayz',
     'if "%CC_MIRROR_SPLASH_STYLE%"=="nanogpt" goto :splash_nanogpt',
     'if "%CC_MIRROR_SPLASH_STYLE%"=="ccrouter" goto :splash_ccrouter',
+    'if "%CC_MIRROR_SPLASH_STYLE%"=="kimi" goto :splash_kimi',
+    'if "%CC_MIRROR_SPLASH_STYLE%"=="deepseek" goto :splash_deepseek',
+    'if "%CC_MIRROR_SPLASH_STYLE%"=="vercel" goto :splash_vercel',
+    'if "%CC_MIRROR_SPLASH_STYLE%"=="poe" goto :splash_poe',
+    'if "%CC_MIRROR_SPLASH_STYLE%"=="vertex" goto :splash_vertex',
+    'if "%CC_MIRROR_SPLASH_STYLE%"=="bedrock" goto :splash_bedrock',
+    'if "%CC_MIRROR_SPLASH_STYLE%"=="foundry" goto :splash_foundry',
     'if "%CC_MIRROR_SPLASH_STYLE%"=="mirror" goto :splash_mirror',
     'goto :splash_default',
     '',
@@ -382,6 +540,97 @@ try {
     'echo.',
     `echo ${C.ccrDim}    ━━━━━━━━━━━━━━━━${C.ccrPrimary}◆${C.ccrDim}━━━━━━━━━━━━━━━━${C.reset}`,
     `echo ${C.ccrSecondary}      Claude Code Router ${C.ccrDim}━${C.ccrSecondary} Any Model${C.reset}`,
+    'echo.',
+    'goto :end_splash',
+    '',
+    ':splash_kimi',
+    `echo ${C.kimiPrimary}    ██╗  ██╗██╗███╗   ███╗██╗${C.reset}`,
+    `echo ${C.kimiPrimary}    ██║ ██╔╝██║████╗ ████║██║${C.reset}`,
+    `echo ${C.kimiSecondary}    █████╔╝ ██║██╔████╔██║██║${C.reset}`,
+    `echo ${C.kimiSecondary}    ██╔═██╗ ██║██║╚██╔╝██║██║${C.reset}`,
+    `echo ${C.kimiAccent}    ██║  ██╗██║██║ ╚═╝ ██║██║${C.reset}`,
+    `echo ${C.kimiAccent}    ╚═╝  ╚═╝╚═╝╚═╝     ╚═╝╚═╝${C.reset}`,
+    'echo.',
+    `echo ${C.kimiDim}    ━━━━━━━━━━${C.kimiPrimary}◆${C.kimiDim}━━━━━━━━━━${C.reset}`,
+    `echo ${C.kimiSecondary}      Kimi Code ${C.kimiDim}━${C.kimiSecondary} K2.5 Inside${C.reset}`,
+    'echo.',
+    'goto :end_splash',
+    '',
+    ':splash_deepseek',
+    `echo ${C.dsPrimary}    ██████╗ ███████╗███████╗██████╗ ███████╗███████╗███████╗██╗  ██╗${C.reset}`,
+    `echo ${C.dsPrimary}    ██╔══██╗██╔════╝██╔════╝██╔══██╗██╔════╝██╔════╝██╔════╝██║ ██╔╝${C.reset}`,
+    `echo ${C.dsSecondary}    ██║  ██║█████╗  █████╗  ██████╔╝███████╗█████╗  █████╗  █████╔╝${C.reset}`,
+    `echo ${C.dsSecondary}    ██║  ██║██╔══╝  ██╔══╝  ██╔═══╝ ╚════██║██╔══╝  ██╔══╝  ██╔═██╗${C.reset}`,
+    `echo ${C.dsAccent}    ██████╔╝███████╗███████╗██║     ███████║███████╗███████╗██║  ██╗${C.reset}`,
+    `echo ${C.dsAccent}    ╚═════╝ ╚══════╝╚══════╝╚═╝     ╚══════╝╚══════╝╚══════╝╚═╝  ╚═╝${C.reset}`,
+    'echo.',
+    `echo ${C.dsDim}    ━━━━━━━━━━━━━━━${C.dsPrimary}◆${C.dsDim}━━━━━━━━━━━━━━━${C.reset}`,
+    `echo ${C.dsSecondary}      DeepSeek ${C.dsDim}━${C.dsSecondary} Unmatched Intelligence${C.reset}`,
+    'echo.',
+    'goto :end_splash',
+    '',
+    ':splash_vercel',
+    `echo ${C.vercelPrimary}    ██╗   ██╗███████╗██████╗  ██████╗███████╗██╗${C.reset}`,
+    `echo ${C.vercelPrimary}    ██║   ██║██╔════╝██╔══██╗██╔════╝██╔════╝██║${C.reset}`,
+    `echo ${C.vercelSecondary}    ██║   ██║█████╗  ██████╔╝██║     █████╗  ██║${C.reset}`,
+    `echo ${C.vercelSecondary}    ╚██╗ ██╔╝██╔══╝  ██╔══██╗██║     ██╔══╝  ██║${C.reset}`,
+    `echo ${C.vercelAccent}     ╚████╔╝ ███████╗██║  ██║╚██████╗███████╗███████╗${C.reset}`,
+    `echo ${C.vercelAccent}      ╚═══╝  ╚══════╝╚═╝  ╚═╝ ╚═════╝╚══════╝╚══════╝${C.reset}`,
+    'echo.',
+    `echo ${C.vercelDim}    ━━━━━━━━━━━━${C.vercelPrimary}▲${C.vercelDim}━━━━━━━━━━━━${C.reset}`,
+    `echo ${C.vercelSecondary}      AI Gateway ${C.vercelDim}━${C.vercelSecondary} Edge${C.reset}`,
+    'echo.',
+    'goto :end_splash',
+    '',
+    ':splash_poe',
+    `echo ${C.poePrimary}    ██████╗  ██████╗ ███████╗${C.reset}`,
+    `echo ${C.poePrimary}    ██╔══██╗██╔═══██╗██╔════╝${C.reset}`,
+    `echo ${C.poeSecondary}    ██████╔╝██║   ██║█████╗${C.reset}`,
+    `echo ${C.poeSecondary}    ██╔═══╝ ██║   ██║██╔══╝${C.reset}`,
+    `echo ${C.poeAccent}    ██║     ╚██████╔╝███████╗${C.reset}`,
+    `echo ${C.poeAccent}    ╚═╝      ╚═════╝ ╚══════╝${C.reset}`,
+    'echo.',
+    `echo ${C.poeDim}    ━━━━━━━━${C.poePrimary}◆${C.poeDim}━━━━━━━━${C.reset}`,
+    `echo ${C.poeSecondary}      Quora ${C.poeDim}━${C.poeSecondary} Multi-model${C.reset}`,
+    'echo.',
+    'goto :end_splash',
+    '',
+    ':splash_vertex',
+    `echo ${C.vertexPrimary}    ██╗   ██╗███████╗██████╗ ████████╗███████╗██╗  ██╗${C.reset}`,
+    `echo ${C.vertexPrimary}    ██║   ██║██╔════╝██╔══██╗╚══██╔══╝██╔════╝╚██╗██╔╝${C.reset}`,
+    `echo ${C.vertexSecondary}    ██║   ██║█████╗  ██████╔╝   ██║   █████╗   ╚███╔╝${C.reset}`,
+    `echo ${C.vertexSecondary}    ╚██╗ ██╔╝██╔══╝  ██╔══██╗   ██║   ██╔══╝   ██╔██╗${C.reset}`,
+    `echo ${C.vertexAccent}     ╚████╔╝ ███████╗██║  ██║   ██║   ███████╗██╔╝ ██╗${C.reset}`,
+    `echo ${C.vertexAccent}      ╚═══╝  ╚══════╝╚═╝  ╚═╝   ╚═╝   ╚══════╝╚═╝  ╚═╝${C.reset}`,
+    'echo.',
+    `echo ${C.vertexDim}    ━━━━━━━━━━━━${C.vertexPrimary}◆${C.vertexDim}━━━━━━━━━━━━${C.reset}`,
+    `echo ${C.vertexSecondary}      Google Cloud ${C.vertexDim}━${C.vertexSecondary} AI${C.reset}`,
+    'echo.',
+    'goto :end_splash',
+    '',
+    ':splash_bedrock',
+    `echo ${C.bedrockPrimary}    ██████╗ ███████╗██████╗ ██████╗  ██████╗  ██████╗██╗  ██╗${C.reset}`,
+    `echo ${C.bedrockPrimary}    ██╔══██╗██╔════╝██╔══██╗██╔══██╗██╔═══██╗██╔════╝██║ ██╔╝${C.reset}`,
+    `echo ${C.bedrockSecondary}    ██████╔╝█████╗  ██║  ██║██████╔╝██║   ██║██║     █████╔╝${C.reset}`,
+    `echo ${C.bedrockSecondary}    ██╔══██╗██╔══╝  ██║  ██║██╔══██╗██║   ██║██║     ██╔═██╗${C.reset}`,
+    `echo ${C.bedrockAccent}    ██████╔╝███████╗██████╔╝██║  ██║╚██████╔╝╚██████╗██║  ██╗${C.reset}`,
+    `echo ${C.bedrockAccent}    ╚═════╝ ╚══════╝╚═════╝ ╚═╝  ╚═╝ ╚═════╝  ╚═════╝╚═╝  ╚═╝${C.reset}`,
+    'echo.',
+    `echo ${C.bedrockDim}    ━━━━━━━━━━━━━━${C.bedrockPrimary}◆${C.bedrockDim}━━━━━━━━━━━━━━${C.reset}`,
+    `echo ${C.bedrockSecondary}        AWS ${C.bedrockDim}━${C.bedrockSecondary} Claude${C.reset}`,
+    'echo.',
+    'goto :end_splash',
+    '',
+    ':splash_foundry',
+    `echo ${C.foundryPrimary}    ███████╗ ██████╗ ██╗   ██╗███╗   ██╗██████╗ ██████╗ ██╗   ██╗${C.reset}`,
+    `echo ${C.foundryPrimary}    ██╔════╝██╔═══██╗██║   ██║████╗  ██║██╔══██╗██╔══██╗╚██╗ ██╔╝${C.reset}`,
+    `echo ${C.foundrySecondary}    █████╗  ██║   ██║██║   ██║██╔██╗ ██║██║  ██║██████╔╝ ╚████╔╝${C.reset}`,
+    `echo ${C.foundrySecondary}    ██╔══╝  ██║   ██║██║   ██║██║╚██╗██║██║  ██║██╔══██╗  ╚██╔╝${C.reset}`,
+    `echo ${C.foundryAccent}    ██║     ╚██████╔╝╚██████╔╝██║ ╚████║██████╔╝██║  ██║   ██║${C.reset}`,
+    `echo ${C.foundryAccent}    ╚═╝      ╚═════╝  ╚═════╝ ╚═╝  ╚═══╝╚═════╝ ╚═╝  ╚═╝   ╚═╝${C.reset}`,
+    'echo.',
+    `echo ${C.foundryDim}    ━━━━━━━━━━━━━━${C.foundryPrimary}◆${C.foundryDim}━━━━━━━━━━━━━━${C.reset}`,
+    `echo ${C.foundrySecondary}       Azure ${C.foundryDim}━${C.foundrySecondary} AI Foundry${C.reset}`,
     'echo.',
     'goto :end_splash',
     '',
@@ -488,12 +737,13 @@ export const writeWrapperForPlatform = (
   wrapperPath: string,
   configDir: string,
   binaryPath: string,
-  runtime: WrapperRuntime = 'node'
+  runtime: WrapperRuntime = 'node',
+  options: WrapperOptions = {}
 ): string => {
   if (process.platform === 'win32') {
-    writeWindowsWrapper(wrapperPath, configDir, binaryPath, runtime);
+    writeWindowsWrapper(wrapperPath, configDir, binaryPath, runtime, options);
     return wrapperPath;
   }
-  writeWrapper(wrapperPath, configDir, binaryPath, runtime);
+  writeWrapper(wrapperPath, configDir, binaryPath, runtime, options);
   return wrapperPath;
 };

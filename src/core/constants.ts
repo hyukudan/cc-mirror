@@ -49,6 +49,41 @@ export const SPLASH_COLORS = {
   mirSecondary: '\x1b[38;5;250m',
   mirAccent: '\x1b[38;5;45m',
   mirDim: '\x1b[38;5;243m',
+  // Kimi: Deep blue gradient (Moonshot brand colors)
+  kimiPrimary: '\x1b[38;5;33m',
+  kimiSecondary: '\x1b[38;5;39m',
+  kimiAccent: '\x1b[38;5;45m',
+  kimiDim: '\x1b[38;5;31m',
+  // DeepSeek: Blue gradient (DeepSeek brand colors)
+  dsPrimary: '\x1b[38;5;33m',
+  dsSecondary: '\x1b[38;5;75m',
+  dsAccent: '\x1b[38;5;117m',
+  dsDim: '\x1b[38;5;24m',
+  // Vercel: Black/White minimalist
+  vercelPrimary: '\x1b[38;5;255m',
+  vercelSecondary: '\x1b[38;5;250m',
+  vercelAccent: '\x1b[38;5;247m',
+  vercelDim: '\x1b[38;5;240m',
+  // Poe: Violet/Purple (Quora colors)
+  poePrimary: '\x1b[38;5;135m',
+  poeSecondary: '\x1b[38;5;141m',
+  poeAccent: '\x1b[38;5;177m',
+  poeDim: '\x1b[38;5;97m',
+  // Vertex: Google Cloud blue/green
+  vertexPrimary: '\x1b[38;5;33m',
+  vertexSecondary: '\x1b[38;5;36m',
+  vertexAccent: '\x1b[38;5;220m',
+  vertexDim: '\x1b[38;5;24m',
+  // Bedrock: AWS Orange warm tones
+  bedrockPrimary: '\x1b[38;5;208m',
+  bedrockSecondary: '\x1b[38;5;214m',
+  bedrockAccent: '\x1b[38;5;220m',
+  bedrockDim: '\x1b[38;5;166m',
+  // Foundry: Azure blue professional
+  foundryPrimary: '\x1b[38;5;33m',
+  foundrySecondary: '\x1b[38;5;39m',
+  foundryAccent: '\x1b[38;5;45m',
+  foundryDim: '\x1b[38;5;24m',
   // Default: White/Gray
   defPrimary: '\x1b[38;5;255m',
   defDim: '\x1b[38;5;245m',

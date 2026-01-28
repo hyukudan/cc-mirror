@@ -37,7 +37,8 @@ flowchart TB
             foundry["Foundry<br/><small>Azure</small>"]
         end
         subgraph local["Local & Native"]
-            kimi["Kimi<br/><small>Moonshot K2</small>"]
+            kimi["Kimi Code<br/><small>K2.5</small>"]
+            deepseek["DeepSeek<br/><small>Reasoner</small>"]
             ccrouter["CCRouter<br/><small>Ollama</small>"]
             mirror["Mirror<br/><small>Claude Native</small>"]
         end
@@ -89,7 +90,8 @@ This fork extends the original cc-mirror with additional tooling for power users
 | **Config Export/Import** | `cc-mirror export/import` to snapshot and restore configurations |
 | **Config Operations** | `cc-mirror config` for inspecting and editing env variables + permissions |
 | **Cloud Providers** | Added Vertex AI (GCP), Bedrock (AWS), and Foundry (Azure) support |
-| **Extended Providers** | Added Kimi (Moonshot), Vercel AI Gateway, and Poe API |
+| **Extended Providers** | Added Kimi Code, DeepSeek, Vercel AI Gateway, and Poe API |
+| **Integrated Translator** | Built-in Anthropic↔OpenAI API translation for OpenAI-compatible providers |
 | **Color Utilities** | Shared theme system for consistent provider branding |
 
 We keep full compatibility with upstream and contribute improvements back when possible.
@@ -114,7 +116,7 @@ npx cc-mirror quick --provider zai --api-key "$Z_AI_API_KEY"
 
 ## Supported Providers
 
-CC-MIRROR supports **12 providers** across three categories:
+CC-MIRROR supports **13 providers** across three categories:
 
 ### API Gateway Providers
 These providers offer access to multiple models through a unified API:
@@ -142,9 +144,10 @@ Native Claude access through major cloud platforms:
 
 | Provider | Models | Auth | Best For |
 |----------|--------|------|----------|
-| **CCRouter** | Ollama, DeepSeek, etc. | Optional | Local-first development |
+| **CCRouter** | Ollama, local LLMs | Optional | Local-first development |
 | **Mirror** | Claude (native) | OAuth/Key | Pure Claude with team mode |
-| **Kimi** | Kimi K2, K2.5 | API Key | Moonshot AI reasoning models |
+| **Kimi Code** | kimi-for-coding (K2.5) | API Key | Moonshot AI coding assistant |
+| **DeepSeek** | deepseek-chat, deepseek-reasoner | API Key | Cost-effective reasoning |
 
 ---
 
@@ -210,8 +213,11 @@ npx cc-mirror quick --provider ccrouter
 # Mirror Claude (pure Claude with team mode)
 npx cc-mirror quick --provider mirror --name mclaude
 
-# Kimi (Moonshot AI)
-npx cc-mirror quick --provider kimi --api-key "$MOONSHOT_API_KEY"
+# Kimi Code (Moonshot AI - Anthropic-compatible)
+npx cc-mirror quick --provider kimi --api-key "$KIMI_API_KEY"
+
+# DeepSeek (uses integrated translator)
+npx cc-mirror quick --provider deepseek --api-key "$DEEPSEEK_API_KEY"
 ```
 
 ---
@@ -255,6 +261,46 @@ Wrappers:
 
 **Windows wrappers:** `%USERPROFILE%\.cc-mirror\bin\<variant>.cmd`
 
+---
+
+## Integrated API Translator
+
+CC-MIRROR includes a built-in **Anthropic↔OpenAI API translator** that enables using OpenAI-compatible providers directly with Claude Code:
+
+```mermaid
+flowchart LR
+    subgraph wrapper["Variant Wrapper"]
+        direction TB
+        proxy["Translation Proxy<br/><small>localhost:auto</small>"]
+    end
+
+    CC["Claude Code<br/><small>Anthropic API</small>"] --> proxy
+    proxy --> DS["DeepSeek API<br/><small>OpenAI format</small>"]
+    proxy --> Other["Other OpenAI-compatible<br/><small>Groq, Together, etc.</small>"]
+```
+
+**How it works:**
+1. The wrapper starts a local translation proxy on a random port
+2. Claude Code connects to the proxy (thinks it's Anthropic API)
+3. The proxy translates requests to OpenAI format and forwards them
+4. Responses are translated back to Anthropic format
+
+**Providers using the translator:**
+
+| Provider | API | Models | Notes |
+|----------|-----|--------|-------|
+| **DeepSeek** | `api.deepseek.com` | deepseek-chat, deepseek-reasoner | Cost-effective reasoning |
+
+**Providers with native Anthropic API (no translation):**
+
+| Provider | API | Notes |
+|----------|-----|-------|
+| **Kimi Code** | `api.kimi.com/coding/` | Already Anthropic-compatible |
+| **Z.ai** | `api.z.ai/api/anthropic` | Native Anthropic format |
+| **MiniMax** | `api.minimax.io/anthropic` | Native Anthropic format |
+
+> The translator handles streaming, tool use, and all Claude Code features transparently.
+
 Run any variant directly from your terminal:
 
 ```bash
@@ -280,6 +326,7 @@ Each provider includes a custom color theme powered by [tweakcc](https://github.
 | **ccrouter** | Sky | Sky blue accents |
 | **mirror** | Chrome | Silver/chrome with electric blue |
 | **kimi** | Lunar | Indigo/silver moonlit aesthetic |
+| **deepseek** | Deep | Blue gradient, intelligent vibes |
 | **vercel** | Edge | Clean black/white minimalist |
 | **poe** | Violet | Mystical violet/purple |
 | **vertex** | Cloud | Google blue/green/yellow palette |
@@ -351,8 +398,8 @@ npx cc-mirror tasks graph         # Visualize dependencies
 
 ```
 --provider <name>        Provider: zai | minimax | gatewayz | openrouter | nanogpt |
-                         ccrouter | mirror | kimi | vercel | poe | vertex | bedrock |
-                         foundry | custom
+                         ccrouter | mirror | kimi | deepseek | vercel | poe | vertex |
+                         bedrock | foundry | custom
 --name <name>            Variant name (becomes the CLI command)
 --api-key <key>          Provider API key
 --base-url <url>         Custom API endpoint
@@ -370,8 +417,8 @@ npx cc-mirror tasks graph         # Visualize dependencies
 
 ```
 --brand <preset>         Theme: auto | zai | minimax | gatewayz | openrouter |
-                         nanogpt | ccrouter | mirror | kimi | vercel | poe |
-                         vertex | bedrock | foundry
+                         nanogpt | ccrouter | mirror | kimi | deepseek | vercel |
+                         poe | vertex | bedrock | foundry
 --npm-package <name>     Claude Code package override
 --npm-version <ver>      Claude Code version override
 --no-tweak               Skip tweakcc theme

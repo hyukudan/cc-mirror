@@ -22,6 +22,7 @@ COMMANDS
   quick [options]              Fast: provider + API key only
   list                         List all variants
   update [name]                Update to latest Claude Code
+  refresh [name|--all]         Re-apply provider defaults (keeps API key)
   remove <name>                Remove a variant
   version                      Print CLI version
   doctor                       Health check all variants
@@ -41,9 +42,9 @@ OPTIONS (global)
 
 OPTIONS (create/quick)
   --name <name>                Variant name (becomes CLI command)
-  --provider <name>            Provider: zai | minimax | gatewayz | openrouter | nanogpt | ccrouter | mirror
+  --provider <name>            Provider: zai | minimax | gatewayz | openrouter | nanogpt | ccrouter | mirror | kimi
   --api-key <key>              Provider API key
-  --brand <preset>             Theme: auto | none | zai | minimax | gatewayz | openrouter | nanogpt | ccrouter | mirror
+  --brand <preset>             Theme: auto | none | zai | minimax | gatewayz | openrouter | nanogpt | ccrouter | mirror | kimi
   --quick                      Fast path mode
   --tui / --no-tui             Force TUI on/off
 
@@ -85,6 +86,11 @@ OPTIONS (sync)
   --no-backup                  Skip config backup
   --dry-run                    Show what would change without writing files
 
+OPTIONS (refresh)
+  --all                        Refresh all variants
+  --dry-run                    Show what would change without writing
+  --json                       Output changes as JSON
+
 OPTIONS (export)
   --items <list>               skills,mcp-servers,permissions,claude-md,tasks,provider-env
   --variant <name>             Variant to export (optional if positional)
@@ -111,6 +117,8 @@ EXAMPLES
   npx cc-mirror quick --provider zai
   npx cc-mirror create --provider minimax --brand minimax
   npx cc-mirror update zai
+  npx cc-mirror refresh kimi              # Re-apply provider defaults
+  npx cc-mirror refresh --all             # Refresh all variants
   npx cc-mirror doctor
   npx cc-mirror path
   npx cc-mirror run zai

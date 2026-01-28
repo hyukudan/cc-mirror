@@ -20,6 +20,10 @@ export interface ProviderTemplate {
   enablesTeamMode?: boolean;
   /** Skip prompt pack overlays (pure Claude experience) */
   noPromptPack?: boolean;
+  /** Provider uses OpenAI-compatible API, requires translation proxy */
+  requiresTranslation?: boolean;
+  /** Target URL for translation proxy (OpenAI-compatible endpoint) */
+  translationTargetUrl?: string;
 }
 
 export interface ModelOverrides {
@@ -149,20 +153,39 @@ const PROVIDERS: Record<string, ProviderTemplate> = {
   },
   kimi: {
     key: 'kimi',
-    label: 'Kimi (Moonshot AI)',
-    description: 'Kimi K2.5 models via Anthropic-compatible endpoint',
-    baseUrl: 'https://api.moonshot.ai/v1',
+    label: 'Kimi Code',
+    description: 'Kimi Code via Anthropic-compatible API (kimi.com)',
+    baseUrl: 'https://api.kimi.com/coding/',
     env: {
       API_TIMEOUT_MS: DEFAULT_TIMEOUT_MS,
-      ANTHROPIC_DEFAULT_SONNET_MODEL: 'kimi-k2.5-instant',
-      ANTHROPIC_DEFAULT_OPUS_MODEL: 'kimi-k2.5-thinking',
-      ANTHROPIC_DEFAULT_HAIKU_MODEL: 'kimi-k2.5-instant',
+      // Kimi Code uses its own model internally
       CC_MIRROR_SPLASH: 1,
-      CC_MIRROR_PROVIDER_LABEL: 'Kimi',
+      CC_MIRROR_PROVIDER_LABEL: 'Kimi Code',
       CC_MIRROR_SPLASH_STYLE: 'kimi',
     },
-    apiKeyLabel: 'Moonshot API key',
-    // Kimi uses API key authentication (Bearer token via ANTHROPIC_API_KEY)
+    apiKeyLabel: 'Kimi Code API key (from kimi.com membership)',
+    authMode: 'apiKey',
+    // No translation needed - Kimi Code is already Anthropic-compatible
+  },
+  deepseek: {
+    key: 'deepseek',
+    label: 'DeepSeek',
+    description: 'DeepSeek models via integrated OpenAI→Anthropic translator',
+    baseUrl: '', // Set dynamically by translator proxy
+    env: {
+      API_TIMEOUT_MS: DEFAULT_TIMEOUT_MS,
+      ANTHROPIC_DEFAULT_SONNET_MODEL: 'deepseek-chat',
+      ANTHROPIC_DEFAULT_OPUS_MODEL: 'deepseek-reasoner',
+      ANTHROPIC_DEFAULT_HAIKU_MODEL: 'deepseek-chat',
+      ANTHROPIC_SMALL_FAST_MODEL: 'deepseek-chat',
+      CC_MIRROR_SPLASH: 1,
+      CC_MIRROR_PROVIDER_LABEL: 'DeepSeek',
+      CC_MIRROR_SPLASH_STYLE: 'deepseek',
+    },
+    apiKeyLabel: 'DeepSeek API key',
+    authMode: 'apiKey',
+    requiresTranslation: true,
+    translationTargetUrl: 'https://api.deepseek.com',
   },
   vercel: {
     key: 'vercel',
@@ -377,6 +400,14 @@ export const buildEnv = ({ providerKey, baseUrl, apiKey, extraEnv, modelOverride
   }
   if (authMode !== 'authToken' && Object.hasOwn(env, 'ANTHROPIC_AUTH_TOKEN')) {
     delete env.ANTHROPIC_AUTH_TOKEN;
+  }
+
+  // For translation providers, add the target URL
+  // The launcher will read this to configure the proxy
+  if (provider.requiresTranslation && provider.translationTargetUrl) {
+    env.CC_MIRROR_TRANSLATION_TARGET_URL = provider.translationTargetUrl;
+    // Remove ANTHROPIC_BASE_URL as the proxy will set this dynamically
+    delete env.ANTHROPIC_BASE_URL;
   }
 
   return env;

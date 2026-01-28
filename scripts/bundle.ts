@@ -45,7 +45,19 @@ await build({
   external,
 });
 
+// Build Translation Proxy Launcher (for OpenAI-compatible providers)
+await build({
+  entryPoints: [path.join(root, 'src', 'core', 'translator', 'launcher.ts')],
+  outfile: path.join(distDir, 'translator-launcher.mjs'),
+  bundle: true,
+  platform: 'node',
+  format: 'esm',
+  target: 'node18',
+  external: [], // No external deps - fully self-contained
+});
+
 fs.chmodSync(path.join(distDir, 'cc-mirror.mjs'), 0o755);
+fs.chmodSync(path.join(distDir, 'translator-launcher.mjs'), 0o755);
 
 // Copy bundled skills to dist
 const skillsSrcDir = path.join(root, 'src', 'skills');

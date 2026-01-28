@@ -23,6 +23,7 @@ import {
   runTasksCommand,
   runPathCommand,
   runSyncCommand,
+  runRefreshCommand,
 } from './commands/index.js';
 
 const readPackageVersion = (): string => {
@@ -132,6 +133,10 @@ const main = async () => {
 
     case 'sync':
       runSyncCommand({ opts });
+      break;
+
+    case 'refresh':
+      runRefreshCommand({ opts });
       break;
 
     case 'create':
