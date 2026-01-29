@@ -13,9 +13,13 @@ import { installOrchestratorSkill, installTaskManagerSkill } from '../../skills.
 import { copyTeamPackPrompts, configureTeamToolset } from '../../../team-pack/index.js';
 import type { BuildContext, BuildStep } from '../types.js';
 
-// The minified function that controls team mode
-const TEAM_MODE_DISABLED = 'function sU(){return!1}';
-const TEAM_MODE_ENABLED = 'function sU(){return!0}';
+// The minified function that controls team mode (varies by version)
+// Claude Code 2.0.x: function sU(){return!1}
+// Claude Code 2.1.x: Tasks enabled by default, no patch needed
+const TEAM_MODE_PATTERNS = [
+  { disabled: 'function sU(){return!1}', enabled: 'function sU(){return!0}' },
+  // Add more patterns here if Anthropic changes the function name
+];
 
 export class TeamModeStep implements BuildStep {
   name = 'TeamMode';
@@ -57,27 +61,40 @@ export class TeamModeStep implements BuildStep {
     // Read cli.js
     let content = fs.readFileSync(cliPath, 'utf8');
 
-    // Check if already patched
-    if (content.includes(TEAM_MODE_ENABLED)) {
+    // Try each pattern to find one that matches
+    let patched = false;
+    let alreadyEnabled = false;
+
+    for (const pattern of TEAM_MODE_PATTERNS) {
+      // Check if already patched with this pattern
+      if (content.includes(pattern.enabled)) {
+        alreadyEnabled = true;
+        break;
+      }
+
+      // Check if patchable with this pattern
+      if (content.includes(pattern.disabled)) {
+        content = content.replace(pattern.disabled, pattern.enabled);
+        fs.writeFileSync(cliPath, content);
+
+        // Verify patch
+        const verifyContent = fs.readFileSync(cliPath, 'utf8');
+        if (verifyContent.includes(pattern.enabled)) {
+          patched = true;
+          break;
+        }
+      }
+    }
+
+    if (alreadyEnabled) {
       state.notes.push('Team mode already enabled');
-      return;
-    }
-
-    // Check if patchable
-    if (!content.includes(TEAM_MODE_DISABLED)) {
-      state.notes.push('Warning: Team mode function not found in cli.js, patch may not work');
-      return;
-    }
-
-    // Apply patch
-    content = content.replace(TEAM_MODE_DISABLED, TEAM_MODE_ENABLED);
-    fs.writeFileSync(cliPath, content);
-
-    // Verify patch
-    const verifyContent = fs.readFileSync(cliPath, 'utf8');
-    if (!verifyContent.includes(TEAM_MODE_ENABLED)) {
-      state.notes.push('Warning: Team mode patch verification failed');
-      return;
+    } else if (patched) {
+      // Successfully patched
+    } else {
+      // No pattern matched - check if this is Claude Code 2.1.x where tasks are enabled by default
+      // In 2.1.x, TaskCreate/TaskGet/TaskUpdate/TaskList are enabled by default (function ew() returns true)
+      // We just need to set the environment variables
+      state.notes.push('Note: CLI patch skipped (tasks may be enabled by default in this version)');
     }
 
     // Add team env vars and permissions to settings.json

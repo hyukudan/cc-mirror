@@ -83,7 +83,11 @@ Connect Claude Code to **15 different AI providers**:
 
 ### Team Mode (Multi-Agent Orchestration)
 
-Team mode enables **coordinated multi-agent workflows** with shared task management. This is the same capability that other projects market as "swarm mode" — the tools are built into Claude Code but disabled by default behind a feature flag.
+Team mode enables **coordinated multi-agent workflows** with shared task management. This is the same capability that other projects market as "swarm mode".
+
+**Version differences:**
+- **Claude Code 2.0.x:** Task tools disabled by default → CC-MIRROR patches `cli.js` to enable
+- **Claude Code 2.1.x:** Task tools **enabled by default** → no patch needed, just env configuration
 
 #### What It Unlocks
 
