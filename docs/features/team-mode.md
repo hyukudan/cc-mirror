@@ -110,10 +110,10 @@ Each cc-mirror variant has completely isolated task storage via `CLAUDE_CONFIG_D
 
 Team names are **purely directory-based** at runtime. This prevents cross-project task pollution:
 
-| Command | Team Name |
-|---------|-----------|
-| `mc` | `<project-folder>` |
-| `TEAM=A mc` | `<project-folder>-A` |
+| Command           | Team Name                  |
+| ----------------- | -------------------------- |
+| `mc`              | `<project-folder>`         |
+| `TEAM=A mc`       | `<project-folder>-A`       |
 | `TEAM=backend mc` | `<project-folder>-backend` |
 
 **Example:** Running `mc` in `/Users/you/projects/my-api` creates team name `my-api`.
@@ -377,14 +377,14 @@ Task #3: "Add authentication" (blockedBy: ["2"])
 
 Configure agent identity for multi-agent setups:
 
-| Variable | Purpose | Example |
-|----------|---------|---------|
-| `CLAUDE_CODE_TEAM_MODE` | Enables team mode (set by cc-mirror in settings.json) | `"1"` |
-| `CLAUDE_CODE_TEAM_NAME` | Computed team name (set by wrapper at runtime) | `"my-project"` |
-| `TEAM` | Optional modifier appended to folder-based team name | `"api"` |
-| `CLAUDE_CODE_AGENT_ID` | Unique identifier for this agent | `"worker-001"` |
-| `CLAUDE_CODE_AGENT_TYPE` | Agent role/type | `"team-lead"`, `"worker"` |
-| `CLAUDE_CODE_AGENT_NAME` | Human-readable agent name | `"Code Reviewer"` |
+| Variable                 | Purpose                                               | Example                   |
+| ------------------------ | ----------------------------------------------------- | ------------------------- |
+| `CLAUDE_CODE_TEAM_MODE`  | Enables team mode (set by cc-mirror in settings.json) | `"1"`                     |
+| `CLAUDE_CODE_TEAM_NAME`  | Computed team name (set by wrapper at runtime)        | `"my-project"`            |
+| `TEAM`                   | Optional modifier appended to folder-based team name  | `"api"`                   |
+| `CLAUDE_CODE_AGENT_ID`   | Unique identifier for this agent                      | `"worker-001"`            |
+| `CLAUDE_CODE_AGENT_TYPE` | Agent role/type                                       | `"team-lead"`, `"worker"` |
+| `CLAUDE_CODE_AGENT_NAME` | Human-readable agent name                             | `"Code Reviewer"`         |
 
 > **Important:** `CLAUDE_CODE_TEAM_NAME` must NOT be in `settings.json`, or Claude Code will overwrite the wrapper's dynamic value. The wrapper uses `CLAUDE_CODE_TEAM_MODE` and `TEAM` to compute the team name from the project folder.
 

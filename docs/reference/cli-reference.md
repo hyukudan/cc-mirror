@@ -47,7 +47,7 @@ All commands are available through `npx cc-mirror`.
 - `--env KEY=VALUE` - Extra env var override (repeatable)
 - `--timeout-ms <ms>` - API timeout override (ms)
 - `--prefer-ipv4` - Prefer IPv4 DNS (sets `CC_MIRROR_PREFER_IPV4=1` unless `NODE_OPTIONS` is set)
-- `--enable-team-mode` - Enable team mode (orchestrator + task-manager skills, Task* tools)
+- `--enable-team-mode` - Enable team mode (orchestrator + task-manager skills, Task\* tools)
 - `--disable-team-mode` - Disable team mode for quick setup
 - `--no-skill-install` - Skip dev-browser skill install
 - `--skill-update` - Refresh managed skills during update

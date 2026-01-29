@@ -44,9 +44,11 @@ test('HomeScreen arrow navigation moves selection', async () => {
   );
 
   await tick();
+  await tick();
 
   // Press down to move to New Variant
   await send(app.stdin, KEYS.down);
+  await tick();
 
   // Press enter to select
   await send(app.stdin, KEYS.enter);
@@ -87,9 +89,11 @@ test('Menu wrap-around navigation works correctly', async () => {
   );
 
   await tick();
+  await tick();
 
   // Navigate up from first item (should wrap to last - Exit)
   await send(app.stdin, KEYS.up);
+  await tick();
   await send(app.stdin, KEYS.enter);
 
   assert.equal(selectedValue, 'exit', 'Should wrap to Exit');
