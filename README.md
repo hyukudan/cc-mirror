@@ -7,7 +7,7 @@
 <p align="center">
   <a href="https://www.npmjs.com/package/cc-mirror"><img src="https://img.shields.io/npm/v/cc-mirror.svg" alt="npm version"></a>
   <a href="https://opensource.org/licenses/MIT"><img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="License: MIT"></a>
-  <a href="https://twitter.com/nummanali"><img src="https://img.shields.io/twitter/follow/nummanali?style=social" alt="Twitter Follow"></a>
+  <a href="https://twitter.com/fase_consulting"><img src="https://img.shields.io/twitter/follow/fase_consulting?style=social" alt="Twitter Follow"></a>
 </p>
 
 <p align="center">
