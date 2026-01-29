@@ -11,526 +11,506 @@
 </p>
 
 <p align="center">
-  <strong>Create multiple isolated Claude Code variants with custom AI providers.</strong>
+  <strong>Run multiple isolated Claude Code instances with different AI providers.</strong>
 </p>
 
----
-
-## What is CC-MIRROR?
-
-CC-MIRROR lets you run **multiple isolated Claude Code instances**, each connecting to a different AI provider. Every variant has its own configuration, sessions, themes, and credentials — completely independent from each other.
-
-```mermaid
-flowchart TB
-    subgraph providers["🔌 AI Providers"]
-        direction LR
-        subgraph gateways["API Gateways"]
-            zai["Z.ai<br/><small>GLM-4.7</small>"]
-            minimax["MiniMax<br/><small>M2.1</small>"]
-            openrouter["OpenRouter<br/><small>100+ LLMs</small>"]
-            vercel["Vercel<br/><small>AI Gateway</small>"]
-            poe["Poe<br/><small>Multi-model</small>"]
-        end
-        subgraph cloud["Cloud Enterprise"]
-            vertex["Vertex AI<br/><small>GCP</small>"]
-            bedrock["Bedrock<br/><small>AWS</small>"]
-            foundry["Foundry<br/><small>Azure</small>"]
-        end
-        subgraph local["Local & Native"]
-            kimi["Kimi Code<br/><small>K2.5</small>"]
-            deepseek["DeepSeek<br/><small>Reasoner</small>"]
-            ccrouter["CCRouter<br/><small>Ollama</small>"]
-            mirror["Mirror<br/><small>Claude Native</small>"]
-        end
-    end
-
-    subgraph ccmirror["⚡ CC-MIRROR CLI"]
-        cli["Variant Manager + TUI"]
-    end
-
-    subgraph variants["📁 Isolated Variants (~/.cc-mirror/)"]
-        direction LR
-        v1["<b>zai/</b><br/>npm/ config/ tweakcc/"]
-        v2["<b>vertex/</b><br/>npm/ config/ tweakcc/"]
-        v3["<b>kimi/</b><br/>npm/ config/ tweakcc/"]
-    end
-
-    subgraph wrappers["🚀 CLI Wrappers"]
-        direction LR
-        w1["$ zai"]
-        w2["$ vertex"]
-        w3["$ kimi"]
-    end
-
-    providers --> cli
-    cli --> variants
-    v1 -.-> w1
-    v2 -.-> w2
-    v3 -.-> w3
-```
-
-**Key benefits:**
-- **Provider flexibility** — Switch between 12+ AI providers without reconfiguring
-- **Complete isolation** — Each variant has its own API keys, sessions, and settings
-- **Custom themes** — Unique color schemes per provider via [tweakcc](https://github.com/Piebald-AI/tweakcc)
-- **Team mode** — Multi-agent collaboration with shared task management
-- **One-command updates** — Keep all variants in sync when Claude Code releases
+<p align="center">
+  <code>15 providers</code> · <code>28 CLI commands</code> · <code>Team mode</code> · <code>API translator</code>
+</p>
 
 ---
 
 ## About This Fork
 
-> **Original project:** [numman-ali/cc-mirror](https://github.com/numman-ali/cc-mirror)
+> **Upstream:** [numman-ali/cc-mirror](https://github.com/numman-ali/cc-mirror)
 
-This fork extends the original cc-mirror with additional tooling for power users and enterprise scenarios:
+This fork extends cc-mirror with enterprise tooling and additional providers:
 
 | Addition | Description |
 |----------|-------------|
+| **Cloud Providers** | Vertex AI (GCP), Bedrock (AWS), Foundry (Azure) |
+| **Extended Providers** | Kimi Code, DeepSeek, Vercel AI, Poe, GatewayZ, NanoGPT |
+| **API Translator** | Built-in Anthropic↔OpenAI translation for OpenAI-compatible providers |
 | **MCP Management** | `cc-mirror mcp` to list/add/remove MCP servers per variant |
-| **Config Export/Import** | `cc-mirror export/import` to snapshot and restore configurations |
-| **Config Operations** | `cc-mirror config` for inspecting and editing env variables + permissions |
-| **Cloud Providers** | Added Vertex AI (GCP), Bedrock (AWS), and Foundry (Azure) support |
-| **Extended Providers** | Added Kimi Code, DeepSeek, Vercel AI Gateway, and Poe API |
-| **Integrated Translator** | Built-in Anthropic↔OpenAI API translation for OpenAI-compatible providers |
-| **Color Utilities** | Shared theme system for consistent provider branding |
+| **Config Export/Import** | Snapshot and restore variant configurations |
+| **Sync Command** | Copy skills, MCP servers, permissions between variants |
+| **Tasks CLI** | Full task management from command line |
 
-We keep full compatibility with upstream and contribute improvements back when possible.
+We maintain compatibility with upstream and contribute improvements back when possible.
+
+### Key Improvements
+
+Notable fixes and optimizations in this fork:
+
+| Change | Description |
+|--------|-------------|
+| **Windows Support** | `.cmd` wrappers, PowerShell profile integration, npm install fixes |
+| **IPv4-first DNS** | `--prefer-ipv4` flag for Z.ai connectivity issues |
+| **Ctrl+C Handling** | Fixed interrupt handling (ESC fallback, double-press exit) |
+| **Model Tier System** | Explicit model selection (haiku/sonnet/opus) in orchestration |
+| **Worker Agent Detection** | Prevents recursive orchestration chaos in spawned agents |
+| **Task Isolation** | Project-scoped tasks prevent cross-project pollution |
+| **Termux/Android** | Full support with PATH setup automation |
+| **Skill Auto-approve** | Orchestration skill loads without permission prompts |
+| **Async TUI Updates** | Live progress bars and step animations |
+
+See [CHANGELOG.md](CHANGELOG.md) for complete version history.
+
+---
+
+## Features
+
+### Multi-Provider Support
+
+Connect Claude Code to **15 different AI providers**:
+
+| Provider | Type | Models | Auth | Notes |
+|----------|------|--------|------|-------|
+| **Z.ai** | Gateway | GLM-4.7, GLM-4.5-Air | API Key | Heavy coding with GLM |
+| **MiniMax** | Gateway | MiniMax-M2.1 | API Key | Unified model experience |
+| **OpenRouter** | Gateway | 100+ models | Auth Token | Pay-per-use flexibility |
+| **NanoGPT** | Gateway | 100+ models | Auth Token | Multi-model access |
+| **Vercel** | Gateway | Multi-provider | Auth Token | Vercel AI Gateway |
+| **Poe** | Gateway | Claude via Poe | Auth Token | Quora's Poe API |
+| **GatewayZ** | Gateway | Claude via OneRouter | Auth Token | Anthropic via GatewayZ |
+| **Vertex AI** | Cloud | Claude (native) | GCP Auth | Enterprise GCP |
+| **Bedrock** | Cloud | Claude (native) | AWS Credentials | Enterprise AWS |
+| **Foundry** | Cloud | Claude (native) | Azure Auth | Enterprise Azure |
+| **Mirror** | Native | Claude (native) | OAuth/Key | Pure Claude + team mode |
+| **Kimi Code** | Native | K2.5 | API Key | Moonshot AI coding |
+| **DeepSeek** | Native | deepseek-chat/reasoner | API Key | Uses translator |
+| **CCRouter** | Local | Ollama, local LLMs | Optional | Local-first dev |
+
+### Team Mode (Multi-Agent Orchestration)
+
+Team mode enables **coordinated multi-agent workflows** with shared task management. This is the same capability that other projects market as "swarm mode" — the tools are built into Claude Code but disabled by default behind a feature flag.
+
+#### What It Unlocks
+
+CC-MIRROR patches Claude Code's CLI to enable these tools:
+
+| Tool | Purpose |
+|------|---------|
+| `TaskCreate` | Create tasks with subject, description, and dependencies |
+| `TaskGet` | Retrieve full task details including comments and blockers |
+| `TaskUpdate` | Update status, add comments, set blocks/blockedBy |
+| `TaskList` | List all tasks with filtering by status and owner |
+
+#### How It Works
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│  Claude Code CLI contains a feature flag function:          │
+│                                                             │
+│    function sU(){return!1}  ← disabled (default)            │
+│    function sU(){return!0}  ← enabled (after patch)         │
+│                                                             │
+│  CC-MIRROR patches this automatically when you use          │
+│  --enable-team-mode or create a Mirror Claude variant.      │
+└─────────────────────────────────────────────────────────────┘
+```
+
+#### Usage
+
+```bash
+# Enable on any variant
+npx cc-mirror quick --provider zai --enable-team-mode
+
+# Mirror Claude has team mode enabled by default
+npx cc-mirror quick --provider mirror
+
+# Enable on existing variant
+npx cc-mirror update myvariant --enable-team-mode
+```
+
+#### Multi-Agent Workflow Example
+
+```
+┌──────────────┐
+│  Team Lead   │  Creates tasks, sets dependencies
+│   (You)      │  Uses: TaskCreate, TaskList, Task (spawn agents)
+└──────┬───────┘
+       │ spawns background agents
+       ▼
+┌──────────────┬──────────────┬──────────────┐
+│   Worker 1   │   Worker 2   │   Worker 3   │
+│  claims #1   │  claims #2   │  claims #3   │
+│  resolves    │  resolves    │  resolves    │
+└──────────────┴──────────────┴──────────────┘
+       │
+       ▼
+  Shared task storage (~/.cc-mirror/<variant>/config/tasks/)
+```
+
+#### Included Skills
+
+When team mode is enabled, CC-MIRROR installs two skills:
+
+| Skill | Purpose |
+|-------|---------|
+| **orchestration** | Multi-agent coordination patterns (Fan-Out, Pipeline, Map-Reduce, Speculative). Teaches Claude to be "The Conductor" — decomposing work, spawning agents, synthesizing results. |
+| **task-manager** | CLI task management helpers. Invoke with `/task-manager` for cleanup, archiving, and dependency visualization. |
+
+#### Project-Scoped Tasks
+
+Tasks are automatically isolated by project folder:
+
+```bash
+cd ~/projects/api && mclaude      # Team: api
+cd ~/projects/frontend && mclaude # Team: frontend
+
+# Multiple teams in same project
+TEAM=backend mclaude              # Team: api-backend
+TEAM=frontend mclaude             # Team: api-frontend
+```
+
+> **Full documentation:** [Team Mode Guide](docs/features/team-mode.md)
+
+### API Translator
+
+CC-MIRROR includes a built-in **Anthropic↔OpenAI API translation proxy** that enables using OpenAI-compatible providers with Claude Code.
+
+#### Why It's Needed
+
+Claude Code speaks **Anthropic API format**. Some providers (like DeepSeek) only offer **OpenAI API format**. The translator bridges this gap automatically.
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│                      API FORMAT COMPARISON                          │
+├─────────────────────────────────┬───────────────────────────────────┤
+│         Anthropic API           │           OpenAI API              │
+├─────────────────────────────────┼───────────────────────────────────┤
+│  messages: [                    │  messages: [                      │
+│    {role: "user", content: [    │    {role: "user",                 │
+│      {type: "text", text: "Hi"} │     content: "Hi"}                │
+│    ]}                           │  ]                                │
+│  ]                              │                                   │
+├─────────────────────────────────┼───────────────────────────────────┤
+│  tool_use blocks                │  function_call / tool_calls       │
+│  tool_result blocks             │  function response messages       │
+└─────────────────────────────────┴───────────────────────────────────┘
+```
+
+#### How It Works
+
+```mermaid
+flowchart LR
+    subgraph wrapper["CC-MIRROR Wrapper"]
+        proxy["Translation Proxy<br/><small>localhost:random-port</small>"]
+    end
+
+    CC["Claude Code<br/><small>Anthropic format</small>"] --> proxy
+    proxy --> DS["DeepSeek API<br/><small>OpenAI format</small>"]
+
+    DS --> proxy
+    proxy --> CC
+```
+
+1. The variant wrapper starts a **local HTTP proxy** on a random port
+2. Claude Code connects to the proxy (thinks it's Anthropic API)
+3. Proxy **translates requests** from Anthropic → OpenAI format
+4. Proxy forwards to the actual provider (e.g., DeepSeek)
+5. Proxy **translates responses** from OpenAI → Anthropic format
+6. Claude Code receives native-looking responses
+
+#### What It Translates
+
+| Feature | Status |
+|---------|--------|
+| Text messages | ✅ Full support |
+| Streaming (SSE) | ✅ Real-time translation |
+| Tool use / function calls | ✅ Bidirectional |
+| System prompts | ✅ Converted |
+| Multi-turn conversations | ✅ Context preserved |
+| Images / vision | ⚠️ Provider-dependent |
+
+#### Providers Using Translator
+
+| Provider | API Endpoint | Models |
+|----------|--------------|--------|
+| **DeepSeek** | `api.deepseek.com` | deepseek-chat, deepseek-reasoner |
+
+#### Providers with Native Anthropic API (No Translation)
+
+These providers already speak Anthropic format — no translator needed:
+
+| Provider | Notes |
+|----------|-------|
+| Z.ai | Native Anthropic endpoint |
+| MiniMax | Native Anthropic endpoint |
+| Kimi Code | Anthropic-compatible API |
+| OpenRouter | Supports both formats |
+| Vertex AI, Bedrock, Foundry | Native Claude access |
+
+#### Adding Your Own OpenAI Provider
+
+The translator can work with any OpenAI-compatible API. To add a new provider:
+
+```bash
+# Example: Using a custom OpenAI-compatible endpoint
+npx cc-mirror quick \
+  --provider custom \
+  --name mymodel \
+  --base-url "https://my-openai-api.com/v1" \
+  --api-key "$MY_API_KEY" \
+  --env "CC_MIRROR_USE_TRANSLATOR=1"
+```
+
+> **Technical details:** See `src/core/translator/` for implementation.
+
+### Variant Isolation
+
+Each variant is completely independent:
+
+```
+~/.cc-mirror/
+├── zai/                     ← Z.ai variant
+│   ├── npm/                 Claude Code installation
+│   ├── config/              API keys, sessions, MCP servers
+│   ├── tweakcc/             Theme & prompt customization
+│   └── variant.json         Metadata
+├── vertex/                  ← Google Cloud variant
+├── kimi/                    ← Moonshot AI variant
+└── mclaude/                 ← Mirror Claude variant
+
+Wrappers: ~/.local/bin/{zai, vertex, kimi, mclaude}
+```
 
 ---
 
 ## Quick Start
 
 ```bash
-# Interactive TUI (recommended for first-time setup)
+# Interactive TUI (recommended)
 npx cc-mirror
 
 # Quick setup from CLI
 npx cc-mirror quick --provider zai --api-key "$Z_AI_API_KEY"
+
+# Then run your variant
+zai
 ```
 
 <p align="center">
   <img src="./assets/cc-mirror-home.png" alt="CC-MIRROR Home Screen" width="600">
 </p>
 
----
-
-## Supported Providers
-
-CC-MIRROR supports **13 providers** across three categories:
-
-### API Gateway Providers
-These providers offer access to multiple models through a unified API:
-
-| Provider | Models | Auth | Best For |
-|----------|--------|------|----------|
-| **Z.ai** | GLM-4.7, GLM-4.5-Air | API Key | Heavy coding with GLM reasoning |
-| **MiniMax** | MiniMax-M2.1 | API Key | Unified model experience |
-| **OpenRouter** | 100+ models | Auth Token | Model flexibility, pay-per-use |
-| **NanoGPT** | 100+ models | Auth Token | Model flexibility, pay-per-use |
-| **Vercel** | Multi-provider | Auth Token | Vercel AI Gateway access |
-| **Poe** | Claude via Poe | Auth Token | Quora's Poe API |
-| **GatewayZ** | Claude via OneRouter | Auth Token | Anthropic API via GatewayZ |
-
-### Cloud Enterprise Providers
-Native Claude access through major cloud platforms:
-
-| Provider | Platform | Auth | Best For |
-|----------|----------|------|----------|
-| **Vertex AI** | Google Cloud | GCP Auth | Enterprise GCP deployments |
-| **Bedrock** | AWS | AWS Credentials | Enterprise AWS deployments |
-| **Foundry** | Azure | Azure Auth | Enterprise Azure deployments |
-
-### Local & Native Providers
-
-| Provider | Models | Auth | Best For |
-|----------|--------|------|----------|
-| **CCRouter** | Ollama, local LLMs | Optional | Local-first development |
-| **Mirror** | Claude (native) | OAuth/Key | Pure Claude with team mode |
-| **Kimi Code** | kimi-for-coding (K2.5) | API Key | Moonshot AI coding assistant |
-| **DeepSeek** | deepseek-chat, deepseek-reasoner | API Key | Cost-effective reasoning |
-
----
-
-## Provider Setup Examples
-
-### API Gateway Providers
+### Provider Examples
 
 ```bash
-# Z.ai (GLM Coding Plan)
+# API Gateways
 npx cc-mirror quick --provider zai --api-key "$Z_AI_API_KEY"
-
-# Z.ai China endpoint
-Z_AI_BASE_URL="https://open.bigmodel.cn/api/anthropic" \
-  npx cc-mirror quick --provider zai --api-key "$Z_AI_API_KEY"
-
-# MiniMax
+npx cc-mirror quick --provider openrouter --api-key "$OPENROUTER_API_KEY"
 npx cc-mirror quick --provider minimax --api-key "$MINIMAX_API_KEY"
 
-# OpenRouter (100+ models)
-npx cc-mirror quick --provider openrouter --api-key "$OPENROUTER_API_KEY" \
-  --model-sonnet "anthropic/claude-3.5-sonnet"
+# Cloud Enterprise
+npx cc-mirror quick --provider vertex --env "ANTHROPIC_VERTEX_PROJECT_ID=your-project"
+npx cc-mirror quick --provider bedrock --env "AWS_REGION=us-east-1"
 
-# NanoGPT
-npx cc-mirror quick --provider nanogpt --api-key "$NANOGPT_API_KEY" \
-  --model-sonnet "zai-org/glm-4.7:thinking"
-
-# Vercel AI Gateway
-npx cc-mirror quick --provider vercel --api-key "$VERCEL_API_KEY" \
-  --model-sonnet "anthropic/claude-sonnet-4"
-
-# Poe API
-npx cc-mirror quick --provider poe --api-key "$POE_API_KEY" \
-  --model-sonnet "Claude-3.5-Sonnet"
-
-# GatewayZ
-npx cc-mirror quick --provider gatewayz --api-key "$GATEWAYZ_API_KEY" \
-  --model-sonnet "claude-sonnet-4-20250514"
-```
-
-### Cloud Enterprise Providers
-
-```bash
-# Google Vertex AI (requires gcloud auth)
-npx cc-mirror quick --provider vertex \
-  --env "ANTHROPIC_VERTEX_PROJECT_ID=your-project-id"
-
-# AWS Bedrock (requires AWS credentials)
-npx cc-mirror quick --provider bedrock \
-  --env "AWS_REGION=us-east-1"
-
-# Azure AI Foundry
-npx cc-mirror quick --provider foundry \
-  --env "ANTHROPIC_FOUNDRY_RESOURCE=your-resource" \
-  --env "ANTHROPIC_FOUNDRY_API_KEY=your-key"
-```
-
-### Local & Native Providers
-
-```bash
-# Claude Code Router (local LLMs via Ollama, etc.)
-npx cc-mirror quick --provider ccrouter
-
-# Mirror Claude (pure Claude with team mode)
+# Local & Native
 npx cc-mirror quick --provider mirror --name mclaude
-
-# Kimi Code (Moonshot AI - Anthropic-compatible)
 npx cc-mirror quick --provider kimi --api-key "$KIMI_API_KEY"
-
-# DeepSeek (uses integrated translator)
 npx cc-mirror quick --provider deepseek --api-key "$DEEPSEEK_API_KEY"
+npx cc-mirror quick --provider ccrouter
 ```
 
 ---
 
-## How It Works
+## Use Cases
 
-```mermaid
-flowchart LR
-    A["🎯 npx cc-mirror quick<br/>--provider zai"] --> B["📦 Install Claude Code<br/>in isolated npm/"]
-    B --> C["⚙️ Configure API keys<br/>& environment"]
-    C --> D["🎨 Apply theme<br/>via tweakcc"]
-    D --> E["🔗 Create wrapper<br/>~/.local/bin/zai"]
-    E --> F["🚀 Run: $ zai"]
-```
+### 1. Multi-Account Setup
 
-Each variant lives in its own directory with complete isolation:
-
-```
-~/.cc-mirror/
-├── zai/                          ← Z.ai variant
-│   ├── npm/                      Claude Code installation
-│   ├── config/                   API keys, sessions, MCP servers
-│   ├── tweakcc/                  Theme & prompt customization
-│   └── variant.json              Metadata (provider, version, etc.)
-│
-├── vertex/                       ← Google Cloud variant
-│   └── ...
-│
-├── kimi/                         ← Moonshot AI variant
-│   └── ...
-│
-└── mclaude/                      ← Mirror Claude variant
-    └── ...
-
-Wrappers:
-├── ~/.local/bin/zai              (Linux/macOS)
-├── ~/.local/bin/vertex
-├── ~/.local/bin/kimi
-└── ~/.local/bin/mclaude
-```
-
-**Windows wrappers:** `%USERPROFILE%\.cc-mirror\bin\<variant>.cmd`
-
----
-
-## Integrated API Translator
-
-CC-MIRROR includes a built-in **Anthropic↔OpenAI API translator** that enables using OpenAI-compatible providers directly with Claude Code:
-
-```mermaid
-flowchart LR
-    subgraph wrapper["Variant Wrapper"]
-        direction TB
-        proxy["Translation Proxy<br/><small>localhost:auto</small>"]
-    end
-
-    CC["Claude Code<br/><small>Anthropic API</small>"] --> proxy
-    proxy --> DS["DeepSeek API<br/><small>OpenAI format</small>"]
-    proxy --> Other["Other OpenAI-compatible<br/><small>Groq, Together, etc.</small>"]
-```
-
-**How it works:**
-1. The wrapper starts a local translation proxy on a random port
-2. Claude Code connects to the proxy (thinks it's Anthropic API)
-3. The proxy translates requests to OpenAI format and forwards them
-4. Responses are translated back to Anthropic format
-
-**Providers using the translator:**
-
-| Provider | API | Models | Notes |
-|----------|-----|--------|-------|
-| **DeepSeek** | `api.deepseek.com` | deepseek-chat, deepseek-reasoner | Cost-effective reasoning |
-
-**Providers with native Anthropic API (no translation):**
-
-| Provider | API | Notes |
-|----------|-----|-------|
-| **Kimi Code** | `api.kimi.com/coding/` | Already Anthropic-compatible |
-| **Z.ai** | `api.z.ai/api/anthropic` | Native Anthropic format |
-| **MiniMax** | `api.minimax.io/anthropic` | Native Anthropic format |
-
-> The translator handles streaming, tool use, and all Claude Code features transparently.
-
-Run any variant directly from your terminal:
+Run different Claude accounts for work and personal projects:
 
 ```bash
-zai          # Launch Z.ai variant
-vertex       # Launch Vertex AI variant
-kimi         # Launch Kimi variant
-mclaude      # Launch Mirror Claude variant
+# Work account (uses company API key)
+npx cc-mirror quick --provider mirror --name work
+export ANTHROPIC_API_KEY="sk-work-key..."
+work
+
+# Personal account (uses personal OAuth)
+npx cc-mirror quick --provider mirror --name personal
+personal  # Will prompt for OAuth login
+```
+
+### 2. Cost-Effective Development with DeepSeek
+
+Use DeepSeek for routine coding, Claude for complex tasks:
+
+```bash
+# DeepSeek variant for everyday coding (~$0.14/M tokens)
+npx cc-mirror quick --provider deepseek --api-key "$DEEPSEEK_API_KEY"
+deepseek
+
+# Mirror Claude for architecture decisions
+npx cc-mirror quick --provider mirror --name claude-pro
+claude-pro
+```
+
+### 3. Multi-Agent Team with Task Orchestration
+
+Set up a team mode variant and orchestrate multiple agents:
+
+```bash
+# Create team-enabled variant
+npx cc-mirror quick --provider mirror --name team --enable-team-mode
+team
+
+# In the Claude session, the orchestration kicks in automatically:
+# You: "Build a REST API with authentication, tests, and documentation"
+#
+# Claude (as Conductor):
+# 1. Uses AskUserQuestion to clarify requirements
+# 2. Creates tasks with TaskCreate:
+#    - Task #1: Design API schema
+#    - Task #2: Implement auth endpoints (blocked by #1)
+#    - Task #3: Write tests (blocked by #2)
+#    - Task #4: Generate docs (blocked by #2)
+# 3. Spawns background agents with Task tool
+# 4. Monitors progress, synthesizes results
+```
+
+### 4. Enterprise Cloud Deployment
+
+Use native Claude through your cloud provider:
+
+```bash
+# Google Cloud (requires gcloud auth login)
+npx cc-mirror quick --provider vertex \
+  --env "ANTHROPIC_VERTEX_PROJECT_ID=my-gcp-project" \
+  --env "CLOUD_ML_REGION=us-central1"
+vertex
+
+# AWS (requires AWS credentials in environment)
+npx cc-mirror quick --provider bedrock \
+  --env "AWS_REGION=us-east-1" \
+  --env "AWS_PROFILE=production"
+bedrock
+```
+
+### 5. Local LLMs for Offline Development
+
+Use Ollama or other local models when offline:
+
+```bash
+# Start Ollama first
+ollama serve
+
+# Create CCRouter variant pointing to local Ollama
+npx cc-mirror quick --provider ccrouter
+ccrouter
+
+# Works completely offline with local models
+```
+
+### 6. Syncing Configurations Across Variants
+
+Share MCP servers and skills between variants:
+
+```bash
+# Set up MCP servers on your main variant
+npx cc-mirror mcp main add-json filesystem '{"command":"npx","-y","@anthropic/mcp-server-filesystem"}'
+
+# Sync to other variants
+npx cc-mirror sync main work personal --items mcp-servers,skills
+
+# Or sync everything
+npx cc-mirror sync main --targets work,personal,team --items all
+```
+
+### 7. Managing Tasks from CLI
+
+Use the tasks CLI for team mode management:
+
+```bash
+# List all open tasks
+npx cc-mirror tasks --variant team
+
+# Show task details
+npx cc-mirror tasks show 5 --variant team
+
+# Visualize task dependencies
+npx cc-mirror tasks graph --variant team
+
+# Clean up resolved tasks older than 7 days
+npx cc-mirror tasks clean --resolved --older-than 7 --variant team
+```
+
+---
+
+## CLI Reference
+
+### Variant Management
+
+| Command | Description |
+|---------|-------------|
+| `npx cc-mirror` | Interactive TUI |
+| `npx cc-mirror create` | Full configuration wizard |
+| `npx cc-mirror quick [opts]` | Fast setup with defaults |
+| `npx cc-mirror list [--json]` | List all variants |
+| `npx cc-mirror update` | **Update ALL variants** to latest Claude Code |
+| `npx cc-mirror update <name>` | Update specific variant only |
+| `npx cc-mirror remove <name>` | Delete a variant |
+| `npx cc-mirror doctor` | Health check all variants |
+| `npx cc-mirror run <name>` | Launch a variant |
+
+### Configuration
+
+| Command | Description |
+|---------|-------------|
+| `npx cc-mirror config <name>` | Show variant config |
+| `npx cc-mirror config set <name> --env KEY=VAL` | Set env override |
+| `npx cc-mirror config unset <name> --env KEY` | Remove env override |
+| `npx cc-mirror export <name>` | Export config snapshot |
+| `npx cc-mirror import <name> <file>` | Import config snapshot |
+
+### MCP Servers
+
+| Command | Description |
+|---------|-------------|
+| `npx cc-mirror mcp <name>` | List MCP servers |
+| `npx cc-mirror mcp <name> add-json <id> '{...}'` | Add MCP server |
+| `npx cc-mirror mcp <name> remove <id>` | Remove MCP server |
+
+### Sync & Tasks
+
+| Command | Description |
+|---------|-------------|
+| `npx cc-mirror sync <src> <dst...>` | Copy configs between variants |
+| `npx cc-mirror tasks` | List open tasks |
+| `npx cc-mirror tasks show <id>` | Show task details |
+| `npx cc-mirror tasks create` | Create new task |
+| `npx cc-mirror tasks graph` | Visualize dependencies |
+
+### Key Options
+
+```
+--provider <name>        zai | minimax | openrouter | vertex | bedrock | mirror | kimi | deepseek | ...
+--name <name>            Variant name (becomes CLI command)
+--api-key <key>          Provider API key
+--enable-team-mode       Enable TaskCreate/Get/Update/List tools
+--model-sonnet <name>    Override sonnet model
+--env KEY=VALUE          Extra env var (repeatable)
+--prefer-ipv4            Force IPv4 DNS resolution
 ```
 
 ---
 
 ## Brand Themes
 
-Each provider includes a custom color theme powered by [tweakcc](https://github.com/Piebald-AI/tweakcc):
+Each provider has a custom color theme via [tweakcc](https://github.com/Piebald-AI/tweakcc):
 
-| Brand | Theme Name | Style |
-|-------|------------|-------|
-| **zai** | Emerald | Dark carbon with gold accents |
-| **minimax** | Coral | Coral/red/orange spectrum |
-| **gatewayz** | Portal | Dark portal with violet accents |
-| **openrouter** | Ocean | Teal/cyan gradient |
-| **nanogpt** | Nebula | Purple/violet gradient |
-| **ccrouter** | Sky | Sky blue accents |
-| **mirror** | Chrome | Silver/chrome with electric blue |
-| **kimi** | Lunar | Indigo/silver moonlit aesthetic |
-| **deepseek** | Deep | Blue gradient, intelligent vibes |
-| **vercel** | Edge | Clean black/white minimalist |
-| **poe** | Violet | Mystical violet/purple |
-| **vertex** | Cloud | Google blue/green/yellow palette |
-| **bedrock** | Ember | AWS orange warm tones |
-| **foundry** | Azure | Azure blue professional |
-
----
-
-## Commands Reference
-
-### Variant Management
-
-```bash
-npx cc-mirror                     # Interactive TUI
-npx cc-mirror create              # Full configuration wizard
-npx cc-mirror quick [options]     # Fast setup with defaults
-npx cc-mirror list                # List all variants
-npx cc-mirror list --json         # List in JSON format
-npx cc-mirror update [name]       # Update one or all variants
-npx cc-mirror remove <name>       # Delete a variant
-npx cc-mirror doctor              # Health check all variants
-npx cc-mirror run <name>          # Launch a variant
-```
-
-### Configuration Management
-
-```bash
-npx cc-mirror config <name>                    # Show variant config
-npx cc-mirror config list                      # List all variant configs
-npx cc-mirror config set <name> --env KEY=VAL  # Set env override
-npx cc-mirror config unset <name> --env KEY    # Remove env override
-npx cc-mirror export <name>                    # Export config snapshot
-npx cc-mirror import <name> <file>             # Import config snapshot
-```
-
-### MCP Server Management
-
-```bash
-npx cc-mirror mcp <name>                       # List MCP servers
-npx cc-mirror mcp <name> add-json <id> '{...}' # Add MCP server
-npx cc-mirror mcp <name> remove <id>           # Remove MCP server
-```
-
-### Sync Between Variants
-
-```bash
-npx cc-mirror sync <source> <target...>
-npx cc-mirror sync source --targets team-a,team-b --items skills,mcp-servers
-npx cc-mirror sync source target --no-backup --dry-run
-```
-
-### Task Management (Team Mode)
-
-```bash
-npx cc-mirror tasks               # List open tasks
-npx cc-mirror tasks show <id>     # Show task details
-npx cc-mirror tasks create        # Create new task
-npx cc-mirror tasks update <id>   # Update task
-npx cc-mirror tasks archive <id>  # Archive task
-npx cc-mirror tasks clean         # Bulk cleanup
-npx cc-mirror tasks graph         # Visualize dependencies
-```
-
----
-
-## CLI Options
-
-### Provider Options
-
-```
---provider <name>        Provider: zai | minimax | gatewayz | openrouter | nanogpt |
-                         ccrouter | mirror | kimi | deepseek | vercel | poe | vertex |
-                         bedrock | foundry | custom
---name <name>            Variant name (becomes the CLI command)
---api-key <key>          Provider API key
---base-url <url>         Custom API endpoint
-```
-
-### Model Mapping
-
-```
---model-sonnet <name>    Map to sonnet model
---model-opus <name>      Map to opus model
---model-haiku <name>     Map to haiku model
-```
-
-### Customization
-
-```
---brand <preset>         Theme: auto | zai | minimax | gatewayz | openrouter |
-                         nanogpt | ccrouter | mirror | kimi | deepseek | vercel |
-                         poe | vertex | bedrock | foundry
---npm-package <name>     Claude Code package override
---npm-version <ver>      Claude Code version override
---no-tweak               Skip tweakcc theme
---no-prompt-pack         Skip prompt pack
-```
-
-### Features
-
-```
---enable-team-mode       Enable team mode (TaskCreate, TaskGet, TaskUpdate, TaskList)
---shell-env              Write env vars to shell profile
---env KEY=VALUE          Extra env var override (repeatable)
---timeout-ms <ms>        API timeout override (ms)
---prefer-ipv4            Prefer IPv4 DNS (sets CC_MIRROR_PREFER_IPV4=1)
-```
-
-### Sync Options
-
-```
---items <list>           skills,mcp-servers,permissions,claude-md,tasks,provider-env
---source <name>          Source variant
---targets <list>         Comma-separated targets
---no-backup              Skip config backup
---dry-run                Show what would change
-```
-
-### Config Options
-
-```
---variant <name>         Variant to inspect
---json                   Print JSON output
---show-values            Show full env values (default masks secrets)
---allow <list>           Comma-separated allow list
---ask <list>             Comma-separated ask list
---deny <list>            Comma-separated deny list
-```
-
----
-
-## Team Mode
-
-Enable multi-agent collaboration with shared task management:
-
-```mermaid
-flowchart TB
-    subgraph team["🤝 Team Mode"]
-        direction TB
-        tools["TaskCreate / TaskGet<br/>TaskUpdate / TaskList"]
-        orchestrator["Orchestrator Skill"]
-        manager["Task Manager Skill"]
-    end
-
-    subgraph projects["📂 Project Isolation"]
-        direction LR
-        p1["~/projects/api<br/><small>Team: api</small>"]
-        p2["~/projects/frontend<br/><small>Team: frontend</small>"]
-    end
-
-    team --> projects
-    p1 -.- t1[("tasks.json")]
-    p2 -.- t2[("tasks.json")]
-```
-
-```bash
-# Enable on any variant
-npx cc-mirror create --provider zai --name zai-team --enable-team-mode
-
-# Mirror Claude has team mode by default
-npx cc-mirror quick --provider mirror --name mclaude
-```
-
-Team mode enables:
-- `TaskCreate`, `TaskGet`, `TaskUpdate`, `TaskList` tools
-- **Orchestrator skill** for coordinating multi-agent workflows
-- **Task-manager skill** for CLI task hygiene
-
-### Project-Scoped Tasks
-
-Tasks are automatically scoped by project folder:
-
-```bash
-cd ~/projects/api && mc      # Team: api
-cd ~/projects/frontend && mc # Team: frontend
-
-# Multiple teams in the same project
-TEAM=backend mc              # Team: <project>-backend
-TEAM=frontend mc             # Team: <project>-frontend
-```
-
-> [Team Mode Documentation](docs/features/team-mode.md)
-
----
-
-## Mirror Claude
-
-A pure Claude Code variant with enhanced features:
-
-- **Direct connection** — No proxy, connects directly to Anthropic's API
-- **Team mode** — Enabled by default
-- **Isolated config** — Experiment without affecting your main setup
-- **Multiple accounts** — Create multiple mirror variants for different accounts
-
-```bash
-npx cc-mirror quick --provider mirror --name mclaude
-mclaude  # Authenticate via OAuth or API key
-
-# Multiple accounts
-npx cc-mirror quick --provider mirror --name mclaude-work
-npx cc-mirror quick --provider mirror --name mclaude-personal
-```
-
-> [Mirror Claude Documentation](docs/features/mirror-claude.md)
+| Provider | Theme | Style |
+|----------|-------|-------|
+| zai | Emerald | Dark carbon with gold |
+| minimax | Coral | Coral/red/orange spectrum |
+| openrouter | Ocean | Teal/cyan gradient |
+| mirror | Chrome | Silver with electric blue |
+| kimi | Lunar | Indigo/silver moonlit |
+| deepseek | Deep | Blue gradient |
+| vertex | Cloud | Google blue/green/yellow |
+| bedrock | Ember | AWS orange warm |
+| foundry | Azure | Azure blue professional |
 
 ---
 
@@ -538,47 +518,277 @@ npx cc-mirror quick --provider mirror --name mclaude-personal
 
 ### Windows
 
-**PowerShell** (recommended):
 ```powershell
+# PowerShell (recommended)
 npx cc-mirror path --apply
-# Then open a new PowerShell window
-```
+# Open new PowerShell window
 
-**CMD**: `path --apply` only updates PowerShell profile. For CMD, add manually:
-1. Open System Properties → Environment Variables
-2. Edit user `Path` → Add `%USERPROFILE%\.cc-mirror\bin`
-3. Open a new CMD window
-
-Or run the wrapper directly:
-```cmd
-%USERPROFILE%\.cc-mirror\bin\<variant>.cmd
+# CMD: Add manually to PATH
+%USERPROFILE%\.cc-mirror\bin
 ```
 
 ### Termux / Android
 
-Quick PATH fix:
-
 ```bash
 npx cc-mirror path --apply
+# Or install to Termux bin directly:
+npx cc-mirror create --provider mirror --bin-dir "$PREFIX/bin"
 ```
 
-Or install wrappers into Termux's default bin:
+---
+
+## Architecture
+
+```mermaid
+flowchart TB
+    subgraph providers["AI Providers"]
+        gateways["API Gateways<br/><small>Z.ai, OpenRouter, MiniMax...</small>"]
+        cloud["Cloud Enterprise<br/><small>Vertex, Bedrock, Foundry</small>"]
+        local["Local & Native<br/><small>Mirror, Kimi, DeepSeek, CCRouter</small>"]
+    end
+
+    subgraph ccmirror["CC-MIRROR CLI"]
+        cli["Variant Manager"]
+        translator["API Translator"]
+    end
+
+    subgraph variants["Isolated Variants (~/.cc-mirror/)"]
+        v1["zai/<br/>npm/ config/ tweakcc/"]
+        v2["vertex/<br/>npm/ config/ tweakcc/"]
+        v3["mclaude/<br/>npm/ config/ tweakcc/"]
+    end
+
+    providers --> cli
+    cli --> variants
+    translator -.-> local
+```
+
+---
+
+## FAQ
+
+### Is it safe? Does it modify my original Claude Code?
+
+**No.** CC-MIRROR creates completely isolated installations in `~/.cc-mirror/`. Your original Claude Code installation (if any) remains untouched. Each variant has its own:
+- npm installation
+- Configuration directory
+- API keys and sessions
+- MCP servers
+
+You can safely remove any variant without affecting others.
+
+### What's the difference between cc-mirror and claude-sneakpeek?
+
+Both projects do the same thing — they're forks of the same original codebase:
+
+| Aspect | cc-mirror | claude-sneakpeek |
+|--------|-----------|------------------|
+| **Origin** | numman-ali/cc-mirror | Fork of cc-mirror |
+| **Team mode patch** | `function sU(){return!0}` | Same |
+| **Tools unlocked** | TaskCreate/Get/Update/List | Same |
+| **Providers** | 15 (with cloud + translator) | Inherited from cc-mirror |
+| **npm package** | `cc-mirror` | `@realmikekelly/claude-sneakpeek` |
+
+The "swarm mode" marketing is just a different name for team mode.
+
+### Will my API keys be exposed?
+
+No. API keys are stored locally in `~/.cc-mirror/<variant>/config/settings.json` and are never transmitted anywhere except to your chosen provider's API endpoint.
+
+### Can I use this with my company's Claude API?
+
+Yes. Use the cloud providers (Vertex AI, Bedrock, Foundry) to connect through your company's cloud account, or use Mirror Claude with your company's API key.
+
+### Does team mode work with all providers?
+
+Yes, but results vary by model capability. Team mode enables the tools, but the underlying model needs to be capable enough to use them effectively:
+
+| Provider | Team Mode Quality |
+|----------|------------------|
+| Mirror Claude (Claude) | Excellent — designed for these tools |
+| Z.ai (GLM-4.7) | Good — capable reasoning |
+| DeepSeek | Good — strong at task decomposition |
+| Kimi Code | Moderate — focused on coding |
+| Local LLMs | Varies — depends on model size |
+
+### What version of Claude Code does cc-mirror use?
+
+Each variant has its **own independent installation** of Claude Code:
+
+```
+~/.cc-mirror/
+├── zai/npm/node_modules/@anthropic-ai/claude-code/     ← zai variant (v2.1.20)
+├── mirror/npm/node_modules/@anthropic-ai/claude-code/  ← mirror variant (v2.1.23)
+└── kimi/npm/node_modules/@anthropic-ai/claude-code/    ← kimi variant (v2.1.19)
+
+~/.claude/                                               ← Your global Claude Code (separate)
+```
+
+**Important:** Variants do NOT auto-update when your global Claude Code updates. Each variant is frozen at the version it was created/updated with.
+
+When you create or update a variant, CC-MIRROR installs the **latest version from npm** at that moment. We don't maintain a fork of Claude Code — we just:
+
+1. Install the official `@anthropic-ai/claude-code` package
+2. Apply a small patch for team mode (if requested)
+3. Configure environment for your chosen provider
+
+### How do I update Claude Code in my variants?
+
+Variants must be explicitly updated — they don't update automatically:
 
 ```bash
-npx cc-mirror create --provider mirror --name claude-termux --bin-dir "$PREFIX/bin"
+# Update all variants to latest Claude Code
+npx cc-mirror update
+
+# Update specific variant
+npx cc-mirror update myvariant
+
+# Check current versions
+npx cc-mirror list
+# Shows: zai (v2.1.20), mirror (v2.1.23), etc.
+
+# Pin to specific Claude Code version (rare)
+npx cc-mirror update myvariant --npm-version 2.1.23
 ```
 
-> [Termux Guide](docs/features/termux.md)
+**Tip:** Run `npx cc-mirror update` periodically to keep variants current with Claude Code releases.
 
 ---
 
 ## Troubleshooting
 
-| Issue | Solution |
-|-------|----------|
-| IPv6 connection resets (Z.ai) | Use `--prefer-ipv4` or `--env CC_MIRROR_PREFER_IPV4=1` |
-| Command not found after create | Run `npx cc-mirror path --apply` (PowerShell) or add bin dir to PATH manually (CMD) |
-| Windows splash weirdness | Set `--env CC_MIRROR_SPLASH_UTF8=0` to skip `chcp 65001` |
+### Connection Issues
+
+#### Z.ai: Connection reset / ETIMEDOUT
+
+Z.ai servers sometimes have IPv6 issues. Force IPv4:
+
+```bash
+# When creating
+npx cc-mirror quick --provider zai --prefer-ipv4
+
+# For existing variant
+npx cc-mirror config set zai --env CC_MIRROR_PREFER_IPV4=1
+```
+
+#### DeepSeek: Translator errors
+
+Check that the API key is valid and has credits:
+
+```bash
+# Test the key directly
+curl https://api.deepseek.com/v1/models \
+  -H "Authorization: Bearer $DEEPSEEK_API_KEY"
+```
+
+### Team Mode Issues
+
+#### TaskCreate/TaskList tools not appearing
+
+1. Verify team mode is enabled:
+   ```bash
+   grep "sU(){return" ~/.cc-mirror/<variant>/npm/node_modules/@anthropic-ai/claude-code/cli.js
+   # Should show: function sU(){return!0}
+   ```
+
+2. Re-enable team mode:
+   ```bash
+   npx cc-mirror update <variant> --enable-team-mode
+   ```
+
+#### Tasks not persisting between sessions
+
+Tasks are stored per-project. Make sure you're in the same directory:
+
+```bash
+# Tasks are in:
+~/.cc-mirror/<variant>/config/tasks/<team-name>/
+
+# Team name = current folder name (e.g., "my-project")
+```
+
+#### Agents spawning agents recursively
+
+The orchestration skill should detect worker context. If not, update the skill:
+
+```bash
+npx cc-mirror update <variant> --enable-team-mode
+```
+
+### Windows Issues
+
+#### Command not found after installation
+
+PowerShell and CMD have different PATH handling:
+
+```powershell
+# PowerShell: Run this, then open NEW window
+npx cc-mirror path --apply
+
+# CMD: Add manually to System Environment Variables
+%USERPROFILE%\.cc-mirror\bin
+```
+
+#### npm install fails with ENOENT
+
+Run PowerShell as Administrator, or use:
+
+```bash
+npx cc-mirror quick --provider mirror --name test 2>&1 | tee install.log
+```
+
+#### UTF-8 characters broken in splash screen
+
+Disable UTF-8 mode switching:
+
+```bash
+npx cc-mirror config set <variant> --env CC_MIRROR_SPLASH_UTF8=0
+```
+
+### Permission Issues
+
+#### "Permission denied" when running wrapper
+
+```bash
+# Linux/macOS
+chmod +x ~/.local/bin/<variant>
+
+# Or recreate the variant
+npx cc-mirror remove <variant>
+npx cc-mirror quick --provider <provider> --name <variant>
+```
+
+#### MCP servers not loading
+
+Check MCP configuration:
+
+```bash
+npx cc-mirror mcp <variant>
+
+# Verify the server exists and command is correct
+npx cc-mirror mcp <variant> show <server-id>
+```
+
+### General
+
+#### Variant won't start / crashes immediately
+
+Run health check:
+
+```bash
+npx cc-mirror doctor <variant>
+
+# Or with verbose output
+npx cc-mirror doctor <variant> --strict
+```
+
+#### How to completely reset a variant
+
+```bash
+npx cc-mirror remove <variant>
+rm -rf ~/.cc-mirror/<variant>  # Just in case
+npx cc-mirror quick --provider <provider> --name <variant>
+```
 
 ---
 
@@ -586,28 +796,28 @@ npx cc-mirror create --provider mirror --name claude-termux --bin-dir "$PREFIX/b
 
 | Document | Description |
 |----------|-------------|
-| [Team Mode](docs/features/team-mode.md) | Multi-agent collaboration with shared tasks |
-| [Mirror Claude](docs/features/mirror-claude.md) | Pure Claude Code with enhanced features |
-| [Termux/Android](docs/features/termux.md) | Android setup and PATH guidance |
-| [Architecture](docs/architecture/overview.md) | How cc-mirror works under the hood |
-| [Provider Guide](docs/TWEAKCC-GUIDE.md) | How to add a new provider |
-| [Full Documentation](docs/README.md) | Complete documentation index |
+| [Team Mode](docs/features/team-mode.md) | Multi-agent collaboration guide |
+| [Mirror Claude](docs/features/mirror-claude.md) | Pure Claude variant docs |
+| [Termux Guide](docs/features/termux.md) | Android setup |
+| [Architecture](docs/architecture/overview.md) | System internals |
+| [CLI Reference](docs/reference/cli-reference.md) | Full command docs |
+| [Provider Guide](docs/TWEAKCC-GUIDE.md) | Adding new providers |
 
 ---
 
 ## Related Projects
 
 - [tweakcc](https://github.com/Piebald-AI/tweakcc) — Theme and customize Claude Code
-- [Claude Code Router](https://github.com/musistudio/claude-code-router) — Route Claude Code to any LLM
-- [n-skills](https://github.com/numman-ali/n-skills) — Universal skills for AI agents
+- [Claude Code Router](https://github.com/musistudio/claude-code-router) — Route to any LLM
+- [n-skills](https://github.com/numman-ali/n-skills) — Universal AI agent skills
 
 ---
 
 ## Contributing
 
-Contributions welcome! See [CONTRIBUTING.md](CONTRIBUTING.md) for development setup.
+Contributions welcome! See [CONTRIBUTING.md](CONTRIBUTING.md).
 
-**Want to add a provider?** Check the [Provider Guide](docs/TWEAKCC-GUIDE.md).
+**Adding a provider?** Check the [Provider Guide](docs/TWEAKCC-GUIDE.md).
 
 ---
 
