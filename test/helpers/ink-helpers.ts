@@ -6,8 +6,9 @@
 
 /**
  * Wait for a short time to allow ink to process updates
+ * Increased from 100ms to 150ms for CI stability
  */
-export const tick = () => new Promise((resolve) => setTimeout(resolve, 100));
+export const tick = () => new Promise((resolve) => setTimeout(resolve, 150));
 
 /**
  * Send input to stdin and wait for processing

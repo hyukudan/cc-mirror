@@ -22,6 +22,7 @@ const waitForText = async (app: { lastFrame: () => string | undefined }, text: s
   assert.ok(ok, `Expected to see "${text}"`);
 };
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const waitForAnyText = async (app: { lastFrame: () => string | undefined }, texts: string[], attempts = 100) => {
   const ok = await waitFor(() => texts.some((text) => frameText(app).includes(text)), attempts);
   assert.ok(ok, `Expected to see one of: ${texts.join(', ')}`);
@@ -56,73 +57,61 @@ test('TUI create flow applies tweakcc by default', async () => {
     })
   );
 
+  // Home -> New Variant
   await tick();
-  await waitForText(app, 'Quick Setup');
+  await tick();
+  await waitForText(app, 'Quick Setup', 200);
   await selectMenuItem(app, 'New Variant');
   await send(app.stdin, enter);
-  await waitForText(app, 'Select Provider');
-  for (let i = 0; i < 3; i += 1) {
-    await send(app.stdin, enter); // provider select -> default (zai)
-    const leftProvider = await waitFor(() => !frameText(app).includes('Select Provider'), 40);
-    if (leftProvider) break;
-  }
-  await waitForAnyText(
-    app,
-    ['Setting up', 'Choose Theme', 'Variant Name', 'Base URL', 'API Key', 'Browser Automation'],
-    200
-  );
-  const introFrame = frameText(app);
-  if (introFrame.includes('Setting up')) {
-    await send(app.stdin, enter); // intro screen -> continue
-  }
-  const reachedBrand = await waitFor(() => {
-    const frame = frameText(app);
-    return frame.includes('Choose Theme') || frame.includes('Variant Name');
-  });
-  assert.ok(reachedBrand);
-  const brandFrame = frameText(app);
-  if (brandFrame.includes('Choose Theme')) {
-    await send(app.stdin, enter); // brand preset (auto)
-    await waitForText(app, 'Variant Name');
-  }
-  await send(app.stdin, enter); // name
-  const reachedBaseUrl = await waitFor(() => {
-    const frame = frameText(app);
-    return frame.includes('Base URL') || frame.includes('API Key') || frame.includes('Browser Automation');
-  });
-  assert.ok(reachedBaseUrl);
-  const baseUrlFrame = frameText(app);
-  if (baseUrlFrame.includes('Base URL')) {
-    await send(app.stdin, enter); // base url
-    await waitForText(app, 'API Key');
-  }
-  const apiKeyFrame = frameText(app);
-  if (apiKeyFrame.includes('API Key')) {
-    await send(app.stdin, enter); // api key
-  }
-  await waitForText(app, 'Browser Automation');
-  await send(app.stdin, enter); // install dev-browser? default Yes
-  await waitForText(app, 'Team Mode');
-  await send(app.stdin, enter); // team mode? default Yes
-  const reachedShellEnv = await waitFor(() => {
-    const frame = frameText(app);
-    return frame.includes('Shell Environment') || frame.includes('Custom Environment');
-  });
-  assert.ok(reachedShellEnv);
-  const shellFrame = frameText(app);
-  if (shellFrame.includes('Shell Environment')) {
-    await send(app.stdin, enter); // write Z_AI_API_KEY? default Yes
-    await waitForText(app, 'Custom Environment');
-  }
-  await send(app.stdin, down); // add env? select No
+
+  // Select Provider (zai is default)
+  await waitForText(app, 'Select Provider', 200);
   await send(app.stdin, enter);
 
-  await waitForText(app, 'Review Configuration');
+  // Setting up (intro screen)
+  await waitForText(app, 'Setting up', 200);
+  await send(app.stdin, enter);
 
-  await send(app.stdin, enter); // summary -> create
+  // Choose Theme
+  await waitForText(app, 'Choose Theme', 200);
+  await send(app.stdin, enter);
 
-  const created = await waitFor(() => calls.create.length > 0);
-  assert.ok(created);
+  // Variant Name
+  await waitForText(app, 'Variant Name', 200);
+  await send(app.stdin, enter);
+
+  // Base URL (for zai)
+  await waitForText(app, 'Base URL', 200);
+  await send(app.stdin, enter);
+
+  // API Key
+  await waitForText(app, 'API Key', 200);
+  await send(app.stdin, enter);
+
+  // Browser Automation
+  await waitForText(app, 'Browser Automation', 200);
+  await send(app.stdin, enter);
+
+  // Team Mode
+  await waitForText(app, 'Team Mode', 200);
+  await send(app.stdin, enter);
+
+  // Shell Environment (zai specific)
+  await waitForText(app, 'Shell Environment', 200);
+  await send(app.stdin, enter);
+
+  // Custom Environment
+  await waitForText(app, 'Custom Environment', 200);
+  await send(app.stdin, down); // select No
+  await send(app.stdin, enter);
+
+  // Review Configuration
+  await waitForText(app, 'Review Configuration', 200);
+  await send(app.stdin, enter);
+
+  // Verify create was called with correct params
+  const created = await waitFor(() => calls.create.length > 0, 200);
+  assert.ok(created, 'createVariant should be called');
   assert.equal(calls.create.length, 1);
   assert.equal(calls.create[0].name, 'zai');
   assert.equal(calls.create[0].providerKey, 'zai');

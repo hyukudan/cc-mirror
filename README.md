@@ -687,6 +687,18 @@ curl https://api.deepseek.com/v1/models \
   -H "Authorization: Bearer $DEEPSEEK_API_KEY"
 ```
 
+### TweakCC Compatibility
+
+#### "Interrupted" error on Claude Code 2.1.x
+
+TweakCC (used for themes and UI customization) has compatibility issues with Claude Code 2.1.x ([issue #379](https://github.com/Piebald-AI/tweakcc/issues/379)). If you experience immediate "Interrupted" errors when typing, update without tweakcc:
+
+```bash
+npx cc-mirror update <variant> --no-tweak
+```
+
+This disables theme customization but restores full functionality. The fix is being worked on upstream.
+
 ### Team Mode Issues
 
 #### TaskCreate/TaskList tools not appearing
