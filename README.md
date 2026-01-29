@@ -15,7 +15,7 @@
 </p>
 
 <p align="center">
-  <code>15 providers</code> · <code>28 CLI commands</code> · <code>Team mode</code> · <code>API translator</code>
+  <code>15 providers</code> · <code>35+ CLI commands</code> · <code>Team mode</code> · <code>MCP registry</code> · <code>API translator</code>
 </p>
 
 ---
@@ -31,10 +31,11 @@ This fork extends cc-mirror with enterprise tooling and additional providers:
 | **Cloud Providers**      | Vertex AI (GCP), Bedrock (AWS), Foundry (Azure)                       |
 | **Extended Providers**   | Kimi Code, DeepSeek, Vercel AI, Poe, GatewayZ, NanoGPT                |
 | **API Translator**       | Built-in Anthropic↔OpenAI translation for OpenAI-compatible providers |
-| **MCP Management**       | `cc-mirror mcp` to list/add/remove MCP servers per variant            |
+| **MCP Management**       | `cc-mirror mcp` commands + MCP server registry with one-click install |
 | **Config Export/Import** | Snapshot and restore variant configurations                           |
-| **Sync Command**         | Copy skills, MCP servers, permissions between variants                |
-| **Tasks CLI**            | Full task management from command line                                |
+| **Sync Command**         | Copy configs between variants with diff preview                       |
+| **Tasks CLI**            | Full task management + workflow templates                             |
+| **Enterprise Tools**     | Backup/restore, cleanup, enhanced doctor, variant templates           |
 
 We maintain compatibility with upstream and contribute improvements back when possible.
 
@@ -486,6 +487,76 @@ npx cc-mirror tasks clean --resolved --older-than 7 --variant team
 | `npx cc-mirror tasks show <id>`     | Show task details             |
 | `npx cc-mirror tasks create`        | Create new task               |
 | `npx cc-mirror tasks graph`         | Visualize dependencies        |
+
+### Enterprise & Maintenance Tools
+
+| Command                          | Description                                        |
+| -------------------------------- | -------------------------------------------------- |
+| `npx cc-mirror doctor --strict`  | Enhanced health check with version comparison      |
+| `npx cc-mirror doctor --check-mcp` | Verify MCP server connectivity                   |
+| `npx cc-mirror mcp <name> check` | Health check all MCP servers in variant            |
+| `npx cc-mirror backup`           | Create full backup of ~/.cc-mirror                 |
+| `npx cc-mirror backup restore`   | Restore from backup archive                        |
+| `npx cc-mirror cleanup`          | Detect and archive unused variants                 |
+| `npx cc-mirror template`         | Save/load variant configurations as templates      |
+| `npx cc-mirror sync --diff`      | Preview changes before syncing                     |
+| `npx cc-mirror tasks template`   | Pre-defined task workflow templates                |
+| `npx cc-mirror skill <name>`     | Create and manage custom skills                    |
+| `npx cc-mirror registry`         | Curated MCP server catalog with one-click install  |
+
+### MCP Server Registry
+
+Install popular MCP servers with one command:
+
+```bash
+# Browse available servers
+npx cc-mirror registry list
+
+# Search servers
+npx cc-mirror registry search github
+
+# Install to variant
+npx cc-mirror registry install filesystem zai
+npx cc-mirror registry install github zai
+```
+
+**Available categories:** core, development, database, web, search, communication, storage, reasoning
+
+### Task Templates
+
+Pre-defined workflows for common development tasks:
+
+```bash
+# List available templates
+npx cc-mirror tasks template list
+
+# View template details
+npx cc-mirror tasks template show feature
+
+# Apply template with prefix
+npx cc-mirror tasks template apply bugfix "Login Issue"
+```
+
+**Built-in templates:** feature, bugfix, sprint, code-review
+
+### Backup & Cleanup
+
+```bash
+# Create backup
+npx cc-mirror backup --out ~/my-backup.tar.gz
+
+# Preview backup size
+npx cc-mirror backup --dry-run
+
+# Restore from backup
+npx cc-mirror backup restore ~/my-backup.tar.gz
+
+# Find unused variants (30+ days)
+npx cc-mirror cleanup
+
+# Archive unused variants
+npx cc-mirror cleanup --archive --older-than 30
+```
 
 ### Key Options
 

@@ -94,6 +94,14 @@ export interface UpdateVariantOptions {
   onProgress?: ProgressCallback;
 }
 
+export interface McpServerStatus {
+  name: string;
+  status: 'ok' | 'error' | 'unchecked';
+  command?: string;
+  error?: string;
+  tools?: string[];
+}
+
 export interface DoctorReportItem {
   name: string;
   ok: boolean;
@@ -101,10 +109,16 @@ export interface DoctorReportItem {
   wrapperPath: string;
   issues?: string[];
   warnings?: string[];
+  // Extended info (when strict mode)
+  claudeCodeVersion?: string;
+  claudeCodeLatest?: string;
+  mcpServers?: McpServerStatus[];
 }
 
 export interface DoctorOptions {
   strict?: boolean;
+  checkMcp?: boolean; // Check MCP server connectivity
+  latestVersion?: string; // Pre-fetched latest version (to avoid multiple npm calls)
 }
 
 export interface CreateVariantResult {

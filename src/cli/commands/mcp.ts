@@ -10,13 +10,14 @@ import path from 'node:path';
 import * as core from '../../core/index.js';
 import { detectVariantFromEnv } from '../../core/tasks/index.js';
 import { listMcpServers, upsertMcpServer, removeMcpServer, type McpServerConfig } from '../../core/claude-config.js';
+import type { McpServerStatus } from '../../core/types.js';
 import type { ParsedArgs } from '../args.js';
 
 export interface McpCommandOptions {
   opts: ParsedArgs;
 }
 
-type McpOperation = 'list' | 'show' | 'add' | 'add-json' | 'remove';
+type McpOperation = 'list' | 'show' | 'add' | 'add-json' | 'remove' | 'check';
 
 function showMcpHelp(): void {
   console.log(`
@@ -31,6 +32,7 @@ OPERATIONS:
   add <name>            Add/update server from flags
   add-json <name>       Add/update server from JSON
   remove <name>         Remove server by name
+  check [name]          Verify server connectivity (or all if no name)
 
 OPTIONS (add):
   --command <cmd>        Command to run (stdio)
@@ -270,6 +272,62 @@ export function runMcpCommand({ opts }: McpCommandOptions): void {
         return;
       }
       console.log(`Removed MCP server ${name}.`);
+      return;
+    }
+
+    case 'check': {
+      const servers = listMcpServers(configDir);
+      const serverNames = name ? [name] : Object.keys(servers).sort();
+
+      if (serverNames.length === 0) {
+        console.log(`No MCP servers configured for ${variant}.`);
+        return;
+      }
+
+      // Check if single server was specified but doesn't exist
+      if (name && !servers[name]) {
+        console.error(`MCP server not found: ${name}`);
+        process.exitCode = 1;
+        return;
+      }
+
+      const results: McpServerStatus[] = [];
+      let hasErrors = false;
+
+      console.log(`Checking ${serverNames.length} MCP server(s)...\n`);
+
+      for (const serverName of serverNames) {
+        const config = servers[serverName];
+        const status = core.checkMcpServerHealth(serverName, config);
+        results.push(status);
+
+        const icon = status.status === 'ok' ? '✓' : status.status === 'error' ? '✗' : '?';
+        const cmdInfo = status.command ? ` → ${status.command}` : '';
+
+        console.log(`${icon} ${serverName}${cmdInfo}`);
+        if (status.error) {
+          console.log(`  Error: ${status.error}`);
+          hasErrors = true;
+        }
+        if (status.status === 'unchecked') {
+          console.log(`  (HTTP/SSE server - connectivity not checked)`);
+        }
+      }
+
+      if (outputJson) {
+        console.log('\n' + JSON.stringify(results, null, 2));
+      }
+
+      // Summary
+      const okCount = results.filter((r) => r.status === 'ok').length;
+      const errorCount = results.filter((r) => r.status === 'error').length;
+      const uncheckedCount = results.filter((r) => r.status === 'unchecked').length;
+
+      console.log(`\nSummary: ${okCount} ok, ${errorCount} errors, ${uncheckedCount} unchecked`);
+
+      if (hasErrors) {
+        process.exitCode = 1;
+      }
       return;
     }
 

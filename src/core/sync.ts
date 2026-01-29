@@ -10,6 +10,19 @@ export interface SyncOptions {
   dryRun?: boolean;
 }
 
+export interface DiffEntry {
+  action: 'add' | 'modify' | 'replace';
+  key: string;
+  sourceValue?: string;
+  targetValue?: string;
+}
+
+export interface SyncDiff {
+  item: SyncItem;
+  changes: DiffEntry[];
+  hasChanges: boolean;
+}
+
 export interface SyncItemResult {
   copied: number;
   skipped: number;
@@ -362,6 +375,216 @@ const syncClaudeMd = (sourceConfigDir: string, targetConfigDir: string, dryRun: 
   }
 
   return result;
+};
+
+const computeMcpServersDiff = (sourceConfigDir: string, targetConfigDir: string): SyncDiff => {
+  const changes: DiffEntry[] = [];
+  const sourceConfigPath = path.join(sourceConfigDir, CLAUDE_CONFIG_FILE);
+  const targetConfigPath = path.join(targetConfigDir, CLAUDE_CONFIG_FILE);
+
+  const sourceConfig = readJson<ClaudeConfig>(sourceConfigPath);
+  const targetConfig = readJson<ClaudeConfig>(targetConfigPath);
+  const sourceServers = sourceConfig?.mcpServers || {};
+  const targetServers = targetConfig?.mcpServers || {};
+
+  for (const [name, config] of Object.entries(sourceServers)) {
+    const existing = targetServers[name];
+    const cmd = config.command || config.url || 'unknown';
+    if (!existing) {
+      changes.push({ action: 'add', key: name, sourceValue: cmd });
+    } else if (JSON.stringify(existing) !== JSON.stringify(config)) {
+      changes.push({ action: 'modify', key: name, sourceValue: cmd, targetValue: existing.command || existing.url });
+    }
+  }
+
+  return { item: 'mcp-servers', changes, hasChanges: changes.length > 0 };
+};
+
+const computeSkillsDiff = (sourceConfigDir: string, targetConfigDir: string): SyncDiff => {
+  const changes: DiffEntry[] = [];
+  const sourceSkillsDir = path.join(sourceConfigDir, SKILLS_DIR);
+  const targetSkillsDir = path.join(targetConfigDir, SKILLS_DIR);
+
+  if (!fs.existsSync(sourceSkillsDir)) {
+    return { item: 'skills', changes, hasChanges: false };
+  }
+
+  const sourceSkills = fs
+    .readdirSync(sourceSkillsDir, { withFileTypes: true })
+    .filter((e) => e.isDirectory())
+    .map((e) => e.name);
+  const targetSkills = new Set(
+    fs.existsSync(targetSkillsDir)
+      ? fs
+          .readdirSync(targetSkillsDir, { withFileTypes: true })
+          .filter((e) => e.isDirectory())
+          .map((e) => e.name)
+      : []
+  );
+
+  for (const skill of sourceSkills) {
+    if (!targetSkills.has(skill)) {
+      changes.push({ action: 'add', key: skill });
+    } else {
+      changes.push({ action: 'replace', key: skill });
+    }
+  }
+
+  return { item: 'skills', changes, hasChanges: changes.length > 0 };
+};
+
+const computePermissionsDiff = (sourceConfigDir: string, targetConfigDir: string): SyncDiff => {
+  const changes: DiffEntry[] = [];
+  const sourceSettingsPath = path.join(sourceConfigDir, SETTINGS_FILE);
+  const targetSettingsPath = path.join(targetConfigDir, SETTINGS_FILE);
+
+  const sourceSettings = readJson<SettingsFile>(sourceSettingsPath);
+  const targetSettings = readJson<SettingsFile>(targetSettingsPath);
+
+  const sourcePerms = sourceSettings?.permissions || {};
+  const targetPerms = targetSettings?.permissions || {};
+
+  for (const key of ['allow', 'ask', 'deny'] as const) {
+    const sourceList = sourcePerms[key] || [];
+    const targetList = targetPerms[key] || [];
+    if (JSON.stringify(sourceList.sort()) !== JSON.stringify(targetList.sort())) {
+      const added = sourceList.filter((item: string) => !targetList.includes(item));
+      if (added.length > 0) {
+        changes.push({ action: 'modify', key, sourceValue: `+${added.length} items` });
+      }
+    }
+  }
+
+  return { item: 'permissions', changes, hasChanges: changes.length > 0 };
+};
+
+const computeClaudeMdDiff = (sourceConfigDir: string, targetConfigDir: string): SyncDiff => {
+  const changes: DiffEntry[] = [];
+  const sourcePath = path.join(sourceConfigDir, CLAUDE_MD_FILE);
+  const targetPath = path.join(targetConfigDir, CLAUDE_MD_FILE);
+
+  if (!fs.existsSync(sourcePath)) {
+    return { item: 'claude-md', changes, hasChanges: false };
+  }
+
+  const sourceContent = fs.readFileSync(sourcePath, 'utf8');
+  const targetContent = fs.existsSync(targetPath) ? fs.readFileSync(targetPath, 'utf8') : '';
+
+  if (sourceContent !== targetContent) {
+    const action = targetContent ? 'replace' : 'add';
+    const sourceSize = `${Math.round(sourceContent.length / 1024)}KB`;
+    changes.push({ action, key: 'CLAUDE.md', sourceValue: sourceSize });
+  }
+
+  return { item: 'claude-md', changes, hasChanges: changes.length > 0 };
+};
+
+const computeTasksDiff = (sourceConfigDir: string, targetConfigDir: string): SyncDiff => {
+  const changes: DiffEntry[] = [];
+  const sourceTasksDir = path.join(sourceConfigDir, TASKS_DIR);
+  const targetTasksDir = path.join(targetConfigDir, TASKS_DIR);
+
+  if (!fs.existsSync(sourceTasksDir)) {
+    return { item: 'tasks', changes, hasChanges: false };
+  }
+
+  // Build map of target tasks for comparison
+  const targetTasks = new Map<string, Set<string>>();
+  if (fs.existsSync(targetTasksDir)) {
+    const targetTeams = fs.readdirSync(targetTasksDir, { withFileTypes: true }).filter((e) => e.isDirectory());
+    for (const team of targetTeams) {
+      const teamDir = path.join(targetTasksDir, team.name);
+      const tasks = fs.readdirSync(teamDir).filter((f) => f.endsWith('.json'));
+      targetTasks.set(team.name, new Set(tasks));
+    }
+  }
+
+  // Compare source tasks against target
+  const sourceTeams = fs.readdirSync(sourceTasksDir, { withFileTypes: true }).filter((e) => e.isDirectory());
+  let addedTasks = 0;
+  let replacedTasks = 0;
+
+  for (const team of sourceTeams) {
+    const teamDir = path.join(sourceTasksDir, team.name);
+    const sourceTasks = fs.readdirSync(teamDir).filter((f) => f.endsWith('.json'));
+    const existingTasks = targetTasks.get(team.name) || new Set<string>();
+
+    for (const task of sourceTasks) {
+      if (existingTasks.has(task)) {
+        replacedTasks++;
+      } else {
+        addedTasks++;
+      }
+    }
+  }
+
+  if (addedTasks > 0) {
+    changes.push({ action: 'add', key: 'tasks', sourceValue: `${addedTasks} new task(s)` });
+  }
+  if (replacedTasks > 0) {
+    changes.push({ action: 'replace', key: 'tasks', sourceValue: `${replacedTasks} existing task(s)` });
+  }
+
+  return { item: 'tasks', changes, hasChanges: changes.length > 0 };
+};
+
+const computeProviderEnvDiff = (sourceConfigDir: string, targetConfigDir: string): SyncDiff => {
+  const changes: DiffEntry[] = [];
+  const sourceSettingsPath = path.join(sourceConfigDir, SETTINGS_FILE);
+  const targetSettingsPath = path.join(targetConfigDir, SETTINGS_FILE);
+
+  const sourceSettings = readJson<SettingsFile>(sourceSettingsPath);
+  const targetSettings = readJson<SettingsFile>(targetSettingsPath);
+
+  const sourceEnv = sourceSettings?.env || {};
+  const targetEnv = targetSettings?.env || {};
+
+  for (const [key, value] of Object.entries(sourceEnv)) {
+    if (isProviderEnvKey(key)) {
+      const targetValue = targetEnv[key];
+      if (targetValue === undefined) {
+        changes.push({ action: 'add', key, sourceValue: String(value).substring(0, 20) + '...' });
+      } else if (String(targetValue) !== String(value)) {
+        changes.push({ action: 'modify', key });
+      }
+    }
+  }
+
+  return { item: 'provider-env', changes, hasChanges: changes.length > 0 };
+};
+
+/**
+ * Compute diff preview for sync operation
+ */
+export const computeSyncDiff = (sourceDir: string, targetDir: string, items: SyncItem[]): SyncDiff[] => {
+  const sourceConfigDir = path.join(sourceDir, 'config');
+  const targetConfigDir = path.join(targetDir, 'config');
+  const diffs: SyncDiff[] = [];
+
+  for (const item of items) {
+    switch (item) {
+      case 'mcp-servers':
+        diffs.push(computeMcpServersDiff(sourceConfigDir, targetConfigDir));
+        break;
+      case 'skills':
+        diffs.push(computeSkillsDiff(sourceConfigDir, targetConfigDir));
+        break;
+      case 'permissions':
+        diffs.push(computePermissionsDiff(sourceConfigDir, targetConfigDir));
+        break;
+      case 'claude-md':
+        diffs.push(computeClaudeMdDiff(sourceConfigDir, targetConfigDir));
+        break;
+      case 'tasks':
+        diffs.push(computeTasksDiff(sourceConfigDir, targetConfigDir));
+        break;
+      case 'provider-env':
+        diffs.push(computeProviderEnvDiff(sourceConfigDir, targetConfigDir));
+        break;
+    }
+  }
+
+  return diffs;
 };
 
 export const syncVariants = (sourceDir: string, targetDirs: string[], options: SyncOptions): SyncResult[] => {

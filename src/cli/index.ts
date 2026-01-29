@@ -24,6 +24,11 @@ import {
   runPathCommand,
   runSyncCommand,
   runRefreshCommand,
+  runBackupCommand,
+  runTemplateCommand,
+  runCleanupCommand,
+  runSkillCommand,
+  runRegistryCommand,
 } from './commands/index.js';
 
 const readPackageVersion = (): string => {
@@ -67,7 +72,7 @@ const main = async () => {
 
   // Help command (only for main help, not subcommand help)
   // Subcommands like 'tasks' handle their own --help
-  const commandsWithOwnHelp = ['tasks', 'mcp', 'config'];
+  const commandsWithOwnHelp = ['tasks', 'mcp', 'config', 'backup', 'template', 'cleanup', 'skill', 'registry'];
   if (cmd === 'help' || cmd === '--help' || (opts.help && !commandsWithOwnHelp.includes(cmd))) {
     printHelp();
     return;
@@ -137,6 +142,26 @@ const main = async () => {
 
     case 'refresh':
       runRefreshCommand({ opts });
+      break;
+
+    case 'backup':
+      runBackupCommand({ opts });
+      break;
+
+    case 'template':
+      runTemplateCommand({ opts });
+      break;
+
+    case 'cleanup':
+      runCleanupCommand({ opts });
+      break;
+
+    case 'skill':
+      runSkillCommand({ opts });
+      break;
+
+    case 'registry':
+      runRegistryCommand({ opts });
       break;
 
     case 'create':

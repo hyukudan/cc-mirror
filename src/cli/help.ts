@@ -35,6 +35,12 @@ COMMANDS
   tasks [operation]            Manage team tasks (list, show, create, update, delete, clean)
   path [--apply]               Show PATH setup instructions
   sync <source> <target...>    Sync config between variants
+  backup [file]                Create backup of ~/.cc-mirror
+  backup restore <file>        Restore from backup archive
+  template [operation]         Save/load variant templates
+  cleanup                      Detect and archive unused variants
+  skill <variant> [op]         Create and manage custom skills
+  registry [operation]         MCP server catalog with one-click install
 
 OPTIONS (global)
   --help, -h                   Show help
@@ -73,7 +79,9 @@ OPTIONS (path)
   --apply                      Append PATH export to shell profile (POSIX/PowerShell)
 
 OPTIONS (doctor)
-  --strict                     Run extra validation checks (names, settings, team mode)
+  --strict                     Run extra validation checks + version comparison
+  --check-mcp                  Verify MCP server commands exist
+  --verbose, -v                Show detailed MCP server info
   --json                       Output doctor report as JSON
 
 OPTIONS (list)
@@ -83,6 +91,7 @@ OPTIONS (sync)
   --items <list>               skills,mcp-servers,permissions,claude-md,tasks,provider-env
   --source <name>              Source variant (optional if positional)
   --targets <list>             Comma-separated targets (optional if positional)
+  --diff                       Preview changes before syncing
   --no-backup                  Skip config backup
   --dry-run                    Show what would change without writing files
 
@@ -122,6 +131,7 @@ EXAMPLES
   npx cc-mirror doctor
   npx cc-mirror path
   npx cc-mirror run zai
+  npx cc-mirror mcp zai check              # Health check all MCP servers
   npx cc-mirror mcp zai list
   npx cc-mirror export zai
   npx cc-mirror import zai ./cc-mirror-zai.json

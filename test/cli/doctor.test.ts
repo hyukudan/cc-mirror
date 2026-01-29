@@ -32,11 +32,13 @@ test('printDoctor prints healthy variants with checkmark', () => {
 
   const output = captureOutput(() => printDoctor(report));
 
-  assert.equal(output.length, 2);
+  // 2 variants + empty line + summary = 4 lines
+  assert.equal(output.length, 4);
   assert.ok(output[0].includes('✓'));
   assert.ok(output[0].includes('alpha'));
   assert.ok(output[1].includes('✓'));
   assert.ok(output[1].includes('beta'));
+  assert.ok(output[3].includes('Summary: 2/2 healthy'));
 });
 
 test('printDoctor prints unhealthy variants with X and details', () => {
@@ -44,13 +46,15 @@ test('printDoctor prints unhealthy variants with X and details', () => {
 
   const output = captureOutput(() => printDoctor(report));
 
-  assert.equal(output.length, 3);
+  // 1 variant header + 2 details + empty line + summary = 5 lines
+  assert.equal(output.length, 5);
   assert.ok(output[0].includes('✗'));
   assert.ok(output[0].includes('broken'));
   assert.ok(output[1].includes('binary:'));
   assert.ok(output[1].includes('/tmp/broken'));
   assert.ok(output[2].includes('wrapper:'));
   assert.ok(output[2].includes('/tmp/bin/broken'));
+  assert.ok(output[4].includes('Summary: 0/1 healthy'));
 });
 
 test('printDoctor shows missing for undefined binaryPath', () => {
@@ -58,8 +62,10 @@ test('printDoctor shows missing for undefined binaryPath', () => {
 
   const output = captureOutput(() => printDoctor(report));
 
-  assert.equal(output.length, 3);
+  // 1 variant header + 2 details + empty line + summary = 5 lines
+  assert.equal(output.length, 5);
   assert.ok(output[1].includes('missing'));
+  assert.ok(output[4].includes('Summary: 0/1 healthy'));
 });
 
 test('printDoctor handles mixed healthy and unhealthy', () => {
@@ -70,10 +76,11 @@ test('printDoctor handles mixed healthy and unhealthy', () => {
 
   const output = captureOutput(() => printDoctor(report));
 
-  // good: 1 line, bad: 3 lines (status + binary + wrapper)
-  assert.equal(output.length, 4);
+  // good: 1 line, bad: 3 lines (status + binary + wrapper) + empty line + summary = 6 lines
+  assert.equal(output.length, 6);
   assert.ok(output[0].includes('✓'));
   assert.ok(output[0].includes('good'));
   assert.ok(output[1].includes('✗'));
   assert.ok(output[1].includes('bad'));
+  assert.ok(output[5].includes('Summary: 1/2 healthy'));
 });

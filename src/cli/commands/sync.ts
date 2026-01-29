@@ -4,7 +4,8 @@
 
 import path from 'node:path';
 import * as core from '../../core/index.js';
-import type { SyncItem, SyncItemResult, SyncOptions, SyncResult } from '../../core/index.js';
+import { computeSyncDiff } from '../../core/sync.js';
+import type { SyncItem, SyncItemResult, SyncOptions, SyncResult, SyncDiff } from '../../core/index.js';
 import type { ParsedArgs } from '../args.js';
 
 export interface SyncCommandOptions {
@@ -45,6 +46,31 @@ const parseItems = (value?: string): SyncItem[] => {
 const printUsage = () => {
   console.log('Usage: npx cc-mirror sync <source> <target...> [--items <list>] [--no-backup] [--dry-run]');
   console.log('       npx cc-mirror sync --source <name> --targets a,b [--items skills,mcp-servers]');
+  console.log('       npx cc-mirror sync <source> <target> --diff   # Preview changes without syncing');
+};
+
+const printDiffPreview = (targetName: string, diffs: SyncDiff[]) => {
+  console.log(`\n${targetName}:`);
+
+  let hasAnyChanges = false;
+  for (const diff of diffs) {
+    if (!diff.hasChanges) {
+      console.log(`  ${diff.item}: (no changes)`);
+      continue;
+    }
+
+    hasAnyChanges = true;
+    console.log(`  ${diff.item}:`);
+    for (const change of diff.changes) {
+      const actionSymbol = change.action === 'add' ? '+' : change.action === 'modify' ? '~' : '↺';
+      const value = change.sourceValue ? ` (${change.sourceValue})` : '';
+      console.log(`    ${actionSymbol} ${change.key}${value}`);
+    }
+  }
+
+  if (!hasAnyChanges) {
+    console.log('  (no changes detected)');
+  }
 };
 
 const formatItemSummary = (item: SyncItem, result?: SyncItemResult): string => {
@@ -87,6 +113,7 @@ export function runSyncCommand({ opts }: SyncCommandOptions): void {
   const items = parseItems(opts.items as string | undefined);
   const createBackup = !opts['no-backup'];
   const dryRun = Boolean(opts['dry-run']);
+  const showDiff = Boolean(opts.diff);
 
   if (!sourceName) {
     printUsage();
@@ -121,6 +148,19 @@ export function runSyncCommand({ opts }: SyncCommandOptions): void {
   console.log(`Sync source: ${sourceName}`);
   console.log(`Targets: ${uniqueTargets.join(', ')}`);
   console.log(`Items: ${items.join(', ')}`);
+
+  // Diff preview mode
+  if (showDiff) {
+    console.log('\nDiff preview:');
+    for (const targetDir of targetDirs) {
+      const targetName = path.basename(targetDir);
+      const diffs = computeSyncDiff(sourceDir, targetDir, items);
+      printDiffPreview(targetName, diffs);
+    }
+    console.log('\nUse without --diff to apply changes.');
+    return;
+  }
+
   console.log(`Backup: ${createBackup ? 'on' : 'off'}`);
   console.log(`Dry-run: ${dryRun ? 'on' : 'off'}`);
 

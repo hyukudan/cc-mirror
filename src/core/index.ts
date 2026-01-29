@@ -1,5 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import { spawnSync } from 'node:child_process';
 import { DEFAULT_BIN_DIR, DEFAULT_NPM_PACKAGE, DEFAULT_NPM_VERSION, DEFAULT_ROOT } from './constants.js';
 import { ensureDir, readJson } from './fs.js';
 import { expandTilde } from './paths.js';
@@ -10,21 +11,102 @@ import { listVariants as listVariantsImpl, loadVariantMeta } from './variants.js
 import { assertValidTeamName, assertValidVariantName, isValidEnvKey } from './validation.js';
 import { getProvider } from '../providers/index.js';
 import { VariantBuilder, VariantUpdater } from './variant-builder/index.js';
+import { listMcpServers, type McpServerConfig } from './claude-config.js';
 import type {
   CreateVariantParams,
   CreateVariantResult,
   DoctorOptions,
   DoctorReportItem,
+  McpServerStatus,
   UpdateVariantOptions,
   UpdateVariantResult,
   VariantEntry,
   VariantConfig,
 } from './types.js';
 
+/**
+ * Read Claude Code version from the installed npm package
+ */
+const getInstalledClaudeVersion = (npmDir: string, npmPackage: string): string | undefined => {
+  const packageParts = npmPackage.split('/');
+  const pkgJsonPath = path.join(npmDir, 'node_modules', ...packageParts, 'package.json');
+  if (!fs.existsSync(pkgJsonPath)) return undefined;
+  const pkgJson = readJson<{ version?: string }>(pkgJsonPath);
+  return pkgJson?.version;
+};
+
+/**
+ * Check MCP server connectivity by spawning the command with --help or similar
+ */
+const checkMcpServer = (name: string, config: McpServerConfig): McpServerStatus => {
+  // HTTP/SSE based servers - just mark as unchecked (would need HTTP request)
+  if (config.url) {
+    return { name, status: 'unchecked', command: config.url };
+  }
+
+  // Command-based servers - try to spawn with --version or just check command exists
+  if (!config.command) {
+    return { name, status: 'error', error: 'No command configured' };
+  }
+
+  const command = config.command;
+  const args = config.args ?? [];
+
+  // Try spawning with --version to verify the command exists and is executable
+  try {
+    const result = spawnSync(command, ['--version'], {
+      stdio: 'pipe',
+      encoding: 'utf8',
+      timeout: 5000,
+      env: { ...process.env, ...config.env },
+      shell: process.platform === 'win32',
+    });
+
+    // If command not found
+    if (result.error) {
+      const err = result.error as NodeJS.ErrnoException;
+      if (err.code === 'ENOENT') {
+        return { name, status: 'error', command, error: `Command not found: ${command}` };
+      }
+      return { name, status: 'error', command, error: err.message };
+    }
+
+    // Command exists - we consider it "ok" if we can at least run it
+    // We can't easily get the tools list without actually connecting
+    return {
+      name,
+      status: 'ok',
+      command: `${command} ${args.join(' ')}`.trim(),
+    };
+  } catch (error) {
+    return {
+      name,
+      status: 'error',
+      command,
+      error: error instanceof Error ? error.message : String(error),
+    };
+  }
+};
+
+/**
+ * Check if wrapper has executable permissions
+ */
+const checkWrapperPermissions = (wrapperPath: string): { executable: boolean; error?: string } => {
+  try {
+    if (!fs.existsSync(wrapperPath)) {
+      return { executable: false, error: 'Wrapper not found' };
+    }
+    fs.accessSync(wrapperPath, fs.constants.X_OK);
+    return { executable: true };
+  } catch {
+    return { executable: false, error: 'Wrapper not executable' };
+  }
+};
+
 export { DEFAULT_ROOT, DEFAULT_BIN_DIR, DEFAULT_NPM_PACKAGE, DEFAULT_NPM_VERSION };
 export { expandTilde } from './paths.js';
-export { syncVariants, syncVariantsAsync, createConfigBackup, restoreConfigBackup } from './sync.js';
-export type { SyncItem, SyncOptions, SyncResult, SyncItemResult } from './sync.js';
+export { syncVariants, syncVariantsAsync, createConfigBackup, restoreConfigBackup, computeSyncDiff } from './sync.js';
+export type { SyncItem, SyncOptions, SyncResult, SyncItemResult, SyncDiff, DiffEntry } from './sync.js';
 export { exportVariant, importVariant, readExportArchive, writeExportArchive } from './export.js';
 export type {
   ExportArchive,
@@ -38,6 +120,11 @@ export type {
 export const createVariant = (params: CreateVariantParams): CreateVariantResult => {
   return new VariantBuilder(false).build(params);
 };
+
+/**
+ * Check MCP server connectivity - exported for use by mcp check command
+ */
+export const checkMcpServerHealth = checkMcpServer;
 
 /**
  * Async version of createVariant - allows UI progress updates during long operations
@@ -92,6 +179,12 @@ export const doctor = (rootDir: string, binDir: string, opts: DoctorOptions = {}
       issues.push(error instanceof Error ? error.message : String(error));
     }
 
+    // Check wrapper permissions
+    const wrapperCheck = checkWrapperPermissions(wrapperPath);
+    if (!wrapperCheck.executable && wrapperCheck.error) {
+      issues.push(wrapperCheck.error);
+    }
+
     if (!meta) {
       issues.push('variant.json missing or invalid');
     } else {
@@ -110,6 +203,23 @@ export const doctor = (rootDir: string, binDir: string, opts: DoctorOptions = {}
       if (!fs.existsSync(configDir)) {
         issues.push('config directory missing');
       }
+
+      // Get installed Claude Code version
+      const npmDir = meta.npmDir || path.join(path.dirname(configDir), 'npm');
+      const npmPackage = meta.npmPackage || DEFAULT_NPM_PACKAGE;
+      const installedVersion = getInstalledClaudeVersion(npmDir, npmPackage);
+      if (installedVersion) {
+        report.claudeCodeVersion = installedVersion;
+
+        // Compare with latest if provided
+        if (opts.latestVersion && installedVersion !== opts.latestVersion) {
+          warnings.push(`Claude Code ${installedVersion} installed, latest is ${opts.latestVersion}`);
+        }
+      } else {
+        warnings.push('Could not determine installed Claude Code version');
+      }
+      report.claudeCodeLatest = opts.latestVersion;
+
       const settingsPath = path.join(configDir, 'settings.json');
       if (!fs.existsSync(settingsPath)) {
         issues.push('settings.json missing');
@@ -129,6 +239,23 @@ export const doctor = (rootDir: string, binDir: string, opts: DoctorOptions = {}
         }
       }
 
+      // Check MCP servers if requested
+      if (opts.checkMcp && fs.existsSync(configDir)) {
+        const mcpServers = listMcpServers(configDir);
+        const serverNames = Object.keys(mcpServers);
+        if (serverNames.length > 0) {
+          const mcpStatuses: McpServerStatus[] = [];
+          for (const serverName of serverNames) {
+            const status = checkMcpServer(serverName, mcpServers[serverName]);
+            mcpStatuses.push(status);
+            if (status.status === 'error') {
+              warnings.push(`MCP server "${serverName}": ${status.error}`);
+            }
+          }
+          report.mcpServers = mcpStatuses;
+        }
+      }
+
       const tasksRoot = path.join(configDir, 'tasks');
       if (fs.existsSync(tasksRoot)) {
         const entries = fs.readdirSync(tasksRoot, { withFileTypes: true }).filter((entry) => entry.isDirectory());
@@ -143,14 +270,23 @@ export const doctor = (rootDir: string, binDir: string, opts: DoctorOptions = {}
       }
 
       if (meta.teamModeEnabled) {
-        const npmDir = meta.npmDir || path.join(path.dirname(configDir), 'npm');
         const cliPath = path.join(npmDir, 'node_modules', '@anthropic-ai', 'claude-code', 'cli.js');
         if (!fs.existsSync(cliPath)) {
           issues.push('team mode enabled but cli.js not found');
         } else {
-          const cliContent = fs.readFileSync(cliPath, 'utf8');
-          if (!cliContent.includes('function sU(){return!0}')) {
-            issues.push('team mode enabled but cli.js patch missing');
+          // Claude Code 2.1.x has tasks enabled by default (no patch needed)
+          // Only check for patch in older versions (2.0.x and earlier) or if version unknown
+          let needsPatch = true; // Default to checking patch if version unknown
+          if (installedVersion) {
+            const [major, minor] = installedVersion.split('.').map(Number);
+            needsPatch = major < 2 || (major === 2 && minor < 1);
+          }
+
+          if (needsPatch) {
+            const cliContent = fs.readFileSync(cliPath, 'utf8');
+            if (!cliContent.includes('function sU(){return!0}')) {
+              issues.push('team mode enabled but cli.js patch missing');
+            }
           }
         }
       }

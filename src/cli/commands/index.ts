@@ -17,3 +17,8 @@ export { runTasksCommand, type TasksCommandOptions } from './tasks.js';
 export { runPathCommand, type PathCommandOptions } from './path.js';
 export { runSyncCommand, type SyncCommandOptions } from './sync.js';
 export { runRefreshCommand, type RefreshCommandOptions } from './refresh.js';
+export { runBackupCommand, type BackupCommandOptions } from './backup.js';
+export { runTemplateCommand, type TemplateCommandOptions } from './template.js';
+export { runCleanupCommand, type CleanupCommandOptions } from './cleanup.js';
+export { runSkillCommand, type SkillCommandOptions } from './skill.js';
+export { runRegistryCommand, type RegistryCommandOptions } from './registry.js';

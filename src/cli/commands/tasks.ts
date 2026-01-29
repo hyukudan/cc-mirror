@@ -25,6 +25,10 @@ import {
   runTasksClean,
   runTasksGraph,
   runTasksArchive,
+  listTaskTemplates,
+  loadTaskTemplate,
+  deleteTaskTemplate,
+  printTaskTemplateHelp,
 } from './tasks/index.js';
 
 export interface TasksCommandOptions {
@@ -262,6 +266,100 @@ export async function runTasksCommand({ opts }: TasksCommandOptions): Promise<vo
         force: Boolean(opts.force),
         json,
       });
+      break;
+    }
+
+    case 'template': {
+      const templateOp = positional[1] as string | undefined;
+      const templateName = positional[2] as string | undefined;
+
+      if (!templateOp || templateOp === 'list') {
+        const templates = listTaskTemplates();
+        if (json) {
+          console.log(JSON.stringify(templates, null, 2));
+          return;
+        }
+        if (templates.length === 0) {
+          console.log('No task templates found.');
+          return;
+        }
+        console.log('Available task templates:\n');
+        for (const t of templates) {
+          const desc = t.description ? ` - ${t.description}` : '';
+          console.log(`  ${t.name}${desc}`);
+          console.log(`    ${t.tasks.length} task(s)`);
+        }
+        return;
+      }
+
+      if (templateOp === 'show') {
+        if (!templateName) {
+          console.error('Error: Template name required.');
+          process.exitCode = 1;
+          return;
+        }
+        const template = loadTaskTemplate(templateName);
+        if (!template) {
+          console.error(`Template not found: ${templateName}`);
+          process.exitCode = 1;
+          return;
+        }
+        if (json) {
+          console.log(JSON.stringify(template, null, 2));
+          return;
+        }
+        console.log(`Template: ${template.name}`);
+        if (template.description) console.log(`Description: ${template.description}`);
+        console.log(`\nTasks (${template.tasks.length}):`);
+        for (let i = 0; i < template.tasks.length; i++) {
+          const task = template.tasks[i];
+          const deps = task.blockedBy?.length ? ` (after: ${task.blockedBy.join(', ')})` : '';
+          console.log(`  ${i + 1}. ${task.subject}${deps}`);
+        }
+        return;
+      }
+
+      if (templateOp === 'apply') {
+        if (!templateName) {
+          console.error('Error: Template name required.');
+          process.exitCode = 1;
+          return;
+        }
+        const template = loadTaskTemplate(templateName);
+        if (!template) {
+          console.error(`Template not found: ${templateName}`);
+          process.exitCode = 1;
+          return;
+        }
+        const prefix = positional[3] || '';
+        console.log(`\nTo apply template "${template.name}"${prefix ? ` with prefix "${prefix}"` : ''}:`);
+        console.log('');
+        for (const task of template.tasks) {
+          const subject = prefix ? `[${prefix}] ${task.subject}` : task.subject;
+          console.log(
+            `npx cc-mirror tasks create --subject "${subject}"${variant ? ` --variant ${variant}` : ''}${team ? ` --team ${team}` : ''}`
+          );
+        }
+        console.log('\nNote: Run these commands in order. Task dependencies will need to be added manually.');
+        return;
+      }
+
+      if (templateOp === 'delete') {
+        if (!templateName) {
+          console.error('Error: Template name required.');
+          process.exitCode = 1;
+          return;
+        }
+        if (deleteTaskTemplate(templateName)) {
+          console.log(`Deleted template: ${templateName}`);
+        } else {
+          console.error(`Template not found: ${templateName}`);
+          process.exitCode = 1;
+        }
+        return;
+      }
+
+      printTaskTemplateHelp();
       break;
     }
 

@@ -20,3 +20,11 @@ export { runTasksDelete } from './delete.js';
 export { runTasksClean } from './clean.js';
 export { runTasksGraph, type TasksGraphOptions } from './graph.js';
 export { runTasksArchive, type TasksArchiveOptions } from './archive.js';
+export {
+  listTaskTemplates,
+  loadTaskTemplate,
+  saveTaskTemplate,
+  deleteTaskTemplate,
+  printTaskTemplateHelp,
+  type TaskTemplate,
+} from './templates.js';
