@@ -37,3 +37,22 @@ export const cleanup = (dir: string) => {
  */
 export const resolveNpmCliPath = (npmDir: string, npmPackage: string) =>
   path.join(npmDir, 'node_modules', ...npmPackage.split('/'), 'cli.js');
+
+/**
+ * Capture console.log output during async function execution
+ */
+export const captureConsole = async (fn: () => Promise<void>): Promise<string> => {
+  const output: string[] = [];
+  const originalLog = console.log;
+  console.log = (...args: unknown[]) => {
+    output.push(args.map((arg) => String(arg)).join(' '));
+  };
+
+  try {
+    await fn();
+  } finally {
+    console.log = originalLog;
+  }
+
+  return output.join('\n');
+};

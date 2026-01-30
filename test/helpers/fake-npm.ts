@@ -10,11 +10,13 @@ import path from 'node:path';
 import { makeTempDir, writeExecutable, cleanup } from './fs-helpers.js';
 
 /**
- * Create a fake npm script that creates a dummy CLI
+ * Create a fake npm/pnpm/bun/yarn script that creates a dummy CLI
+ * Handles different package manager argument formats:
+ * - npm: --prefix <dir>
+ * - pnpm: --dir <dir>
+ * - bun/yarn: --cwd <dir>
  */
 export const createFakeNpm = (dir: string) => {
-  const npmPath = path.join(dir, 'npm');
-  const npmCmdPath = path.join(dir, 'npm.cmd');
   const script = `#!/usr/bin/env node
 const fs = require('fs');
 const path = require('path');
@@ -22,7 +24,8 @@ const path = require('path');
 const args = process.argv.slice(2);
 let prefix = '';
 for (let i = 0; i < args.length; i += 1) {
-  if (args[i] === '--prefix' && args[i + 1]) {
+  // Handle all package manager directory flags
+  if ((args[i] === '--prefix' || args[i] === '--dir' || args[i] === '--cwd') && args[i + 1]) {
     prefix = args[i + 1];
   }
 }
@@ -51,9 +54,17 @@ fs.writeFileSync(
 );
 fs.chmodSync(cliPath, 0o755);
 `;
-  writeExecutable(npmPath, script);
-  fs.writeFileSync(npmCmdPath, ['@echo off', 'node "%~dp0\\npm" %*', ''].join('\r\n'), 'utf8');
-  return npmPath;
+
+  // Create fake scripts for all package managers
+  const packageManagers = ['npm', 'pnpm', 'bun', 'yarn'];
+  for (const pm of packageManagers) {
+    const pmPath = path.join(dir, pm);
+    const pmCmdPath = path.join(dir, `${pm}.cmd`);
+    writeExecutable(pmPath, script);
+    fs.writeFileSync(pmCmdPath, ['@echo off', `node "%~dp0\\${pm}" %*`, ''].join('\r\n'), 'utf8');
+  }
+
+  return path.join(dir, 'npm');
 };
 
 /**
