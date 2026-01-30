@@ -4,8 +4,9 @@
  */
 
 import { useInput } from 'ink';
-import type { Screen } from '../state/types.js';
+import type { Screen } from './types.js';
 import type { ProviderTemplate } from '../../providers/index.js';
+import { getParentScreen, isProgressScreen } from './routes.js';
 
 export interface UseEscapeNavigationOptions {
   screen: Screen;
@@ -20,7 +21,7 @@ export interface UseEscapeNavigationOptions {
 export function useEscapeNavigation(options: UseEscapeNavigationOptions): void {
   const { screen, provider, setScreen } = options;
 
-  useInput((input, key) => {
+  useInput((_, key) => {
     if (key.escape) {
       navigateBack(screen, provider, setScreen);
     }
@@ -31,82 +32,32 @@ export function useEscapeNavigation(options: UseEscapeNavigationOptions): void {
  * Navigate back based on current screen
  */
 function navigateBack(screen: Screen, provider: ProviderTemplate | null, setScreen: (screen: Screen) => void): void {
-  switch (screen) {
-    case 'home':
-      setScreen('exit');
-      break;
+  // Don't allow back from progress screens
+  if (isProgressScreen(screen)) return;
 
-    // Quick setup flow - back steps
-    case 'quick-api-key':
-      setScreen('quick-provider');
-      break;
-    case 'quick-model-opus':
-      setScreen('quick-api-key');
-      break;
-    case 'quick-model-sonnet':
-      setScreen('quick-model-opus');
-      break;
-    case 'quick-model-haiku':
-      setScreen('quick-model-sonnet');
-      break;
-    case 'quick-name':
-      // Context-aware: go back to model-haiku if provider requires models
-      setScreen(provider?.requiresModelMapping ? 'quick-model-haiku' : 'quick-api-key');
-      break;
-    case 'quick-provider':
-      setScreen('home');
-      break;
-
-    // Create flow - model screens
-    case 'create-model-opus':
-      setScreen('create-api-key');
-      break;
-    case 'create-model-sonnet':
-      setScreen('create-model-opus');
-      break;
-    case 'create-model-haiku':
-      setScreen('create-model-sonnet');
-      break;
-
-    // Settings - back to home
-    case 'settings-root':
-    case 'settings-bin':
-      setScreen('home');
-      break;
-
-    // Model configuration screens - back through flow
-    case 'manage-models-opus':
-      setScreen('manage-actions');
-      break;
-    case 'manage-models-sonnet':
-      setScreen('manage-models-opus');
-      break;
-    case 'manage-models-haiku':
-      setScreen('manage-models-sonnet');
-      break;
-    case 'manage-models-done':
-      setScreen('manage-actions');
-      break;
-
-    // Completion/done screens - back to home
-    case 'create-done':
-    case 'manage-update-done':
-    case 'manage-tweak-done':
-    case 'manage-remove-done':
-    case 'updateAll-done':
-      setScreen('home');
-      break;
-
-    // Doctor screen - home
-    case 'doctor':
-      setScreen('home');
-      break;
-
-    // Default: any screen starting with create, manage, or updateAll goes home
-    default:
-      if (screen.startsWith('create') || screen.startsWith('manage') || screen.startsWith('updateAll')) {
-        setScreen('home');
-      }
-      break;
+  // Handle home -> exit
+  if (screen === 'home') {
+    setScreen('exit');
+    return;
   }
+
+  // Special cases with provider context
+  if (screen === 'quick-name') {
+    // Context-aware: go back based on provider
+    if (provider?.requiresModelMapping) {
+      setScreen('quick-models');
+    } else {
+      setScreen('quick-api-key');
+    }
+    return;
+  }
+
+  // Use route-based parent for all other screens
+  const parent = getParentScreen(screen, {
+    providerKey: null,
+    requiresModelMapping: provider?.requiresModelMapping ?? false,
+    credentialOptional: provider?.credentialOptional ?? false,
+    apiKeyDetectedFrom: null,
+  });
+  setScreen(parent);
 }

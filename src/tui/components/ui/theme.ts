@@ -1,46 +1,17 @@
 /**
  * Theme constants for CC-MIRROR TUI
  *
- * Professional deep blue and golden yellow color scheme.
- * Warm, inviting, and memorable.
+ * Supports light, dark, and high contrast themes.
+ * Theme preference loaded from ~/.cc-mirror/.theme.json
  */
 
-// Primary color palette - deep blue and golden yellow
-export const colors = {
-  // Brand colors - professional and inviting
-  primary: 'blue',
-  primaryBright: 'blueBright',
-  secondary: 'yellow',
-  secondaryBright: 'yellowBright',
-  accent: 'blueBright',
-  gold: 'yellow',
-  goldBright: 'yellowBright',
+import { getCurrentTheme, type ThemeColors } from '../../themes/index.js';
 
-  // Status colors
-  success: 'greenBright',
-  warning: 'yellowBright',
-  error: 'redBright',
-  info: 'blueBright',
+// Load current theme
+const currentTheme = getCurrentTheme();
 
-  // Text colors
-  text: 'white',
-  textBright: 'whiteBright',
-  textMuted: 'gray',
-  textDim: 'blackBright',
-  textGold: 'yellow',
-
-  // Border colors
-  border: 'blue',
-  borderFocus: 'blueBright',
-  borderAccent: 'yellow',
-  borderGold: 'yellow',
-
-  // Logo colors - deep blue to gold gradient feel
-  logo1: 'blueBright',
-  logo2: 'yellow',
-  logo3: 'yellowBright',
-  logoAccent: 'white',
-} as const;
+// Primary color palette - loaded from theme
+export const colors: ThemeColors = currentTheme.colors;
 
 // Unicode icons - clean and minimal
 export const icons = {

@@ -6,6 +6,7 @@
 import { useState, useCallback, useMemo } from 'react';
 import type { Screen, AppState, AppActions, CompletionData, SelectedVariant, ProviderDefaults } from './types.js';
 import type { DoctorReportItem, VariantEntry } from '../../core/types.js';
+import { getParentScreen, isProgressScreen } from '../router/routes.js';
 
 /**
  * Default completion data
@@ -58,7 +59,7 @@ export function useCreateAppState(options: UseAppStateOptions): { state: AppStat
   const { initialRootDir, initialBinDir, defaultNpmPackage } = options;
 
   // Navigation
-  const [screen, setScreen] = useState<Screen>('home');
+  const [screen, setScreenInternal] = useState<Screen>('home');
 
   // Provider configuration
   const [providerKey, setProviderKey] = useState<string | null>(null);
@@ -103,6 +104,11 @@ export function useCreateAppState(options: UseAppStateOptions): { state: AppStat
   // Doctor
   const [doctorReport, setDoctorReport] = useState<DoctorReportItem[]>([]);
 
+  // Screen setter with type safety
+  const setScreen = useCallback((newScreen: Screen) => {
+    setScreenInternal(newScreen);
+  }, []);
+
   // Reset wizard to initial state
   const resetWizard = useCallback(() => {
     setProviderKey(null);
@@ -125,78 +131,20 @@ export function useCreateAppState(options: UseAppStateOptions): { state: AppStat
     setCompletion(defaultCompletion);
   }, [defaultNpmPackage]);
 
-  // Navigate back based on current screen
+  // Navigate back based on current screen using route definitions
   const navigateBack = useCallback(() => {
-    switch (screen) {
-      case 'home':
-        setScreen('exit');
-        break;
-      // Quick setup flow - back steps
-      case 'quick-api-key':
-        setScreen('quick-provider');
-        break;
-      case 'quick-model-opus':
-        setScreen('quick-api-key');
-        break;
-      case 'quick-model-sonnet':
-        setScreen('quick-model-opus');
-        break;
-      case 'quick-model-haiku':
-        setScreen('quick-model-sonnet');
-        break;
-      case 'quick-name':
-        // Need provider context - handled externally
-        setScreen('quick-api-key');
-        break;
-      case 'quick-provider':
-        setScreen('home');
-        break;
-      case 'create-model-opus':
-        setScreen('create-api-key');
-        break;
-      case 'create-model-sonnet':
-        setScreen('create-model-opus');
-        break;
-      case 'create-model-haiku':
-        setScreen('create-model-sonnet');
-        break;
-      // Settings - back to home
-      case 'settings-root':
-      case 'settings-bin':
-        setScreen('home');
-        break;
-      // Model configuration screens - back through flow
-      case 'manage-models-opus':
-        setScreen('manage-actions');
-        break;
-      case 'manage-models-sonnet':
-        setScreen('manage-models-opus');
-        break;
-      case 'manage-models-haiku':
-        setScreen('manage-models-sonnet');
-        break;
-      case 'manage-models-done':
-        setScreen('manage-actions');
-        break;
-      // Completion/done screens - back to home
-      case 'create-done':
-      case 'manage-update-done':
-      case 'manage-tweak-done':
-      case 'manage-remove-done':
-      case 'updateAll-done':
-        setScreen('home');
-        break;
-      // Doctor screen - home
-      case 'doctor':
-        setScreen('home');
-        break;
-      // Default: any screen starting with create, manage, or updateAll goes home
-      default:
-        if (screen.startsWith('create') || screen.startsWith('manage') || screen.startsWith('updateAll')) {
-          setScreen('home');
-        }
-        break;
+    // Don't navigate back from progress screens
+    if (isProgressScreen(screen)) return;
+
+    // Handle home -> exit
+    if (screen === 'home') {
+      setScreenInternal('exit');
+      return;
     }
+
+    // Use route-based parent
+    const parent = getParentScreen(screen);
+    setScreenInternal(parent);
   }, [screen]);
 
   // Add a progress line
@@ -303,7 +251,7 @@ export function useCreateAppState(options: UseAppStateOptions): { state: AppStat
       setDoctorReport,
       resetWizard,
     }),
-    [navigateBack, addProgressLine, addExtraEnv, resetWizard]
+    [setScreen, navigateBack, addProgressLine, addExtraEnv, resetWizard]
   );
 
   return { state, actions };

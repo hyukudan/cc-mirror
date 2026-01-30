@@ -3,62 +3,10 @@
  */
 
 import type { DoctorReportItem, VariantEntry, VariantMeta } from '../../core/types.js';
+import type { Screen } from '../router/types.js';
 
-/**
- * All possible screens in the TUI
- */
-export type Screen =
-  // Home and exit
-  | 'home'
-  | 'exit'
-  // Quick setup flow
-  | 'quick-provider'
-  | 'quick-api-key'
-  | 'quick-model-opus'
-  | 'quick-model-sonnet'
-  | 'quick-model-haiku'
-  | 'quick-name'
-  // Advanced create flow
-  | 'create-provider'
-  | 'create-brand'
-  | 'create-name'
-  | 'create-base-url'
-  | 'create-api-key'
-  | 'create-model-opus'
-  | 'create-model-sonnet'
-  | 'create-model-haiku'
-  | 'create-prompt-pack'
-  // 'create-prompt-pack-mode' removed - promptPackMode is deprecated
-  | 'create-skill-install'
-  | 'create-team-mode'
-  | 'create-shell-env'
-  | 'create-env-confirm'
-  | 'create-env-add'
-  | 'create-summary'
-  | 'create-running'
-  | 'create-done'
-  // Manage flow
-  | 'manage'
-  | 'manage-actions'
-  | 'manage-update'
-  | 'manage-update-done'
-  | 'manage-tweak'
-  | 'manage-tweak-done'
-  | 'manage-remove'
-  | 'manage-remove-done'
-  | 'manage-models-opus'
-  | 'manage-models-sonnet'
-  | 'manage-models-haiku'
-  | 'manage-models-saving'
-  | 'manage-models-done'
-  // Update all
-  | 'updateAll'
-  | 'updateAll-done'
-  // Settings
-  | 'settings-root'
-  | 'settings-bin'
-  // Doctor
-  | 'doctor';
+// Re-export Screen type from router
+export type { Screen };
 
 /**
  * Selected variant with wrapper path
