@@ -490,19 +490,19 @@ npx cc-mirror tasks clean --resolved --older-than 7 --variant team
 
 ### Enterprise & Maintenance Tools
 
-| Command                          | Description                                        |
-| -------------------------------- | -------------------------------------------------- |
-| `npx cc-mirror doctor --strict`  | Enhanced health check with version comparison      |
-| `npx cc-mirror doctor --check-mcp` | Verify MCP server connectivity                   |
-| `npx cc-mirror mcp <name> check` | Health check all MCP servers in variant            |
-| `npx cc-mirror backup`           | Create full backup of ~/.cc-mirror                 |
-| `npx cc-mirror backup restore`   | Restore from backup archive                        |
-| `npx cc-mirror cleanup`          | Detect and archive unused variants                 |
-| `npx cc-mirror template`         | Save/load variant configurations as templates      |
-| `npx cc-mirror sync --diff`      | Preview changes before syncing                     |
-| `npx cc-mirror tasks template`   | Pre-defined task workflow templates                |
-| `npx cc-mirror skill <name>`     | Create and manage custom skills                    |
-| `npx cc-mirror registry`         | Curated MCP server catalog with one-click install  |
+| Command                            | Description                                       |
+| ---------------------------------- | ------------------------------------------------- |
+| `npx cc-mirror doctor --strict`    | Enhanced health check with version comparison     |
+| `npx cc-mirror doctor --check-mcp` | Verify MCP server connectivity                    |
+| `npx cc-mirror mcp <name> check`   | Health check all MCP servers in variant           |
+| `npx cc-mirror backup`             | Create full backup of ~/.cc-mirror                |
+| `npx cc-mirror backup restore`     | Restore from backup archive                       |
+| `npx cc-mirror cleanup`            | Detect and archive unused variants                |
+| `npx cc-mirror template`           | Save/load variant configurations as templates     |
+| `npx cc-mirror sync --diff`        | Preview changes before syncing                    |
+| `npx cc-mirror tasks template`     | Pre-defined task workflow templates               |
+| `npx cc-mirror skill <name>`       | Create and manage custom skills                   |
+| `npx cc-mirror registry`           | Curated MCP server catalog with one-click install |
 
 ### MCP Server Registry
 

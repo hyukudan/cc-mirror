@@ -48,7 +48,7 @@ The build uses a step-based pipeline where each step is isolated and can run syn
 3. CliPatch → patches cli.js for Ctrl+C handling
 4. WriteConfig → creates `settings.json`, `.claude.json`
 5. BrandTheme → creates `tweakcc/config.json` (MUST precede TeamMode)
-6. TeamMode → patches cli.js for Task* tools, configures toolset
+6. TeamMode → patches cli.js for Task\* tools, configures toolset
 7. Tweakcc → applies theme + system prompts
 8. Wrapper → creates `~/.local/bin/<name>`
 9. ShellEnv → adds API key to shell profile (zai only)
@@ -73,14 +73,14 @@ The build uses a step-based pipeline where each step is isolated and can run syn
 
 ### Key Modules
 
-| Module | Purpose |
-|--------|---------|
-| `src/providers/index.ts` | Provider definitions (baseUrl, models, auth) |
-| `src/brands/*.ts` | TweakCC themes + blocked tools per provider |
-| `src/core/variant-builder/` | Step-based build orchestration |
-| `src/core/prompt-pack/` | Per-provider system prompt overlays |
-| `src/team-pack/` | Team mode prompt files + toolset config |
-| `src/tui/` | Ink-based terminal wizard |
+| Module                      | Purpose                                      |
+| --------------------------- | -------------------------------------------- |
+| `src/providers/index.ts`    | Provider definitions (baseUrl, models, auth) |
+| `src/brands/*.ts`           | TweakCC themes + blocked tools per provider  |
+| `src/core/variant-builder/` | Step-based build orchestration               |
+| `src/core/prompt-pack/`     | Per-provider system prompt overlays          |
+| `src/team-pack/`            | Team mode prompt files + toolset config      |
+| `src/tui/`                  | Ink-based terminal wizard                    |
 
 ### Team Mode
 
