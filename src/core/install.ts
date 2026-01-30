@@ -3,6 +3,37 @@ import path from 'node:path';
 import { spawn, spawnSync } from 'node:child_process';
 import { commandExists } from './paths.js';
 
+export type PackageManager = 'bun' | 'pnpm' | 'yarn' | 'npm';
+
+/**
+ * Detect the fastest available package manager
+ * Priority: bun → pnpm → yarn → npm (fallback)
+ */
+export const detectPackageManager = (): PackageManager => {
+  if (commandExists('bun')) return 'bun';
+  if (commandExists('pnpm')) return 'pnpm';
+  if (commandExists('yarn')) return 'yarn';
+  if (commandExists('npm')) return 'npm';
+  throw new Error('No package manager found. Please install npm, yarn, pnpm, or bun.');
+};
+
+/**
+ * Get the install command args for a package manager
+ */
+export const getInstallArgs = (pm: PackageManager, npmDir: string, pkgSpec: string): string[] => {
+  switch (pm) {
+    case 'bun':
+      return ['add', '--cwd', npmDir, pkgSpec];
+    case 'pnpm':
+      return ['add', '--dir', npmDir, pkgSpec];
+    case 'yarn':
+      return ['add', '--cwd', npmDir, pkgSpec];
+    case 'npm':
+    default:
+      return ['install', '--prefix', npmDir, '--no-save', pkgSpec];
+  }
+};
+
 export const resolveNpmCliPath = (npmDir: string, npmPackage: string): string => {
   const packageParts = npmPackage.split('/');
   return path.join(npmDir, 'node_modules', ...packageParts, 'cli.js');
@@ -54,11 +85,11 @@ const buildWindowsInstallHints = (output: string): string[] => {
   return Array.from(hints);
 };
 
-const formatNpmInstallError = (pkgSpec: string, output: string): string => {
+const formatInstallError = (pm: PackageManager, pkgSpec: string, output: string): string => {
   const tail = output.length > 0 ? `\n${output}` : '';
   const hints = buildWindowsInstallHints(output);
   const hintText = hints.length > 0 ? `\n\nWindows tips:\n${hints.map((hint) => `- ${hint}`).join('\n')}` : '';
-  return `npm install failed for ${pkgSpec}.${tail}${hintText}`;
+  return `${pm} install failed for ${pkgSpec}.${tail}${hintText}`;
 };
 
 const ensureNpmManifest = (npmDir: string) => {
@@ -68,24 +99,22 @@ const ensureNpmManifest = (npmDir: string) => {
   }
 };
 
-const buildInstallArgs = (npmDir: string, pkgSpec: string) => {
-  return ['install', '--prefix', npmDir, '--no-save', pkgSpec];
-};
-
 export const installNpmClaude = (params: {
   npmDir: string;
   npmPackage: string;
   npmVersion: string;
   stdio?: 'inherit' | 'pipe';
-}): { cliPath: string } => {
-  if (!commandExists('npm')) {
-    throw new Error('npm is required for npm-based installs.');
-  }
-
+}): { cliPath: string; packageManager: PackageManager } => {
+  const pm = detectPackageManager();
   const stdio = params.stdio ?? 'inherit';
   const pkgSpec = params.npmVersion ? `${params.npmPackage}@${params.npmVersion}` : params.npmPackage;
+
+  if (stdio === 'inherit') {
+    console.log(`Using ${pm} for installation...`);
+  }
+
   ensureNpmManifest(params.npmDir);
-  const result = spawnSync('npm', buildInstallArgs(params.npmDir, pkgSpec), {
+  const result = spawnSync(pm, getInstallArgs(pm, params.npmDir, pkgSpec), {
     stdio: 'pipe',
     encoding: 'utf8',
     cwd: params.npmDir,
@@ -99,15 +128,15 @@ export const installNpmClaude = (params: {
 
   if (result.status !== 0) {
     const output = `${result.stderr ?? ''}\n${result.stdout ?? ''}`.trim();
-    throw new Error(formatNpmInstallError(pkgSpec, output));
+    throw new Error(formatInstallError(pm, pkgSpec, output));
   }
 
   const cliPath = resolveNpmCliPath(params.npmDir, params.npmPackage);
   if (!fs.existsSync(cliPath)) {
-    throw new Error(`npm install succeeded but cli.js was not found at ${cliPath}`);
+    throw new Error(`${pm} install succeeded but cli.js was not found at ${cliPath}`);
   }
 
-  return { cliPath };
+  return { cliPath, packageManager: pm };
 };
 
 /**
@@ -118,17 +147,25 @@ export const installNpmClaudeAsync = (params: {
   npmPackage: string;
   npmVersion: string;
   stdio?: 'inherit' | 'pipe';
-}): Promise<{ cliPath: string }> => {
+}): Promise<{ cliPath: string; packageManager: PackageManager }> => {
   return new Promise((resolve, reject) => {
-    if (!commandExists('npm')) {
-      reject(new Error('npm is required for npm-based installs.'));
+    let pm: PackageManager;
+    try {
+      pm = detectPackageManager();
+    } catch (err) {
+      reject(err);
       return;
     }
 
     const stdio = params.stdio ?? 'inherit';
     const pkgSpec = params.npmVersion ? `${params.npmPackage}@${params.npmVersion}` : params.npmPackage;
+
+    if (stdio === 'inherit') {
+      console.log(`Using ${pm} for installation...`);
+    }
+
     ensureNpmManifest(params.npmDir);
-    const child = spawn('npm', buildInstallArgs(params.npmDir, pkgSpec), {
+    const child = spawn(pm, getInstallArgs(pm, params.npmDir, pkgSpec), {
       stdio: 'pipe',
       cwd: params.npmDir,
       shell: process.platform === 'win32',
@@ -150,21 +187,21 @@ export const installNpmClaudeAsync = (params: {
     child.on('close', (code) => {
       if (code !== 0) {
         const output = `${stderr}\n${stdout}`.trim();
-        reject(new Error(formatNpmInstallError(pkgSpec, output)));
+        reject(new Error(formatInstallError(pm, pkgSpec, output)));
         return;
       }
 
       const cliPath = resolveNpmCliPath(params.npmDir, params.npmPackage);
       if (!fs.existsSync(cliPath)) {
-        reject(new Error(`npm install succeeded but cli.js was not found at ${cliPath}`));
+        reject(new Error(`${pm} install succeeded but cli.js was not found at ${cliPath}`));
         return;
       }
 
-      resolve({ cliPath });
+      resolve({ cliPath, packageManager: pm });
     });
 
     child.on('error', (err) => {
-      reject(new Error(`Failed to spawn npm: ${err.message}`));
+      reject(new Error(`Failed to spawn ${pm}: ${err.message}`));
     });
   });
 };

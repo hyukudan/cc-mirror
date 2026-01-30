@@ -2,11 +2,13 @@
  * Template command - save/load variant configurations as templates
  *
  * Usage:
- *   cc-mirror template list                  List available templates
+ *   cc-mirror template list                  List available templates (predefined + custom)
  *   cc-mirror template save <name> <variant> Save variant config as template
  *   cc-mirror template show <name>           Show template details
  *   cc-mirror template apply <name> <variant> Apply template to new variant
- *   cc-mirror template remove <name>         Delete a template
+ *   cc-mirror template remove <name>         Delete a custom template
+ *
+ * Predefined templates: startup, enterprise, research
  */
 
 import fs from 'node:fs';
@@ -16,6 +18,10 @@ import { listMcpServers, type McpServerConfig } from '../../core/claude-config.j
 import { readJson, writeJson } from '../../core/fs.js';
 import type { VariantMeta, VariantConfig } from '../../core/types.js';
 import type { ParsedArgs } from '../args.js';
+import {
+  getTemplate as getPredefinedTemplate,
+  listTemplates as listPredefinedTemplates,
+} from '../../core/templates/index.js';
 
 export interface TemplateCommandOptions {
   opts: ParsedArgs;
@@ -55,11 +61,16 @@ USAGE:
   npx cc-mirror template [operation] [args]
 
 OPERATIONS:
-  list                          List available templates
+  list                          List available templates (predefined + custom)
   save <name> <variant>         Save variant config as template
   show <name>                   Show template details
   apply <name> <new-variant>    Create variant from template
-  remove <name>                 Delete a template
+  remove <name>                 Delete a custom template
+
+PREDEFINED TEMPLATES:
+  startup                       Fast iteration, cost-effective setup
+  enterprise                    Full compliance, team mode enabled
+  research                      Advanced models, extended context
 
 OPTIONS:
   --description <text>          Template description (save)
@@ -67,8 +78,9 @@ OPTIONS:
 
 EXAMPLES:
   npx cc-mirror template list
+  npx cc-mirror template show startup
+  npx cc-mirror create --template startup --name my-startup
   npx cc-mirror template save my-setup zai --description "My custom setup"
-  npx cc-mirror template show my-setup
   npx cc-mirror template apply my-setup new-variant
   npx cc-mirror template remove my-setup
 `);
@@ -95,7 +107,7 @@ function saveTemplate(template: VariantTemplate): void {
   writeJson(templatePath, template);
 }
 
-function listTemplates(): VariantTemplate[] {
+function listCustomTemplates(): VariantTemplate[] {
   const templatesDir = getTemplatesDir();
   if (!fs.existsSync(templatesDir)) return [];
 
@@ -127,25 +139,49 @@ export function runTemplateCommand({ opts }: TemplateCommandOptions): void {
 
   switch (operation) {
     case 'list': {
-      const templates = listTemplates();
+      const customTemplates = listCustomTemplates();
+      const predefined = listPredefinedTemplates();
+
       if (outputJson) {
-        console.log(JSON.stringify(templates, null, 2));
+        const allTemplates = {
+          predefined: predefined.map((t) => ({
+            name: t.key,
+            description: t.description,
+            provider: t.provider,
+            type: 'predefined',
+            tags: t.tags,
+          })),
+          custom: customTemplates.map((t) => ({
+            ...t,
+            type: 'custom',
+          })),
+        };
+        console.log(JSON.stringify(allTemplates, null, 2));
         return;
       }
-      if (templates.length === 0) {
-        console.log('No templates found.');
-        console.log(`Templates are stored in: ${getTemplatesDir()}`);
-        return;
+
+      // Show predefined templates
+      console.log('Predefined templates:\n');
+      for (const t of predefined) {
+        const tags = t.tags.length > 0 ? ` [${t.tags.join(', ')}]` : '';
+        console.log(`  ${t.key.padEnd(12)} - ${t.description}`);
+        console.log(`    provider: ${t.provider}, team-mode: ${t.enableTeamMode ? 'yes' : 'no'}${tags}`);
       }
-      console.log('Available templates:\n');
-      for (const t of templates) {
-        const desc = t.description ? ` - ${t.description}` : '';
-        const mcpCount = t.mcpServers ? Object.keys(t.mcpServers).length : 0;
-        const details = [`provider: ${t.provider}`];
-        if (mcpCount > 0) details.push(`${mcpCount} MCP server(s)`);
-        console.log(`  ${t.name}${desc}`);
-        console.log(`    ${details.join(', ')}`);
+
+      // Show custom templates
+      if (customTemplates.length > 0) {
+        console.log('\nCustom templates:\n');
+        for (const t of customTemplates) {
+          const desc = t.description ? ` - ${t.description}` : '';
+          const mcpCount = t.mcpServers ? Object.keys(t.mcpServers).length : 0;
+          const details = [`provider: ${t.provider}`];
+          if (mcpCount > 0) details.push(`${mcpCount} MCP server(s)`);
+          console.log(`  ${t.name}${desc}`);
+          console.log(`    ${details.join(', ')}`);
+        }
       }
+
+      console.log(`\nUse: npx cc-mirror create --template <name> --name <variant-name>`);
       return;
     }
 
@@ -228,6 +264,34 @@ export function runTemplateCommand({ opts }: TemplateCommandOptions): void {
         return;
       }
 
+      // Check predefined templates first
+      const predefined = getPredefinedTemplate(templateName);
+      if (predefined) {
+        if (outputJson) {
+          console.log(JSON.stringify(predefined, null, 2));
+          return;
+        }
+        console.log(`Template: ${predefined.name} (predefined)`);
+        console.log(`Description: ${predefined.description}`);
+        console.log(`Provider: ${predefined.provider}`);
+        if (predefined.brand) console.log(`Brand: ${predefined.brand}`);
+        console.log(`Team Mode: ${predefined.enableTeamMode ? 'enabled' : 'disabled'}`);
+        console.log(`Prompt Pack: ${predefined.promptPack ? 'enabled' : 'disabled'}`);
+        console.log(`Skill Install: ${predefined.skillInstall ? 'enabled' : 'disabled'}`);
+        if (predefined.tags.length > 0) {
+          console.log(`Tags: ${predefined.tags.join(', ')}`);
+        }
+        if (predefined.modelHints) {
+          console.log(`\nModel Hints:`);
+          if (predefined.modelHints.sonnet) console.log(`  Sonnet: ${predefined.modelHints.sonnet}`);
+          if (predefined.modelHints.opus) console.log(`  Opus: ${predefined.modelHints.opus}`);
+          if (predefined.modelHints.haiku) console.log(`  Haiku: ${predefined.modelHints.haiku}`);
+        }
+        console.log(`\nUsage: npx cc-mirror create --template ${predefined.key} --name <variant-name> --api-key <key>`);
+        return;
+      }
+
+      // Check custom templates
       const template = loadTemplate(templateName);
       if (!template) {
         console.error(`Error: Template not found: ${templateName}`);
@@ -240,7 +304,7 @@ export function runTemplateCommand({ opts }: TemplateCommandOptions): void {
         return;
       }
 
-      console.log(`Template: ${template.name}`);
+      console.log(`Template: ${template.name} (custom)`);
       if (template.description) console.log(`Description: ${template.description}`);
       console.log(`Created: ${template.createdAt}`);
       console.log(`Source variant: ${template.sourceVariant}`);

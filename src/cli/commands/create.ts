@@ -16,6 +16,7 @@ import {
   requirePrompt,
   buildExtraEnv,
 } from '../utils/index.js';
+import { getTemplate as getPredefinedTemplate, type Template } from '../../core/templates/index.js';
 
 export interface CreateCommandOptions {
   opts: ParsedArgs;
@@ -66,8 +67,23 @@ const promptForValidVariantName = async (
 /**
  * Prepare common parameters for create command
  */
-async function prepareCreateParams(opts: ParsedArgs): Promise<CreateParams> {
+async function prepareCreateParams(opts: ParsedArgs): Promise<CreateParams & { template?: Template }> {
+  // Check for template first
+  const templateName = opts.template as string | undefined;
+  let template: Template | undefined;
+  if (templateName) {
+    template = getPredefinedTemplate(templateName);
+    if (!template) {
+      throw new Error(`Unknown template: ${templateName}. Use 'cc-mirror template list' to see available templates.`);
+    }
+    console.log(`Using template: ${template.name} - ${template.description}`);
+  }
+
+  // Provider from template or opts
   let providerKey = opts.provider as string | undefined;
+  if (!providerKey && template) {
+    providerKey = template.provider;
+  }
   if (!providerKey && !opts.yes) {
     const providers = listProviders()
       .map((p) => p.key)
@@ -98,7 +114,7 @@ async function prepareCreateParams(opts: ParsedArgs): Promise<CreateParams> {
     console.log('Detected Z_AI_BASE_URL in environment. Using it by default.');
   }
 
-  const brand = (opts.brand as string) || 'auto';
+  const brand = (opts.brand as string) || template?.brand || 'auto';
   const rootDir = (opts.root as string) || core.DEFAULT_ROOT;
   const binDir = (opts['bin-dir'] as string) || core.DEFAULT_BIN_DIR;
   const npmPackage = (opts['npm-package'] as string) || core.DEFAULT_NPM_PACKAGE;
@@ -124,19 +140,29 @@ async function prepareCreateParams(opts: ParsedArgs): Promise<CreateParams> {
     requiresCredential,
     shouldPromptApiKey,
     hasZaiEnv,
+    template,
   };
 }
 
 /**
  * Handle quick mode creation (simplified prompts)
  */
-async function handleQuickMode(opts: ParsedArgs, params: CreateParams): Promise<void> {
-  const { provider } = params;
-  const promptPack = opts['no-prompt-pack'] ? false : undefined;
-  const skillInstall = opts['no-skill-install'] ? false : undefined;
+async function handleQuickMode(opts: ParsedArgs, params: CreateParams & { template?: Template }): Promise<void> {
+  const { provider, template } = params;
+  // Apply template settings with CLI flags taking precedence
+  const promptPack = opts['no-prompt-pack'] ? false : (template?.promptPack ?? undefined);
+  const skillInstall = opts['no-skill-install'] ? false : (template?.skillInstall ?? undefined);
   const skillUpdate = Boolean(opts['skill-update']);
   let shellEnv = opts['no-shell-env'] ? false : opts['shell-env'] ? true : undefined;
   const modelOverrides = getModelOverridesFromArgs(opts);
+
+  // Apply template model hints if no overrides specified
+  if (template?.modelHints) {
+    if (!modelOverrides.sonnet && template.modelHints.sonnet) modelOverrides.sonnet = template.modelHints.sonnet;
+    if (!modelOverrides.opus && template.modelHints.opus) modelOverrides.opus = template.modelHints.opus;
+    if (!modelOverrides.haiku && template.modelHints.haiku) modelOverrides.haiku = template.modelHints.haiku;
+  }
+
   const name = await promptForValidVariantName('Variant name', params.name, opts, false);
 
   let apiKey = params.apiKey;
@@ -163,11 +189,19 @@ async function handleQuickMode(opts: ParsedArgs, params: CreateParams): Promise<
     }
   }
 
-  // Team mode enabled by default for quick setup (use --disable-team-mode to opt out)
-  const enableTeamMode = opts['disable-team-mode'] ? false : true;
+  // Team mode: use template setting if available, otherwise default to true
+  const enableTeamMode = opts['disable-team-mode']
+    ? false
+    : opts['enable-team-mode']
+      ? true
+      : (template?.enableTeamMode ?? true);
   if (enableTeamMode) {
     console.log('Team mode will be enabled (orchestrator + task-manager skills installed)');
   }
+
+  // Merge template extra env with params.extraEnv
+  const templateEnvEntries = template?.extraEnv ? Object.entries(template.extraEnv).map(([k, v]) => `${k}=${v}`) : [];
+  const mergedExtraEnv = [...templateEnvEntries, ...params.extraEnv];
 
   const result = core.createVariant({
     name,
@@ -175,7 +209,7 @@ async function handleQuickMode(opts: ParsedArgs, params: CreateParams): Promise<
     baseUrl: params.baseUrl,
     apiKey,
     brand: params.brand,
-    extraEnv: params.extraEnv,
+    extraEnv: mergedExtraEnv,
     rootDir: params.rootDir,
     binDir: params.binDir,
     npmPackage: params.npmPackage,
@@ -203,13 +237,20 @@ async function handleQuickMode(opts: ParsedArgs, params: CreateParams): Promise<
 /**
  * Handle interactive mode creation (full prompts)
  */
-async function handleInteractiveMode(opts: ParsedArgs, params: CreateParams): Promise<void> {
-  const { provider } = params;
-  const promptPack = opts['no-prompt-pack'] ? false : undefined;
-  const skillInstall = opts['no-skill-install'] ? false : undefined;
+async function handleInteractiveMode(opts: ParsedArgs, params: CreateParams & { template?: Template }): Promise<void> {
+  const { provider, template } = params;
+  const promptPack = opts['no-prompt-pack'] ? false : (template?.promptPack ?? undefined);
+  const skillInstall = opts['no-skill-install'] ? false : (template?.skillInstall ?? undefined);
   const skillUpdate = Boolean(opts['skill-update']);
   let shellEnv = opts['no-shell-env'] ? false : opts['shell-env'] ? true : undefined;
   const modelOverrides = getModelOverridesFromArgs(opts);
+
+  // Apply template model hints if no overrides specified
+  if (template?.modelHints) {
+    if (!modelOverrides.sonnet && template.modelHints.sonnet) modelOverrides.sonnet = template.modelHints.sonnet;
+    if (!modelOverrides.opus && template.modelHints.opus) modelOverrides.opus = template.modelHints.opus;
+    if (!modelOverrides.haiku && template.modelHints.haiku) modelOverrides.haiku = template.modelHints.haiku;
+  }
 
   const nextName = await promptForValidVariantName('Variant name', params.name, opts, true);
   const nextBase = await prompt('ANTHROPIC_BASE_URL', params.baseUrl);
@@ -250,14 +291,18 @@ async function handleInteractiveMode(opts: ParsedArgs, params: CreateParams): Pr
     }
   }
 
-  // Team mode: enabled by default, can opt-out with --disable-team-mode or answer no to prompt
-  let enableTeamMode = true;
+  // Team mode: use template setting if available, otherwise prompt
+  let enableTeamMode = template?.enableTeamMode ?? true;
   if (opts['disable-team-mode']) {
     enableTeamMode = false;
-  } else if (!opts['enable-team-mode']) {
+  } else if (!opts['enable-team-mode'] && !template) {
     const answer = await prompt('Enable team mode (multi-agent collaboration)? (yes/no)', 'yes');
     enableTeamMode = answer.trim().toLowerCase().startsWith('y');
   }
+
+  // Merge template extra env with parsedEnv
+  const templateEnvEntries = template?.extraEnv ? Object.entries(template.extraEnv).map(([k, v]) => `${k}=${v}`) : [];
+  const mergedExtraEnv = [...templateEnvEntries, ...parsedEnv];
 
   const result = core.createVariant({
     name: nextName,
@@ -265,7 +310,7 @@ async function handleInteractiveMode(opts: ParsedArgs, params: CreateParams): Pr
     baseUrl: nextBase,
     apiKey: nextKey,
     brand: nextBrand,
-    extraEnv: parsedEnv,
+    extraEnv: mergedExtraEnv,
     rootDir: nextRoot,
     binDir: nextBin,
     npmPackage: nextNpmPackage,
@@ -293,12 +338,24 @@ async function handleInteractiveMode(opts: ParsedArgs, params: CreateParams): Pr
 /**
  * Handle non-interactive mode creation (--yes flag)
  */
-async function handleNonInteractiveMode(opts: ParsedArgs, params: CreateParams): Promise<void> {
-  const promptPack = opts['no-prompt-pack'] ? false : undefined;
-  const skillInstall = opts['no-skill-install'] ? false : undefined;
+async function handleNonInteractiveMode(
+  opts: ParsedArgs,
+  params: CreateParams & { template?: Template }
+): Promise<void> {
+  const { template } = params;
+  const promptPack = opts['no-prompt-pack'] ? false : (template?.promptPack ?? undefined);
+  const skillInstall = opts['no-skill-install'] ? false : (template?.skillInstall ?? undefined);
   const skillUpdate = Boolean(opts['skill-update']);
   const shellEnv = opts['no-shell-env'] ? false : opts['shell-env'] ? true : undefined;
   const modelOverrides = getModelOverridesFromArgs(opts);
+
+  // Apply template model hints if no overrides specified
+  if (template?.modelHints) {
+    if (!modelOverrides.sonnet && template.modelHints.sonnet) modelOverrides.sonnet = template.modelHints.sonnet;
+    if (!modelOverrides.opus && template.modelHints.opus) modelOverrides.opus = template.modelHints.opus;
+    if (!modelOverrides.haiku && template.modelHints.haiku) modelOverrides.haiku = template.modelHints.haiku;
+  }
+
   const name = assertValidVariantName(params.name);
 
   if (params.requiresCredential && !params.apiKey) {
@@ -307,8 +364,16 @@ async function handleNonInteractiveMode(opts: ParsedArgs, params: CreateParams):
 
   const resolvedModelOverrides = await ensureModelMapping(params.providerKey, opts, { ...modelOverrides });
 
-  // Team mode enabled by default (use --disable-team-mode to opt out)
-  const enableTeamMode = opts['disable-team-mode'] ? false : true;
+  // Team mode: use template setting if available, otherwise default to true
+  const enableTeamMode = opts['disable-team-mode']
+    ? false
+    : opts['enable-team-mode']
+      ? true
+      : (template?.enableTeamMode ?? true);
+
+  // Merge template extra env with params.extraEnv
+  const templateEnvEntries = template?.extraEnv ? Object.entries(template.extraEnv).map(([k, v]) => `${k}=${v}`) : [];
+  const mergedExtraEnv = [...templateEnvEntries, ...params.extraEnv];
 
   const result = core.createVariant({
     name,
@@ -316,7 +381,7 @@ async function handleNonInteractiveMode(opts: ParsedArgs, params: CreateParams):
     baseUrl: params.baseUrl,
     apiKey: params.apiKey,
     brand: params.brand,
-    extraEnv: params.extraEnv,
+    extraEnv: mergedExtraEnv,
     rootDir: params.rootDir,
     binDir: params.binDir,
     npmPackage: params.npmPackage,
