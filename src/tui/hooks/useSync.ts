@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react';
+import type { Screen } from '../router/types.js';
 import path from 'node:path';
 import type { SyncItem, SyncOptions, SyncResult } from '../../core/sync.js';
 import { syncVariantsAsync } from '../../core/sync.js';
@@ -11,7 +12,7 @@ export interface UseSyncOptions {
   targetVariants: string[];
   syncItems: SyncItem[];
   setProgressLines: (updater: (prev: string[]) => string[]) => void;
-  setScreen: (screen: string) => void;
+  setScreen: (screen: Screen) => void;
   onComplete: (result: CompletionResult) => void;
 }
 

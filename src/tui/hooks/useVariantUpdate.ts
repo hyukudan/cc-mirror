@@ -4,6 +4,7 @@
  */
 
 import { useEffect, useRef } from 'react';
+import type { Screen } from '../router/types.js';
 import path from 'node:path';
 import type { VariantMeta } from '../../core/types.js';
 import type { CoreModule } from '../app.js';
@@ -21,7 +22,7 @@ export interface UseVariantUpdateOptions {
   binDir: string;
   core: CoreModule;
   setProgressLines: (updater: (prev: string[]) => string[]) => void;
-  setScreen: (screen: string) => void;
+  setScreen: (screen: Screen) => void;
   onComplete: (result: CompletionResult) => void;
 }
 

@@ -3,6 +3,7 @@
  */
 
 import type { ProviderTemplate } from '../../providers/index.js';
+import type { Screen } from '../router/types.js';
 
 /**
  * Completion result data
@@ -61,7 +62,7 @@ export interface CreateVariantParams {
 export interface OperationCallbacks {
   setProgressLines: (lines: string[]) => void;
   addProgressLine: (line: string) => void;
-  setScreen: (screen: string) => void;
+  setScreen: (screen: Screen) => void;
   onComplete: (result: CompletionResult) => void;
   onError: (error: string) => void;
 }

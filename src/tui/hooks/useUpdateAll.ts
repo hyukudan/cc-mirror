@@ -4,6 +4,7 @@
  */
 
 import { useEffect, useRef } from 'react';
+import type { Screen } from '../router/types.js';
 import type { CoreModule } from '../app.js';
 import type { CompletionResult } from './types.js';
 import { buildHelpLines } from './useVariantCreate.js';
@@ -14,7 +15,7 @@ export interface UseUpdateAllOptions {
   binDir: string;
   core: CoreModule;
   setProgressLines: (updater: (prev: string[]) => string[]) => void;
-  setScreen: (screen: string) => void;
+  setScreen: (screen: Screen) => void;
   onComplete: (result: CompletionResult) => void;
 }
 

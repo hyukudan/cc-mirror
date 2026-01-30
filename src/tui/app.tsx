@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Box, Text, useApp, useInput } from 'ink';
+import { Box, Text, useApp } from 'ink';
 import SelectInput from 'ink-select-input';
 import path from 'node:path';
 import { applyPathUpdate } from '../cli/commands/path.js';
@@ -16,9 +16,12 @@ import type {
 import * as defaultCore from '../core/index.js';
 import { assertValidVariantName } from '../core/validation.js';
 import * as defaultProviders from '../providers/index.js';
-// State management and router modules (available for future refactoring)
+// State management (available for future refactoring)
 // import { useCreateAppState, getProviderDefaults, resolveZaiApiKey } from './state/index.js';
-// import { useEscapeNavigation } from './router/index.js';
+
+// Router modules
+import { useEscapeNavigation } from './router/useEscapeNavigation.js';
+import type { Screen } from './router/types.js';
 
 // Business logic hooks
 import {
@@ -213,7 +216,9 @@ export const App: React.FC<AppProps> = ({
   const { exit } = useApp();
 
   // No splash screen for clean UI
-  const [screen, setScreen] = useState('home');
+  const [screen, setScreenState] = useState<Screen>('home');
+  // Wrapper with simple function signature for hooks
+  const setScreen = useCallback((s: Screen) => setScreenState(s), []);
   const [providerKey, setProviderKey] = useState<string | null>(null);
   const [brandKey, setBrandKey] = useState('auto');
   const [name, setName] = useState('');
@@ -318,99 +323,8 @@ export const App: React.FC<AppProps> = ({
     return 'npx cc-mirror path --apply';
   };
 
-  useInput((input, key) => {
-    if (key.escape) {
-      // ESC key navigation - handle all screens
-      switch (screen) {
-        case 'home':
-          setScreen('exit');
-          break;
-        // Quick setup flow - back steps
-        case 'quick-intro':
-          setScreen('quick-provider');
-          break;
-        case 'quick-ccrouter-url':
-          setScreen('quick-intro');
-          break;
-        case 'quick-api-key':
-          setScreen('quick-intro');
-          break;
-        case 'quick-models':
-          setScreen('quick-api-key');
-          break;
-        case 'quick-name':
-          if (providerKey === 'ccrouter') {
-            setScreen('quick-ccrouter-url');
-          } else {
-            setScreen(provider?.requiresModelMapping ? 'quick-models' : 'quick-api-key');
-          }
-          break;
-        case 'quick-provider':
-          setScreen('home');
-          break;
-        // Create flow - back steps
-        case 'create-intro':
-          setScreen('create-provider');
-          break;
-        case 'create-brand':
-          setScreen('create-intro');
-          break;
-        case 'create-ccrouter-url':
-          setScreen('create-name');
-          break;
-        case 'create-models':
-          setScreen('create-api-key');
-          break;
-        case 'create-team-mode':
-          setScreen('create-skill-install');
-          break;
-        // Model configuration screens - back through flow
-        case 'manage-models':
-          setScreen('manage-actions');
-          break;
-        case 'manage-models-done':
-          setScreen('manage-actions');
-          break;
-        // Sync screens - back steps
-        case 'sync-source':
-          setScreen('home');
-          break;
-        case 'sync-items':
-          setScreen('sync-source');
-          break;
-        case 'sync-targets':
-          setScreen('sync-items');
-          break;
-        case 'sync-running':
-          break;
-        // Completion/done screens - back to home
-        case 'create-done':
-        case 'manage-update-done':
-        case 'manage-launch-done':
-        case 'manage-path-done':
-        case 'manage-tweak-done':
-        case 'manage-remove-done':
-        case 'updateAll-done':
-        case 'sync-done':
-          setScreen('home');
-          break;
-        // Doctor screen - home
-        case 'doctor':
-          setScreen('home');
-          break;
-        // Feedback screen - home
-        case 'feedback':
-          setScreen('home');
-          break;
-        // Default: any screen starting with create, manage, or updateAll goes home
-        default:
-          if (screen.startsWith('create') || screen.startsWith('manage') || screen.startsWith('updateAll')) {
-            setScreen('home');
-          }
-          break;
-      }
-    }
-  });
+  // ESC key navigation - uses declarative route definitions
+  useEscapeNavigation({ screen, provider: provider ?? null, setScreen });
 
   useEffect(() => {
     if (screen === 'manage' || screen === 'sync-source') {
@@ -511,6 +425,7 @@ export const App: React.FC<AppProps> = ({
     setCompletionNextSteps(['Exit this TUI first (press ESC or q)', 'Then run the command above in your terminal']);
     setCompletionHelp(['tweakcc lets you customize themes, overlays, and more']);
     setScreen('manage-tweak-done');
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- setScreen excluded to prevent infinite loop
   }, [screen, selectedVariant]);
 
   useEffect(() => {
@@ -521,6 +436,7 @@ export const App: React.FC<AppProps> = ({
     setCompletionNextSteps(['Exit this TUI first (press ESC or q)', 'Then run the command above in your terminal']);
     setCompletionHelp(['Launching from inside the TUI is not supported.']);
     setScreen('manage-launch-done');
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- setScreen excluded to prevent infinite loop
   }, [screen, selectedVariant]);
 
   useEffect(() => {
@@ -544,6 +460,7 @@ export const App: React.FC<AppProps> = ({
       setCompletionHelp([result.message]);
     }
     setScreen('manage-path-done');
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- setScreen excluded to prevent infinite loop
   }, [screen, binDir]);
 
   // Save model configuration operation (extracted to useModelConfig hook)

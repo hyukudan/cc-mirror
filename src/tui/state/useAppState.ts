@@ -6,6 +6,9 @@
 import { useState, useCallback, useMemo } from 'react';
 import type { Screen, AppState, AppActions, CompletionData, SelectedVariant, ProviderDefaults } from './types.js';
 import type { DoctorReportItem, VariantEntry } from '../../core/types.js';
+import type { SyncItem } from '../../core/sync.js';
+
+const DEFAULT_SYNC_ITEMS: SyncItem[] = ['skills', 'mcp-servers', 'permissions', 'claude-md'];
 import { getParentScreen, isProgressScreen } from '../router/routes.js';
 
 /**
@@ -80,7 +83,6 @@ export function useCreateAppState(options: UseAppStateOptions): { state: AppStat
   const [npmPackage, setNpmPackage] = useState(defaultNpmPackage);
 
   // Feature flags
-  const [useTweak, setUseTweak] = useState(true);
   const [usePromptPack, setUsePromptPack] = useState(true);
   // promptPackMode is deprecated - always 'minimal'
   const promptPackMode = 'minimal' as const;
@@ -104,6 +106,17 @@ export function useCreateAppState(options: UseAppStateOptions): { state: AppStat
   // Doctor
   const [doctorReport, setDoctorReport] = useState<DoctorReportItem[]>([]);
 
+  // UI state
+  const [nameError, setNameError] = useState<string | null>(null);
+
+  // Team mode
+  const [enableTeamMode, setEnableTeamMode] = useState(true);
+
+  // Sync flow
+  const [syncSourceVariant, setSyncSourceVariant] = useState('');
+  const [syncTargetVariants, setSyncTargetVariants] = useState<string[]>([]);
+  const [syncItems, setSyncItems] = useState<SyncItem[]>(DEFAULT_SYNC_ITEMS);
+
   // Screen setter with type safety
   const setScreen = useCallback((newScreen: Screen) => {
     setScreenInternal(newScreen);
@@ -122,13 +135,20 @@ export function useCreateAppState(options: UseAppStateOptions): { state: AppStat
     setApiKeyDetectedFrom(null);
     setNpmPackage(defaultNpmPackage);
     setExtraEnv([]);
-    setUseTweak(true);
     setUsePromptPack(true);
     // promptPackMode is deprecated - no need to reset
     setInstallSkill(true);
     setShellEnv(true);
     setSkillUpdate(false);
     setCompletion(defaultCompletion);
+    // UI state
+    setNameError(null);
+    // Team mode
+    setEnableTeamMode(true);
+    // Sync flow
+    setSyncSourceVariant('');
+    setSyncTargetVariants([]);
+    setSyncItems(DEFAULT_SYNC_ITEMS);
   }, [defaultNpmPackage]);
 
   // Navigate back based on current screen using route definitions
@@ -173,7 +193,6 @@ export function useCreateAppState(options: UseAppStateOptions): { state: AppStat
       rootDir,
       binDir,
       npmPackage,
-      useTweak,
       usePromptPack,
       promptPackMode,
       installSkill,
@@ -186,6 +205,11 @@ export function useCreateAppState(options: UseAppStateOptions): { state: AppStat
       variants,
       selectedVariant,
       doctorReport,
+      nameError,
+      enableTeamMode,
+      syncSourceVariant,
+      syncTargetVariants,
+      syncItems,
     }),
     [
       screen,
@@ -201,7 +225,6 @@ export function useCreateAppState(options: UseAppStateOptions): { state: AppStat
       rootDir,
       binDir,
       npmPackage,
-      useTweak,
       usePromptPack,
       promptPackMode,
       installSkill,
@@ -214,6 +237,11 @@ export function useCreateAppState(options: UseAppStateOptions): { state: AppStat
       variants,
       selectedVariant,
       doctorReport,
+      nameError,
+      enableTeamMode,
+      syncSourceVariant,
+      syncTargetVariants,
+      syncItems,
     ]
   );
 
@@ -234,7 +262,6 @@ export function useCreateAppState(options: UseAppStateOptions): { state: AppStat
       setRootDir,
       setBinDir,
       setNpmPackage,
-      setUseTweak,
       setUsePromptPack,
       setPromptPackMode,
       setInstallSkill,
@@ -249,6 +276,11 @@ export function useCreateAppState(options: UseAppStateOptions): { state: AppStat
       setVariants,
       setSelectedVariant,
       setDoctorReport,
+      setNameError,
+      setEnableTeamMode,
+      setSyncSourceVariant,
+      setSyncTargetVariants,
+      setSyncItems,
       resetWizard,
     }),
     [setScreen, navigateBack, addProgressLine, addExtraEnv, resetWizard]

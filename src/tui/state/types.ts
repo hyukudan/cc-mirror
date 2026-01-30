@@ -3,6 +3,7 @@
  */
 
 import type { DoctorReportItem, VariantEntry, VariantMeta } from '../../core/types.js';
+import type { SyncItem } from '../../core/sync.js';
 import type { Screen } from '../router/types.js';
 
 // Re-export Screen type from router
@@ -82,6 +83,17 @@ export interface AppState {
 
   // Doctor
   doctorReport: DoctorReportItem[];
+
+  // UI state
+  nameError: string | null;
+
+  // Team mode
+  enableTeamMode: boolean;
+
+  // Sync flow
+  syncSourceVariant: string;
+  syncTargetVariants: string[];
+  syncItems: SyncItem[];
 }
 
 /**
@@ -133,6 +145,17 @@ export interface AppActions {
 
   // Doctor
   setDoctorReport: (report: DoctorReportItem[]) => void;
+
+  // UI state
+  setNameError: (error: string | null) => void;
+
+  // Team mode
+  setEnableTeamMode: (value: boolean) => void;
+
+  // Sync flow
+  setSyncSourceVariant: (variant: string) => void;
+  setSyncTargetVariants: (variants: string[]) => void;
+  setSyncItems: (items: SyncItem[]) => void;
 
   // Utility
   resetWizard: () => void;
