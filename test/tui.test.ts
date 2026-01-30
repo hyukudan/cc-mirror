@@ -58,18 +58,19 @@ test('TUI create flow applies tweakcc by default', async () => {
   );
 
   // Home -> New Variant
+  // Use higher timeout (400 = 60s) for initial screens to handle cold start JIT compilation
   await tick();
   await tick();
-  await waitForText(app, 'Quick Setup', 200);
+  await waitForText(app, 'Quick Setup', 400);
   await selectMenuItem(app, 'New Variant');
   await send(app.stdin, enter);
 
   // Select Provider (zai is default)
-  await waitForText(app, 'Select Provider', 200);
+  await waitForText(app, 'Select Provider', 400);
   await send(app.stdin, enter);
 
   // Setting up (intro screen)
-  await waitForText(app, 'Setting up', 200);
+  await waitForText(app, 'Setting up', 400);
   await send(app.stdin, enter);
 
   // Choose Theme
