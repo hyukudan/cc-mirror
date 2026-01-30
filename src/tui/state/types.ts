@@ -134,7 +134,7 @@ export interface AppActions {
   addExtraEnv: (entry: string) => void;
 
   // Progress and completion
-  setProgressLines: (lines: string[]) => void;
+  setProgressLines: (updater: (prev: string[]) => string[]) => void;
   addProgressLine: (line: string) => void;
   setDoneLines: (lines: string[]) => void;
   setCompletion: (data: CompletionData) => void;

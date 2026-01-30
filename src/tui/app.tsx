@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo } from 'react';
 import { Box, Text, useApp } from 'ink';
 import SelectInput from 'ink-select-input';
 import path from 'node:path';
@@ -6,22 +6,15 @@ import { applyPathUpdate } from '../cli/commands/path.js';
 import type { BrandPreset } from '../brands/index.js';
 import * as defaultBrands from '../brands/index.js';
 import type { ProviderEnv, ProviderTemplate } from '../providers/index.js';
-import type {
-  CreateVariantResult,
-  DoctorReportItem,
-  UpdateVariantResult,
-  VariantEntry,
-  VariantMeta,
-} from '../core/types.js';
+import type { CreateVariantResult, DoctorReportItem, UpdateVariantResult, VariantEntry } from '../core/types.js';
 import * as defaultCore from '../core/index.js';
 import { assertValidVariantName } from '../core/validation.js';
 import * as defaultProviders from '../providers/index.js';
-// State management (available for future refactoring)
-// import { useCreateAppState, getProviderDefaults, resolveZaiApiKey } from './state/index.js';
+// Centralized state management
+import { useCreateAppState, getProviderDefaults, resolveZaiApiKey } from './state/index.js';
 
 // Router modules
 import { useEscapeNavigation } from './router/useEscapeNavigation.js';
-import type { Screen } from './router/types.js';
 
 // Business logic hooks
 import {
@@ -215,43 +208,87 @@ export const App: React.FC<AppProps> = ({
   // Exit handler from Ink
   const { exit } = useApp();
 
-  // No splash screen for clean UI
-  const [screen, setScreenState] = useState<Screen>('home');
-  // Wrapper with simple function signature for hooks
-  const setScreen = useCallback((s: Screen) => setScreenState(s), []);
-  const [providerKey, setProviderKey] = useState<string | null>(null);
-  const [brandKey, setBrandKey] = useState('auto');
-  const [name, setName] = useState('');
-  const [nameError, setNameError] = useState<string | null>(null);
-  const [baseUrl, setBaseUrl] = useState('');
-  const [apiKey, setApiKey] = useState('');
-  const [modelSonnet, setModelSonnet] = useState('');
-  const [modelOpus, setModelOpus] = useState('');
-  const [modelHaiku, setModelHaiku] = useState('');
-  const [rootDir, _setRootDir] = useState(initialRootDir || core.DEFAULT_ROOT);
-  const [binDir, _setBinDir] = useState(initialBinDir || core.DEFAULT_BIN_DIR);
-  const [npmPackage, setNpmPackage] = useState(core.DEFAULT_NPM_PACKAGE || '@anthropic-ai/claude-code');
+  // Centralized state management
+  const { state, actions } = useCreateAppState({
+    initialRootDir: initialRootDir || core.DEFAULT_ROOT,
+    initialBinDir: initialBinDir || core.DEFAULT_BIN_DIR,
+    defaultNpmPackage: core.DEFAULT_NPM_PACKAGE || '@anthropic-ai/claude-code',
+  });
+
+  // Destructure state for convenience
+  const {
+    screen,
+    providerKey,
+    brandKey,
+    name,
+    nameError,
+    baseUrl,
+    apiKey,
+    apiKeyDetectedFrom,
+    modelSonnet,
+    modelOpus,
+    modelHaiku,
+    rootDir,
+    binDir,
+    npmPackage,
+    usePromptPack,
+    promptPackMode,
+    installSkill,
+    shellEnv,
+    skillUpdate,
+    enableTeamMode,
+    extraEnv,
+    progressLines,
+    doneLines,
+    completion,
+    variants,
+    selectedVariant,
+    doctorReport,
+    syncSourceVariant,
+    syncTargetVariants,
+    syncItems,
+  } = state;
+
+  // Destructure actions for convenience
+  const {
+    setScreen,
+    setProviderKey,
+    setBrandKey,
+    setName,
+    setNameError,
+    setBaseUrl,
+    setApiKey,
+    setApiKeyDetectedFrom,
+    setModelSonnet,
+    setModelOpus,
+    setModelHaiku,
+    setNpmPackage: _setNpmPackage,
+    setUsePromptPack,
+    setInstallSkill,
+    setShellEnv,
+    setSkillUpdate: _setSkillUpdate,
+    setEnableTeamMode,
+    setExtraEnv,
+    addExtraEnv,
+    setProgressLines,
+    setDoneLines,
+    setCompletion,
+    setVariants,
+    setSelectedVariant,
+    setDoctorReport,
+    setSyncSourceVariant,
+    setSyncTargetVariants,
+    setSyncItems,
+    resetWizard,
+  } = actions;
+
+  // Aliases for backward compatibility with completion screen props
+  const completionSummary = completion.summary;
+  const completionNextSteps = completion.nextSteps;
+  const completionHelp = completion.help;
+
+  // npmVersion from core defaults
   const npmVersion = core.DEFAULT_NPM_VERSION || '2.0.76';
-  const [usePromptPack, setUsePromptPack] = useState(true);
-  // promptPackMode is deprecated - always use 'minimal'
-  const promptPackMode = 'minimal' as const;
-  const [installSkill, setInstallSkill] = useState(true);
-  const [shellEnv, setShellEnv] = useState(true);
-  const [skillUpdate, setSkillUpdate] = useState(false);
-  const [enableTeamMode, setEnableTeamMode] = useState(true);
-  const [extraEnv, setExtraEnv] = useState<string[]>([]);
-  const [progressLines, setProgressLines] = useState<string[]>([]);
-  const [doneLines, setDoneLines] = useState<string[]>([]);
-  const [completionSummary, setCompletionSummary] = useState<string[]>([]);
-  const [completionNextSteps, setCompletionNextSteps] = useState<string[]>([]);
-  const [completionHelp, setCompletionHelp] = useState<string[]>([]);
-  const [variants, setVariants] = useState<VariantEntry[]>([]);
-  const [selectedVariant, setSelectedVariant] = useState<(VariantMeta & { wrapperPath: string }) | null>(null);
-  const [doctorReport, setDoctorReport] = useState<DoctorReportItem[]>([]);
-  const [apiKeyDetectedFrom, setApiKeyDetectedFrom] = useState<string | null>(null);
-  const [syncSourceVariant, setSyncSourceVariant] = useState<string>('');
-  const [syncTargetVariants, setSyncTargetVariants] = useState<string[]>([]);
-  const [syncItems, setSyncItems] = useState<SyncItem[]>(DEFAULT_SYNC_ITEMS);
 
   // Include experimental providers to show "Coming Soon" in UI
   const providerList = useMemo(() => providers.listProviders(true), [providers]);
@@ -267,18 +304,7 @@ export const App: React.FC<AppProps> = ({
     [modelSonnet, modelOpus, modelHaiku]
   );
 
-  const providerDefaults = (
-    key?: string | null
-  ): {
-    promptPack: boolean;
-    skillInstall: boolean;
-    shellEnv: boolean;
-  } => ({
-    promptPack: key === 'zai' || key === 'minimax',
-    skillInstall: key === 'zai' || key === 'minimax',
-    shellEnv: key === 'zai',
-  });
-
+  // Model defaults for specific providers
   const getDefaultModels = (key?: string | null): { opus: string; sonnet: string; haiku: string } => {
     if (key === 'gatewayz') {
       return {
@@ -290,22 +316,7 @@ export const App: React.FC<AppProps> = ({
     return { opus: '', sonnet: '', haiku: '' };
   };
 
-  const resolveZaiApiKey = (): {
-    value: string;
-    detectedFrom: string | null;
-    skipPrompt: boolean;
-  } => {
-    const zaiKey = process.env.Z_AI_API_KEY?.trim();
-    if (zaiKey) {
-      return { value: zaiKey, detectedFrom: 'Z_AI_API_KEY', skipPrompt: true };
-    }
-    const anthropicKey = process.env.ANTHROPIC_API_KEY?.trim();
-    if (anthropicKey) {
-      return { value: anthropicKey, detectedFrom: 'ANTHROPIC_API_KEY', skipPrompt: false };
-    }
-    return { value: '', detectedFrom: null, skipPrompt: false };
-  };
-
+  // Resolve base URL from environment
   const resolveZaiBaseUrl = (): string => {
     return process.env.Z_AI_BASE_URL?.trim() || '';
   };
@@ -314,7 +325,7 @@ export const App: React.FC<AppProps> = ({
     if (screen !== 'quick-name' && screen !== 'create-name') {
       setNameError(null);
     }
-  }, [screen]);
+  }, [screen, setNameError]);
 
   const getPathCommandForTui = (): string => {
     if (process.platform === 'win32') return 'npx cc-mirror path --apply';
@@ -330,25 +341,30 @@ export const App: React.FC<AppProps> = ({
     if (screen === 'manage' || screen === 'sync-source') {
       setVariants(core.listVariants(rootDir));
     }
-  }, [screen, rootDir, core]);
+  }, [screen, rootDir, core, setVariants]);
 
   useEffect(() => {
     if (screen !== 'doctor') return;
     setDoctorReport(core.doctor(rootDir, binDir));
-  }, [screen, rootDir, binDir, core]);
+  }, [screen, rootDir, binDir, core, setDoctorReport]);
 
   // Shared callback for hooks to set completion state
-  const handleOperationComplete = useCallback((result: CompletionResult) => {
-    setDoneLines(result.doneLines);
-    setCompletionSummary(result.summary);
-    setCompletionNextSteps(result.nextSteps);
-    setCompletionHelp(result.help);
-  }, []);
+  const handleOperationComplete = useCallback(
+    (result: CompletionResult) => {
+      setDoneLines(result.doneLines);
+      setCompletion({
+        summary: result.summary,
+        nextSteps: result.nextSteps,
+        help: result.help,
+      });
+    },
+    [setDoneLines, setCompletion]
+  );
 
   // Stable callback to refresh variants list
   const refreshVariants = useCallback(() => {
     setVariants(core.listVariants(rootDir));
-  }, [core, rootDir]);
+  }, [core, rootDir, setVariants]);
 
   // Create variant operation (extracted to useVariantCreate hook)
   const createParams = useMemo(
@@ -421,9 +437,11 @@ export const App: React.FC<AppProps> = ({
     // Can't launch tweakcc from within TUI (both are ink apps that conflict)
     // Show user the command to run instead
     setDoneLines([`To customize ${selectedVariant.name}, run:`]);
-    setCompletionSummary([`cc-mirror tweak ${selectedVariant.name}`]);
-    setCompletionNextSteps(['Exit this TUI first (press ESC or q)', 'Then run the command above in your terminal']);
-    setCompletionHelp(['tweakcc lets you customize themes, overlays, and more']);
+    setCompletion({
+      summary: [`cc-mirror tweak ${selectedVariant.name}`],
+      nextSteps: ['Exit this TUI first (press ESC or q)', 'Then run the command above in your terminal'],
+      help: ['tweakcc lets you customize themes, overlays, and more'],
+    });
     setScreen('manage-tweak-done');
     // eslint-disable-next-line react-hooks/exhaustive-deps -- setScreen excluded to prevent infinite loop
   }, [screen, selectedVariant]);
@@ -432,9 +450,11 @@ export const App: React.FC<AppProps> = ({
     if (screen !== 'manage-launch') return;
     if (!selectedVariant) return;
     setDoneLines([`To launch ${selectedVariant.name}, run:`]);
-    setCompletionSummary([selectedVariant.name]);
-    setCompletionNextSteps(['Exit this TUI first (press ESC or q)', 'Then run the command above in your terminal']);
-    setCompletionHelp(['Launching from inside the TUI is not supported.']);
+    setCompletion({
+      summary: [selectedVariant.name],
+      nextSteps: ['Exit this TUI first (press ESC or q)', 'Then run the command above in your terminal'],
+      help: ['Launching from inside the TUI is not supported.'],
+    });
     setScreen('manage-launch-done');
     // eslint-disable-next-line react-hooks/exhaustive-deps -- setScreen excluded to prevent infinite loop
   }, [screen, selectedVariant]);
@@ -444,20 +464,26 @@ export const App: React.FC<AppProps> = ({
     const result = applyPathUpdate(binDir);
     if (result.ok) {
       setDoneLines(['PATH updated.']);
-      setCompletionSummary([result.message]);
-      setCompletionNextSteps(result.nextSteps || ['Open a new terminal to pick up PATH changes.']);
-      setCompletionHelp([]);
+      setCompletion({
+        summary: [result.message],
+        nextSteps: result.nextSteps || ['Open a new terminal to pick up PATH changes.'],
+        help: [],
+      });
     } else if (result.command) {
       setDoneLines(['Automatic PATH update not supported.']);
-      setCompletionSummary([result.command]);
-      setCompletionNextSteps(['Exit this TUI first (press ESC or q)', 'Then run the command above in your terminal']);
-      setCompletionHelp([result.message]);
+      setCompletion({
+        summary: [result.command],
+        nextSteps: ['Exit this TUI first (press ESC or q)', 'Then run the command above in your terminal'],
+        help: [result.message],
+      });
     } else {
       const pathCommand = getPathCommandForTui();
       setDoneLines(['PATH update failed.']);
-      setCompletionSummary([pathCommand]);
-      setCompletionNextSteps(['Exit this TUI first (press ESC or q)', 'Then run the command above in your terminal']);
-      setCompletionHelp([result.message]);
+      setCompletion({
+        summary: [pathCommand],
+        nextSteps: ['Exit this TUI first (press ESC or q)', 'Then run the command above in your terminal'],
+        help: [result.message],
+      });
     }
     setScreen('manage-path-done');
     // eslint-disable-next-line react-hooks/exhaustive-deps -- setScreen excluded to prevent infinite loop
@@ -514,28 +540,6 @@ export const App: React.FC<AppProps> = ({
     onComplete: handleOperationComplete,
   });
 
-  const resetWizard = () => {
-    setProviderKey(null);
-    setBrandKey('auto');
-    setName('');
-    setBaseUrl('');
-    setApiKey('');
-    setModelSonnet('');
-    setModelOpus('');
-    setModelHaiku('');
-    setApiKeyDetectedFrom(null);
-    setNpmPackage(core.DEFAULT_NPM_PACKAGE || '@anthropic-ai/claude-code');
-    setExtraEnv([]);
-    setUsePromptPack(true);
-    setInstallSkill(true);
-    setShellEnv(true);
-    setSkillUpdate(false);
-    setEnableTeamMode(true);
-    setCompletionSummary([]);
-    setCompletionNextSteps([]);
-    setCompletionHelp([]);
-  };
-
   // Exit screen - actually exit the app after showing the message
   useEffect(() => {
     if (screen === 'exit') {
@@ -587,7 +591,7 @@ export const App: React.FC<AppProps> = ({
         providers={providerList}
         onSelect={(value) => {
           const selected = providers.getProvider(value);
-          const defaults = providerDefaults(value);
+          const defaults = getProviderDefaults(value);
           const modelDefaults = getDefaultModels(value);
           const keyDefaults =
             value === 'zai' ? resolveZaiApiKey() : { value: '', detectedFrom: null, skipPrompt: false };
@@ -705,7 +709,7 @@ export const App: React.FC<AppProps> = ({
                 const safeName = assertValidVariantName(name);
                 setName(safeName);
                 setNameError(null);
-                setProgressLines([]);
+                setProgressLines(() => []);
                 setScreen('create-running');
               } catch (error) {
                 const message = error instanceof Error ? error.message : String(error);
@@ -729,7 +733,7 @@ export const App: React.FC<AppProps> = ({
         providers={providerList}
         onSelect={(value) => {
           const selected = providers.getProvider(value);
-          const defaults = providerDefaults(value);
+          const defaults = getProviderDefaults(value);
           const modelDefaults = getDefaultModels(value);
           const keyDefaults =
             value === 'zai' ? resolveZaiApiKey() : { value: '', detectedFrom: null, skipPrompt: false };
@@ -1020,7 +1024,7 @@ export const App: React.FC<AppProps> = ({
     return (
       <EnvEditorScreen
         envEntries={extraEnv}
-        onAdd={(entry) => setExtraEnv((prev) => [...prev, entry])}
+        onAdd={(entry) => addExtraEnv(entry)}
         onDone={() => setScreen('create-summary')}
       />
     );
@@ -1055,7 +1059,7 @@ export const App: React.FC<AppProps> = ({
           shellEnv,
         }}
         onConfirm={() => {
-          setProgressLines([]);
+          setProgressLines(() => []);
           setScreen('create-running');
         }}
         onBack={() => setScreen('create-env-confirm')}
@@ -1284,19 +1288,16 @@ export const App: React.FC<AppProps> = ({
               if (item.value === 'remove') {
                 try {
                   core.removeVariant(rootDir, selectedVariant.name);
-                  setCompletionSummary([`Removed ${selectedVariant.name}`]);
-                  setCompletionNextSteps([
-                    'Use "Create" to make a new variant',
-                    'Run "List" to see remaining variants',
-                  ]);
-                  setCompletionHelp(['Help: cc-mirror help', 'List: cc-mirror list']);
+                  setCompletion({
+                    summary: [`Removed ${selectedVariant.name}`],
+                    nextSteps: ['Use "Create" to make a new variant', 'Run "List" to see remaining variants'],
+                    help: ['Help: cc-mirror help', 'List: cc-mirror list'],
+                  });
                   setDoneLines([`Removed ${selectedVariant.name}`]);
                 } catch (error) {
                   const message = error instanceof Error ? error.message : String(error);
                   setDoneLines([`Failed: ${message}`]);
-                  setCompletionSummary([]);
-                  setCompletionNextSteps([]);
-                  setCompletionHelp([]);
+                  setCompletion({ summary: [], nextSteps: [], help: [] });
                 }
                 setScreen('manage-remove-done');
               } else {
@@ -1387,7 +1388,7 @@ export const App: React.FC<AppProps> = ({
         sourceVariant={syncSourceVariant}
         onConfirm={(selected) => {
           setSyncTargetVariants(selected);
-          setProgressLines([]);
+          setProgressLines(() => []);
           setScreen('sync-running');
         }}
         onBack={() => setScreen('sync-items')}
