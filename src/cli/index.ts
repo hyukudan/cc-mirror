@@ -29,6 +29,8 @@ import {
   runCleanupCommand,
   runSkillCommand,
   runRegistryCommand,
+  runDashboardCommand,
+  runSearchCommand,
 } from './commands/index.js';
 
 const readPackageVersion = (): string => {
@@ -162,6 +164,14 @@ const main = async () => {
 
     case 'registry':
       runRegistryCommand({ opts });
+      break;
+
+    case 'dashboard':
+      await runDashboardCommand({ opts });
+      break;
+
+    case 'search':
+      runSearchCommand({ opts });
       break;
 
     case 'create':

@@ -21,6 +21,7 @@ COMMANDS
   create [options]             Create a new variant
   quick [options]              Fast: provider + API key only
   list                         List all variants
+  search [options]             Search providers by capability/auth
   update [name]                Update to latest Claude Code
   refresh [name|--all]         Re-apply provider defaults (keeps API key)
   remove <name>                Remove a variant
@@ -100,6 +101,13 @@ OPTIONS (refresh)
   --dry-run                    Show what would change without writing
   --json                       Output changes as JSON
 
+OPTIONS (search)
+  --capability <name>          Filter by: vision, tool-use, streaming, extended-context, code-execution, web-search, reasoning
+  --auth-type <type>           Filter by: api-key, auth-token, oauth, credentials, none
+  --tier <tier>                Filter by: free, paid, enterprise
+  --verified                   Show only verified providers
+  --json                       Output as JSON
+
 OPTIONS (export)
   --items <list>               skills,mcp-servers,permissions,claude-md,tasks,provider-env
   --variant <name>             Variant to export (optional if positional)
@@ -125,6 +133,9 @@ OPTIONS (config)
 EXAMPLES
   npx cc-mirror quick --provider zai
   npx cc-mirror create --provider minimax --brand minimax
+  npx cc-mirror search                     # List all providers
+  npx cc-mirror search --capability vision # Find providers with vision
+  npx cc-mirror search --auth-type api-key # Find API key providers
   npx cc-mirror update zai
   npx cc-mirror refresh kimi              # Re-apply provider defaults
   npx cc-mirror refresh --all             # Refresh all variants

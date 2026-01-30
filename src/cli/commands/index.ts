@@ -22,3 +22,5 @@ export { runTemplateCommand, type TemplateCommandOptions } from './template.js';
 export { runCleanupCommand, type CleanupCommandOptions } from './cleanup.js';
 export { runSkillCommand, type SkillCommandOptions } from './skill.js';
 export { runRegistryCommand, type RegistryCommandOptions } from './registry.js';
+export { runDashboardCommand, type DashboardCommandOptions } from './dashboard.js';
+export { runSearchCommand, type SearchCommandOptions } from './search.js';
