@@ -60,6 +60,8 @@ export interface CreateVariantParams {
   tweakccStdio?: 'pipe' | 'inherit';
   /** Enable team mode by patching cli.js */
   enableTeamMode?: boolean;
+  /** Skip bundled team skills (orchestrator, task-manager) even when team mode is enabled */
+  noTeamSkills?: boolean;
   /** Callback for progress updates during installation */
   onProgress?: ProgressCallback;
 }
@@ -90,6 +92,8 @@ export interface UpdateVariantOptions {
   enableTeamMode?: boolean;
   /** Disable team mode by reversing cli.js patch */
   disableTeamMode?: boolean;
+  /** Skip bundled team skills (orchestrator, task-manager) even when team mode is enabled */
+  noTeamSkills?: boolean;
   /** Callback for progress updates during update */
   onProgress?: ProgressCallback;
 }

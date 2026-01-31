@@ -75,6 +75,7 @@ OPTIONS (advanced)
   --prefer-ipv4                Prefer IPv4 DNS (sets CC_MIRROR_PREFER_IPV4=1)
   --enable-team-mode           Enable team mode
   --disable-team-mode          Disable team mode (quick setup)
+  --no-team-skills             Skip bundled team skills (orchestrator, task-manager)
 
 OPTIONS (path)
   --apply                      Append PATH export to shell profile (POSIX/PowerShell)

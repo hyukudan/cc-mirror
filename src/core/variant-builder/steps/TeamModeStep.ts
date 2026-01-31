@@ -131,20 +131,25 @@ export class TeamModeStep implements BuildStep {
 
     state.notes.push('Team mode enabled successfully');
 
-    // Install the multi-agent orchestrator skill
-    const skillResult = installOrchestratorSkill(paths.configDir);
-    if (skillResult.status === 'installed') {
-      state.notes.push('Multi-agent orchestrator skill installed');
-    } else if (skillResult.status === 'failed') {
-      state.notes.push(`Warning: orchestrator skill install failed: ${skillResult.message}`);
-    }
+    // Install the bundled team skills unless --no-team-skills was specified
+    if (!ctx.params.noTeamSkills) {
+      // Install the multi-agent orchestrator skill
+      const skillResult = installOrchestratorSkill(paths.configDir);
+      if (skillResult.status === 'installed') {
+        state.notes.push('Multi-agent orchestrator skill installed');
+      } else if (skillResult.status === 'failed') {
+        state.notes.push(`Warning: orchestrator skill install failed: ${skillResult.message}`);
+      }
 
-    // Install the task-manager skill
-    const taskSkillResult = installTaskManagerSkill(paths.configDir);
-    if (taskSkillResult.status === 'installed') {
-      state.notes.push('Task manager skill installed');
-    } else if (taskSkillResult.status === 'failed') {
-      state.notes.push(`Warning: task-manager skill install failed: ${taskSkillResult.message}`);
+      // Install the task-manager skill
+      const taskSkillResult = installTaskManagerSkill(paths.configDir);
+      if (taskSkillResult.status === 'installed') {
+        state.notes.push('Task manager skill installed');
+      } else if (taskSkillResult.status === 'failed') {
+        state.notes.push(`Warning: task-manager skill install failed: ${taskSkillResult.message}`);
+      }
+    } else {
+      state.notes.push('Bundled team skills skipped (--no-team-skills)');
     }
 
     // Copy team pack prompt files

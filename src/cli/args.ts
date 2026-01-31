@@ -18,6 +18,7 @@ export interface ParsedArgs {
   ['prefer-ipv4']?: boolean;
   ['enable-team-mode']?: boolean;
   ['disable-team-mode']?: boolean;
+  ['no-team-skills']?: boolean;
   ['no-backup']?: boolean;
   ['dry-run']?: boolean;
   items?: string;

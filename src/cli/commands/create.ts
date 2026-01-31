@@ -195,8 +195,13 @@ async function handleQuickMode(opts: ParsedArgs, params: CreateParams & { templa
     : opts['enable-team-mode']
       ? true
       : (template?.enableTeamMode ?? true);
+  const noTeamSkills = Boolean(opts['no-team-skills']);
   if (enableTeamMode) {
-    console.log('Team mode will be enabled (orchestrator + task-manager skills installed)');
+    if (noTeamSkills) {
+      console.log('Team mode will be enabled (skills skipped via --no-team-skills)');
+    } else {
+      console.log('Team mode will be enabled (orchestrator + task-manager skills installed)');
+    }
   }
 
   // Merge template extra env with params.extraEnv
@@ -221,6 +226,7 @@ async function handleQuickMode(opts: ParsedArgs, params: CreateParams & { templa
     skillUpdate,
     modelOverrides: resolvedModelOverrides,
     enableTeamMode,
+    noTeamSkills,
     tweakccStdio: 'pipe',
   });
 
@@ -299,6 +305,7 @@ async function handleInteractiveMode(opts: ParsedArgs, params: CreateParams & { 
     const answer = await prompt('Enable team mode (multi-agent collaboration)? (yes/no)', 'yes');
     enableTeamMode = answer.trim().toLowerCase().startsWith('y');
   }
+  const noTeamSkills = Boolean(opts['no-team-skills']);
 
   // Merge template extra env with parsedEnv
   const templateEnvEntries = template?.extraEnv ? Object.entries(template.extraEnv).map(([k, v]) => `${k}=${v}`) : [];
@@ -322,6 +329,7 @@ async function handleInteractiveMode(opts: ParsedArgs, params: CreateParams & { 
     skillUpdate,
     modelOverrides: resolvedModelOverrides,
     enableTeamMode,
+    noTeamSkills,
     tweakccStdio: 'pipe',
   });
 
@@ -370,6 +378,7 @@ async function handleNonInteractiveMode(
     : opts['enable-team-mode']
       ? true
       : (template?.enableTeamMode ?? true);
+  const noTeamSkills = Boolean(opts['no-team-skills']);
 
   // Merge template extra env with params.extraEnv
   const templateEnvEntries = template?.extraEnv ? Object.entries(template.extraEnv).map(([k, v]) => `${k}=${v}`) : [];
@@ -393,6 +402,7 @@ async function handleNonInteractiveMode(
     skillUpdate,
     modelOverrides: resolvedModelOverrides,
     enableTeamMode,
+    noTeamSkills,
     tweakccStdio: 'pipe',
   });
 
