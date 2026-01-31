@@ -6,11 +6,30 @@ All notable changes to this project will be documented in this file.
 
 ### Added
 
+- **6 New Providers**: Kimi Code (K2.5), Vercel AI Gateway, Poe, Google Vertex AI, AWS Bedrock, Azure AI Foundry.
+- **API Translator**: Built-in Anthropic ↔ OpenAI translation proxy for DeepSeek and other OpenAI-compatible providers.
+- **Dashboard command**: `cc-mirror dashboard` shows variant overview with disk usage and team mode status.
+- **Search command**: `cc-mirror search` to find providers by capability, auth type, tier, or verified status.
+- **Template system**: Save and reuse variant configurations with `cc-mirror template`.
+- **`--no-team-skills` flag**: Enable team mode without installing bundled orchestrator/task-manager skills.
 - `cc-mirror run <name>` command to launch a variant wrapper directly.
 - `cc-mirror mcp <name>` command to manage MCP servers in a variant.
 - `cc-mirror export/import` commands to snapshot and restore variant config.
 - `cc-mirror config <name>` command to inspect variant config, env, and MCP summary.
 - `cc-mirror config list/set/unset` operations to list or edit settings.json env + permissions.
+- TUI router infrastructure and theme system.
+- Provider capabilities metadata for filtering and discovery.
+
+### Changed
+
+- Team mode now supports Claude Code 2.1.x where Task tools are enabled by default.
+- Kimi provider updated to K2.5 models.
+- Refactored brand themes to use shared color utilities.
+
+### Fixed
+
+- **Security**: JSON parsing now sanitized against prototype pollution.
+- Team mode compatibility with Claude Code 2.1.x (no patch needed).
 
 ## [1.5.0] - 2026-01-06
 
@@ -51,7 +70,7 @@ All notable changes to this project will be documented in this file.
 
 - Windows npm installs now use `shell` spawning and `--prefix` to avoid command resolution errors.
 
-## [1.4.2] - 2025-01-05
+## [1.4.2] - 2026-01-05
 
 ### Added
 
@@ -85,7 +104,7 @@ All notable changes to this project will be documented in this file.
 | `sonnet` | Implementation, test generation, documentation, structured work       |
 | `opus`   | Code review, security analysis, architecture, conflict resolution     |
 
-## [1.4.0] - 2025-01-05
+## [1.4.0] - 2026-01-05
 
 ### Added
 
@@ -97,7 +116,7 @@ All notable changes to this project will be documented in this file.
 
 - Args parser fix for boolean flags consuming next argument.
 
-## [1.3.0] - 2025-01-05
+## [1.3.0] - 2026-01-05
 
 ### Changed
 
@@ -107,13 +126,13 @@ All notable changes to this project will be documented in this file.
 
 - Prevent cross-project task pollution when settings.json overwrote dynamic team names.
 
-## [1.2.1] - 2025-01-05
+## [1.2.1] - 2026-01-05
 
 ### Fixed
 
 - Team mode updates now refresh the orchestration skill when already enabled.
 
-## [1.1.5] - 2025-01-05
+## [1.1.5] - 2026-01-05
 
 ### Added
 
@@ -159,7 +178,7 @@ All notable changes to this project will be documented in this file.
 - Task lifecycle now explicitly includes resolution step
 - Clearer separation between orchestrator and worker responsibilities
 
-## [1.1.4] - 2025-01-05
+## [1.1.4] - 2026-01-05
 
 ### Changed
 
@@ -204,7 +223,7 @@ All notable changes to this project will be documented in this file.
 - Orchestrator now consistently delegates to agents instead of doing work directly
 - AskUserQuestion examples now show comprehensive 4-question, 4-option patterns
 
-## [1.1.3] - 2025-01-04
+## [1.1.3] - 2026-01-04
 
 ### Fixed
 
@@ -243,13 +262,13 @@ All notable changes to this project will be documented in this file.
 - Shell env option now only shown for zai provider in summary screens
 - Team mode description now includes details: "on (orchestrator skill, TodoWrite blocked)"
 
-## [1.1.2] - 2025-01-04
+## [1.1.2] - 2026-01-04
 
 ### Fixed
 
 - Suppress verbose tweakcc output during CLI variant creation
 
-## [1.1.1] - 2025-01-04
+## [1.1.1] - 2026-01-04
 
 ### Fixed
 
@@ -260,7 +279,7 @@ All notable changes to this project will be documented in this file.
 
 - Removed Twitter/X share URL from create output
 
-## [1.1.0] - 2025-01-04
+## [1.1.0] - 2026-01-04
 
 ### Added
 
@@ -295,7 +314,7 @@ All notable changes to this project will be documented in this file.
 - Enhanced TUI with team mode toggle in variant actions screen
 - Provider selection includes Mirror Claude with education content
 
-## [1.0.4] - 2025-01-04
+## [1.0.4] - 2026-01-04
 
 ### Changed
 
@@ -303,7 +322,7 @@ All notable changes to this project will be documented in this file.
 - Streamlined Z.ai prompt pack (removed verbose setup/advanced sections)
 - Simplified MiniMax prompt pack (removed redundant auth section)
 
-## [1.0.3] - 2025-01-03
+## [1.0.3] - 2026-01-03
 
 ### Changed
 
@@ -316,7 +335,7 @@ All notable changes to this project will be documented in this file.
 - Fixed bin path to use relative path (`./dist/cc-mirror.mjs`)
 - Added missing `@eslint/js` dev dependency
 
-## [1.0.2] - 2025-01-03
+## [1.0.2] - 2026-01-03
 
 ### Changed
 
@@ -324,7 +343,7 @@ All notable changes to this project will be documented in this file.
 - Updated all ink-\* packages to latest versions
 - Fresh dependency tree with improved compatibility
 
-## [1.0.1] - 2025-01-03
+## [1.0.1] - 2026-01-03
 
 ### Fixed
 
@@ -332,7 +351,7 @@ All notable changes to this project will be documented in this file.
 - Resolved dynamic require and ESM bundling issues
 - Bundle now properly delegates React ecosystem to npm
 
-## [1.0.0] - 2025-01-03
+## [1.0.0] - 2026-01-03
 
 ### Added
 
@@ -358,7 +377,7 @@ All notable changes to this project will be documented in this file.
 - All linting errors resolved
 - React hook dependency warnings fixed
 
-## [0.3.0] - 2025-01-02
+## [0.3.0] - 2026-01-02
 
 ### Added
 
@@ -382,7 +401,7 @@ All notable changes to this project will be documented in this file.
 - Progress bar and step animations now update in real-time
 - MiniMax colors now match official brand (coral/red, not purple)
 
-## [0.2.0] - 2025-01-01
+## [0.2.0] - 2026-01-02
 
 ### Added
 
@@ -397,7 +416,7 @@ All notable changes to this project will be documented in this file.
 - Restructured to use ink for TUI
 - Modular provider templates
 
-## [0.1.0] - 2024-12-30
+## [0.1.0] - 2026-01-02
 
 ### Added
 
