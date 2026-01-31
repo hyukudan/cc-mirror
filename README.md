@@ -884,14 +884,15 @@ npx cc-mirror quick --provider <provider> --name <variant>
 
 ## Documentation
 
-| Document                                         | Description                     |
-| ------------------------------------------------ | ------------------------------- |
-| [Team Mode](docs/features/team-mode.md)          | Multi-agent collaboration guide |
-| [Mirror Claude](docs/features/mirror-claude.md)  | Pure Claude variant docs        |
-| [Termux Guide](docs/features/termux.md)          | Android setup                   |
-| [Architecture](docs/architecture/overview.md)    | System internals                |
-| [CLI Reference](docs/reference/cli-reference.md) | Full command docs               |
-| [Provider Guide](docs/TWEAKCC-GUIDE.md)          | Adding new providers            |
+| Document                                               | Description                     |
+| ------------------------------------------------------ | ------------------------------- |
+| [Team Mode](docs/features/team-mode.md)                | Multi-agent collaboration guide |
+| [Mirror Claude](docs/features/mirror-claude.md)        | Pure Claude variant docs        |
+| [Termux Guide](docs/features/termux.md)                | Android setup                   |
+| [Architecture](docs/architecture/overview.md)          | System internals                |
+| [TUI Architecture](docs/architecture/tui-architecture.md) | Router, state, hooks patterns   |
+| [CLI Reference](docs/reference/cli-reference.md)       | Full command docs               |
+| [Provider Guide](docs/TWEAKCC-GUIDE.md)                | Adding new providers            |
 
 ---
 
