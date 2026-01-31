@@ -2,34 +2,75 @@
 
 All notable changes to this project will be documented in this file.
 
-## [Unreleased]
+## [1.7.0] - 2026-01-31
+
+### Added
+
+- `--no-team-skills` flag to enable team mode without bundled orchestrator/task-manager skills.
+- TUI architecture documentation in `docs/architecture/tui-architecture.md`.
+
+### Changed
+
+- TUI refactored to use centralized state management (`useCreateAppState` hook).
+- TUI router infrastructure integrated with `useEscapeNavigation`.
+
+### Fixed
+
+- **Security**: JSON parsing sanitized against prototype pollution.
+
+## [1.6.1] - 2026-01-30
+
+### Added
+
+- `cc-mirror dashboard` command with variant overview, disk usage, and team mode status.
+- `cc-mirror search` command to filter providers by capability, auth type, tier, or verified status.
+- Template system for saving and reusing variant configurations.
+- TUI theme system and router infrastructure.
+- Package manager auto-detection (npm, bun, pnpm).
+
+### Changed
+
+- E2E tests expanded with better helpers.
+
+## [1.6.0] - 2026-01-28
 
 ### Added
 
 - **6 New Providers**: Kimi Code (K2.5), Vercel AI Gateway, Poe, Google Vertex AI, AWS Bedrock, Azure AI Foundry.
-- **API Translator**: Built-in Anthropic ↔ OpenAI translation proxy for DeepSeek and other OpenAI-compatible providers.
-- **Dashboard command**: `cc-mirror dashboard` shows variant overview with disk usage and team mode status.
-- **Search command**: `cc-mirror search` to find providers by capability, auth type, tier, or verified status.
-- **Template system**: Save and reuse variant configurations with `cc-mirror template`.
-- **`--no-team-skills` flag**: Enable team mode without installing bundled orchestrator/task-manager skills.
-- `cc-mirror run <name>` command to launch a variant wrapper directly.
-- `cc-mirror mcp <name>` command to manage MCP servers in a variant.
-- `cc-mirror export/import` commands to snapshot and restore variant config.
-- `cc-mirror config <name>` command to inspect variant config, env, and MCP summary.
-- `cc-mirror config list/set/unset` operations to list or edit settings.json env + permissions.
-- TUI router infrastructure and theme system.
+- **API Translator**: Built-in Anthropic ↔ OpenAI translation proxy for DeepSeek.
 - Provider capabilities metadata for filtering and discovery.
+- Enterprise maintenance tools and enhanced diagnostics.
 
 ### Changed
 
-- Team mode now supports Claude Code 2.1.x where Task tools are enabled by default.
 - Kimi provider updated to K2.5 models.
-- Refactored brand themes to use shared color utilities.
+- Brand themes refactored to use shared color utilities.
+- Team mode now supports Claude Code 2.1.x where Task tools are enabled by default.
+- README comprehensively rewritten with Mermaid diagrams.
 
 ### Fixed
 
-- **Security**: JSON parsing now sanitized against prototype pollution.
-- Team mode compatibility with Claude Code 2.1.x (no patch needed).
+- Windows CMD error message display.
+- TUI test timing stabilization.
+
+## [1.5.1] - 2026-01-11
+
+### Added
+
+- Doctor JSON output (`--json` flag).
+- List JSON output (`--json` flag).
+- Version flag and help support.
+- Strict doctor checks with provider validation.
+- Release readiness checklist.
+
+### Changed
+
+- Config import hardened with variant validation.
+- Tweakcc ctrl-g patch warnings suppressed.
+
+### Fixed
+
+- Tweakcc local resolution in dist.
 
 ## [1.5.0] - 2026-01-06
 
@@ -37,82 +78,48 @@ All notable changes to this project will be documented in this file.
 
 - Sync Variants flow to copy skills, MCP servers, permissions, and `CLAUDE.md`.
 - `cc-mirror sync` CLI command for syncing configs between variants.
+- `cc-mirror run <name>` command to launch a variant wrapper directly.
+- `cc-mirror mcp <name>` command to manage MCP servers in a variant.
+- `cc-mirror export/import` commands to snapshot and restore variant config.
+- `cc-mirror config` command to inspect and edit variant settings.
+- `cc-mirror path --apply` to append PATH exports to shell profiles.
 - Sync options for `tasks`, `provider-env`, and `--dry-run`.
-- TUI sync flow now lets you choose which items to copy.
-- MCP server setup guidance in README and configuration reference.
-- GatewayZ and NanoGPT providers with themes, splash art, and model mapping defaults.
-- Team mode now auto-approves the task-manager skill and documents both bundled skills.
-- Provider education updates (placeholders, haikus, setup links).
-- Z.ai `Z_AI_BASE_URL` support for China endpoint defaults in CLI/TUI flows.
-- Ctrl+C interrupt patch for Claude Code CLI (ESC fallback, double-press exit).
-- Windows support: `.cmd` wrappers, PowerShell profile integration, and `~/.cc-mirror/bin` defaults.
-- Windows npm install failures now include targeted troubleshooting hints.
-- `--prefer-ipv4` flag to enable IPv4-first DNS in wrappers.
-- `CC_MIRROR_PREFER_IPV4=1` wrapper support for IPv4-first DNS without overriding `NODE_OPTIONS`.
-- `CC_MIRROR_SPLASH_UTF8=0` to skip `chcp 65001` in Windows splash rendering.
-- Termux PATH troubleshooting guidance for `~/.local/bin`.
-- `npx cc-mirror path --apply` to append PATH exports to shell profiles on POSIX/PowerShell.
-- TUI manage flow can apply PATH updates directly.
-- Termux/Android setup guide in docs.
-- Added reference docs for CLI, configuration layout, and environment variables.
-- `--npm-version` flag to override Claude Code package version during create/update.
+- GatewayZ and NanoGPT providers with themes, splash art, and model mapping.
+- Windows support: `.cmd` wrappers, PowerShell profile integration.
+- `--prefer-ipv4` flag for IPv4-first DNS resolution.
+- `--npm-version` flag to override Claude Code package version.
+- Ctrl+C interrupt patch for Claude Code CLI.
 
 ### Changed
 
-- Model-mapping checks now use provider flags instead of hardcoded OpenRouter logic.
-- Create/update summaries now surface PATH tips when wrapper directory is not exported.
-- Wrapper paths are platform-aware (`.cmd` on Windows).
-- Summary PATH tip now points to `npx cc-mirror path` for setup instructions.
-- TUI completion screens now render next steps/help and show a PATH tip when wrappers are missing from `PATH`.
-- PATH tips now use `--apply` only when supported (non-Windows, non-fish).
+- Model-mapping checks now use provider flags.
+- Create/update summaries surface PATH tips.
+- Wrapper paths are platform-aware.
 
 ### Fixed
 
-- Windows npm installs now use `shell` spawning and `--prefix` to avoid command resolution errors.
+- Windows npm installs use `shell` spawning.
 
 ## [1.4.2] - 2026-01-05
 
 ### Added
 
-- **Explicit model selection** for all Task() calls in orchestration skill
-  - Every Task() example now includes `model=` parameter
-  - Model tier framework: haiku (errand runner), sonnet (capable worker), opus (critical thinker)
-  - Guidance on when to use each model based on task type
+- Explicit model selection for all Task() calls in orchestration skill.
+- Model tier framework: haiku, sonnet, opus with usage guidance.
 
 ### Changed
 
-- **All commands now use `npx cc-mirror`** for portability - no global install required
-  - Updated task-manager skill with `npx` prefix
-  - Updated README.md command examples
-  - Updated team-mode.md CLI examples
-  - Updated CLI help text (help.ts)
-  - Updated AGENTS.md and architecture docs
-  - Updated issue templates
-
-- **Model Selection section** added to SKILL.md with tier descriptions
-- **Updated 12 skill reference files** with explicit model parameters:
-  - `references/tools.md` - Model selection table and examples
-  - `references/patterns.md` - All pattern examples with models
-  - `references/examples.md` - All workflow examples with models
-  - 8 domain guides with appropriate models per task type
-
-### Model Selection Guidelines
-
-| Model    | Best For                                                              |
-| -------- | --------------------------------------------------------------------- |
-| `haiku`  | Exploration, searching, fetching context, data discovery - spawn many |
-| `sonnet` | Implementation, test generation, documentation, structured work       |
-| `opus`   | Code review, security analysis, architecture, conflict resolution     |
+- All commands now use `npx cc-mirror` for portability.
 
 ## [1.4.0] - 2026-01-05
 
 ### Added
 
-- Tasks CLI for team mode management (`cc-mirror tasks`) with list/show/create/update/delete/archive/clean/graph.
+- Tasks CLI for team mode management (`cc-mirror tasks`).
 - Task-manager skill auto-installed with team mode.
-- Core tasks store + dependency resolution helpers with tests.
+- Core tasks store with dependency resolution helpers.
 
-### Changed
+### Fixed
 
 - Args parser fix for boolean flags consuming next argument.
 
@@ -120,11 +127,11 @@ All notable changes to this project will be documented in this file.
 
 ### Changed
 
-- Team mode now uses `CLAUDE_CODE_TEAM_MODE`, deriving team names from the project folder with optional `TEAM` modifiers.
+- Team mode uses `CLAUDE_CODE_TEAM_MODE`, deriving team names from project folder.
 
 ### Fixed
 
-- Prevent cross-project task pollution when settings.json overwrote dynamic team names.
+- Cross-project task pollution when settings.json overwrote dynamic team names.
 
 ## [1.2.1] - 2026-01-05
 
@@ -136,292 +143,143 @@ All notable changes to this project will be documented in this file.
 
 ### Added
 
-- **Role Detection** in orchestration skill
-  - Skill now detects if it's the main orchestrator or a spawned worker
-  - Workers skip orchestration and execute tasks directly
-  - Prevents recursive orchestration chaos
-
-- **Worker Agent Prompt Template**
-  - Required WORKER preamble for all spawned agents
-  - Clear rules: execute task, use tools directly, no sub-agents, no task management
-  - Example prompts included in SKILL.md and references/tools.md
-
-- **Tool Ownership section**
-  - Clear separation: orchestrator tools vs worker tools
-  - Orchestrator: TaskCreate, TaskUpdate, TaskGet, TaskList, AskUserQuestion, Task
-  - Workers: Read, Write, Edit, Bash, Glob, Grep, WebFetch, WebSearch, LSP
-
-- **Complete task lifecycle** in "What you DO"
-  - Expanded from 5 to 8 steps
-  - Added: Set dependencies, Find ready work (TaskList), Mark complete (TaskUpdate resolved)
+- Role detection in orchestration skill (main orchestrator vs spawned worker).
+- Worker agent prompt template with WORKER preamble.
+- Tool ownership section separating orchestrator vs worker tools.
+- Complete task lifecycle in documentation.
 
 ### Changed
 
-- **Flow diagram** now shows complete lifecycle
-  - Added "Find Ready Work" step with TaskList
-  - Added "Mark Complete" step with TaskUpdate(resolved)
-  - Shows loop back to find more ready work
-
-- **Agent scaling** is now guidance-based, not quota-based
-  - Replaced "3 agents minimum is non-negotiable"
-  - New table: Quick lookup (1-2), Multi-faceted (2-3), Full feature (4+ swarm)
-  - "Match the swarm to the challenge"
-
-- **Subagent Prompting Guide** in references/tools.md
-  - WORKER preamble now required first element
-  - "Four Elements" → "Five Elements" (added preamble)
-  - All examples updated with preamble
+- Flow diagram shows complete lifecycle with TaskList and TaskUpdate.
+- Agent scaling is now guidance-based, not quota-based.
 
 ### Fixed
 
-- Agents no longer try to re-orchestrate when spawned
-- Task lifecycle now explicitly includes resolution step
-- Clearer separation between orchestrator and worker responsibilities
+- Agents no longer re-orchestrate when spawned.
 
 ## [1.1.4] - 2026-01-05
 
 ### Changed
 
-- **Renamed skill**: `multi-agent-orchestrator` → `orchestration`
-  - Shorter, cleaner name
-  - Updated all references in code, tests, and documentation
-
-- **Completely rewritten orchestration skill** with enhanced personality and capabilities
-  - New "Conductor on the trading floor" identity with warmth and swagger
-  - Dynamic personality that adapts to user energy (excited, frustrated, curious, etc.)
-  - Strict "Iron Law" enforcement: orchestrator NEVER uses Read/Write/Edit/Bash directly
-  - Minimum 3 agents per request, swarm everything philosophy
-  - Rich milestone celebrations and progress updates
-  - Signature branding (`─── ◈ Orchestrating ──`)
-
-- **Maximal AskUserQuestion guidance**
-  - Always use 4 questions (the max) when gathering context
-  - Always use 4 options per question (the max)
-  - Rich descriptions with no length limit - explain trade-offs, implications, examples
-  - "Be a consultant, not a waiter" philosophy
+- Renamed skill: `multi-agent-orchestrator` → `orchestration`.
+- Completely rewritten orchestration skill with "Conductor" personality.
+- Maximal AskUserQuestion guidance (4 questions, 4 options).
 
 ### Added
 
-- **Auto-approve orchestration skill**: `Skill(orchestration)` added to `permissions.allow` when team mode enabled
-  - No more permission prompts to load the skill
-
-- **Team pack system prompt**: `system-prompt-orchestration-skill.md`
-  - Instructs loading orchestration skill before any response
-
-- **Skill tool override**: `tool-description-skill.md`
-  - CRITICAL instruction to load orchestration skill first in every conversation
-
-- **Domain expertise routing** preserved with rich reference files:
-  - `references/patterns.md` - Fan-Out, Pipeline, Map-Reduce, Speculative patterns
-  - `references/tools.md` - Enhanced tool usage with maximal questioning philosophy
-  - `references/examples.md` - Complete workflow examples
-  - `references/guide.md` - User-facing documentation
-  - 8 domain-specific guides (software-development, code-review, testing, etc.)
-
-### Fixed
-
-- Orchestrator now consistently delegates to agents instead of doing work directly
-- AskUserQuestion examples now show comprehensive 4-question, 4-option patterns
+- Auto-approve orchestration skill in permissions.
+- Team pack system prompts.
+- Domain expertise routing with reference files.
 
 ## [1.1.3] - 2026-01-04
 
 ### Fixed
 
-- **useEffect infinite loop** when toggling team mode on existing variants
-  - Added ref guards to all async TUI hooks to prevent concurrent execution
-  - Stabilized `refreshVariants` callback with `useCallback`
-  - Hooks affected: `useTeamModeToggle`, `useVariantUpdate`, `useVariantCreate`, `useModelConfig`, `useUpdateAll`
-
-- **Team mode visibility** in configuration/summary screens
-  - TUI SummaryScreen now shows team mode status before variant creation
-  - CLI `printSummary` now shows team mode in all modes (quick, interactive, non-interactive)
-  - Provider-specific prompt pack routing info (zai-cli vs MCP routing)
-
-- **Skill tool examples mismatch** - Added skill clarification spec to prevent confusion
-  - Prompt pack now clarifies that skill examples (commit, review-pr, pdf) are illustrative only
-  - Directs users to check `<available_skills>` for actually installed skills
+- useEffect infinite loop when toggling team mode.
+- Team mode visibility in configuration/summary screens.
+- Skill tool examples mismatch.
 
 ### Added
 
-- **Team Pack prompt files** for enhanced team mode guidance
-  - `task-management-note.md` - Clarifies TodoWrite deprecation vs Task\* tools in team mode
-  - `tasklist.md`, `taskupdate.md`, `task-extra-notes.md` - Enhanced Task\* tool descriptions
-
-- **TeamModeScreen** TUI component for team mode selection during variant creation
-
-- **Comprehensive tests**
-  - `test/e2e/blocked-tools.test.ts` - Tests for blocked tools configuration
-  - `test/e2e/team-mode.test.ts` - E2E tests for team mode enable/disable/toggle
-  - `test/provider-matrix.test.ts` - Provider feature matrix validation
-  - `test/tui/TeamModeScreen.test.ts` - TeamModeScreen component tests
-  - `test/tui/ModelConfigScreen.test.ts` - ModelConfigScreen component tests
-
-### Changed
-
-- Removed deprecated `promptPackMode` parameter (maximal mode removed, minimal is now default)
-- Shell env option now only shown for zai provider in summary screens
-- Team mode description now includes details: "on (orchestrator skill, TodoWrite blocked)"
+- Team Pack prompt files for enhanced team mode guidance.
+- TeamModeScreen TUI component.
+- Comprehensive tests for blocked tools, team mode, provider matrix.
 
 ## [1.1.2] - 2026-01-04
 
 ### Fixed
 
-- Suppress verbose tweakcc output during CLI variant creation
+- Suppress verbose tweakcc output during CLI variant creation.
 
 ## [1.1.1] - 2026-01-04
 
 ### Fixed
 
-- Mirror and CCRouter providers no longer prompt for API key (they use OAuth or optional keys)
-- Cleaned up CLI output formatting
+- Mirror and CCRouter providers no longer prompt for API key.
 
 ### Removed
 
-- Removed Twitter/X share URL from create output
+- Twitter/X share URL from create output.
 
 ## [1.1.0] - 2026-01-04
 
 ### Added
 
-- **Team Mode** - Multi-agent collaboration with shared task management
-  - `--enable-team-mode` flag for create and update commands
-  - Toggle team mode on/off in TUI variant management screen
-  - Patches Claude Code CLI to enable `TaskCreate`, `TaskGet`, `TaskUpdate`, `TaskList` tools
-  - Automatic backup of CLI before patching (`cli.js.backup`)
-
-- **Mirror Claude Provider** - Pure Claude Code variant with enhanced features
-  - No proxy - connects directly to Anthropic's API
-  - Team mode enabled by default
-  - Silver/chrome theme with electric blue accents
-  - OAuth or API key authentication (standard Claude Code auth flow)
-
-- **Multi-Agent Orchestrator Skill** - Automatically installed when team mode is enabled
-  - "The Conductor" identity for elegant multi-agent orchestration
-  - AskUserQuestion as mandatory tool (never text menus)
-  - Background agents by default (`run_in_background=True`)
-  - 8 domain-specific reference guides (code review, testing, devops, documentation, etc.)
-  - Managed skill marker (`.cc-mirror-managed`) for safe updates without overwriting user customizations
-
-- **Documentation**
-  - `docs/features/team-mode.md` - Complete team mode guide with architecture diagrams
-  - `docs/features/mirror-claude.md` - Mirror Claude provider documentation
-  - `docs/architecture/overview.md` - System architecture overview
-  - Updated `AGENTS.md` with team mode and orchestrator skill sections
+- **Team Mode** - Multi-agent collaboration with shared task management.
+- **Mirror Claude Provider** - Pure Claude Code with team mode by default.
+- **Multi-Agent Orchestrator Skill** - "The Conductor" identity.
+- Team mode documentation and architecture docs.
 
 ### Changed
 
-- Bundle script now copies skills to `dist/skills` for npm distribution
-- Enhanced TUI with team mode toggle in variant actions screen
-- Provider selection includes Mirror Claude with education content
+- Bundle script copies skills to `dist/skills`.
+- Enhanced TUI with team mode toggle.
 
 ## [1.0.4] - 2026-01-04
 
 ### Changed
 
-- Removed broken ASCII art success banner from completion screen
-- Streamlined Z.ai prompt pack (removed verbose setup/advanced sections)
-- Simplified MiniMax prompt pack (removed redundant auth section)
+- Removed broken ASCII art success banner.
+- Streamlined Z.ai and MiniMax prompt packs.
 
 ## [1.0.3] - 2026-01-03
 
 ### Changed
 
-- Removed 5 unused dependencies: `gradient-string`, `ink-big-text`, `ink-box`, `ink-gradient`, `ink-spinner`
-- Production dependencies reduced from 10 to 5
-- Package tarball size reduced to 88.5 kB
+- Removed 5 unused dependencies.
+- Production dependencies reduced from 10 to 5.
 
 ### Fixed
 
-- Fixed bin path to use relative path (`./dist/cc-mirror.mjs`)
-- Added missing `@eslint/js` dev dependency
+- Fixed bin path to use relative path.
 
 ## [1.0.2] - 2026-01-03
 
 ### Changed
 
-- Upgraded to Ink 6.6.0 and React 19
-- Updated all ink-\* packages to latest versions
-- Fresh dependency tree with improved compatibility
+- Upgraded to Ink 6.6.0 and React 19.
 
 ## [1.0.1] - 2026-01-03
 
 ### Fixed
 
-- Fixed npx compatibility by keeping React/Ink as external dependencies
-- Resolved dynamic require and ESM bundling issues
-- Bundle now properly delegates React ecosystem to npm
+- Fixed npx compatibility by keeping React/Ink external.
 
 ## [1.0.0] - 2026-01-03
 
 ### Added
 
-- First public release
-- Claude Code Router support (route to local LLMs via CCRouter)
-- RouterUrlScreen for simplified CCRouter configuration
-- Provider intro screens with setup guidance and feature highlights
-- Feedback screen with GitHub repository links
-- Beautiful README with screenshots and n-skills style formatting
+- First public release.
+- Claude Code Router support.
+- Provider intro screens with setup guidance.
+- Beautiful README with screenshots.
 
 ### Changed
 
-- Removed LiteLLM provider (replaced by Claude Code Router)
-- CCRouter no longer requires model mapping (handled by CCRouter config)
-- Simplified provider selection flow with better education
-- Updated provider content to emphasize local LLM support
-- Version bump to 1.0.0 for first stable release
-
-### Fixed
-
-- CCRouter flow no longer shows "model mapping incomplete" warning
-- Settings-only updates preserve binary patches (fixes theme reset issue)
-- All linting errors resolved
-- React hook dependency warnings fixed
+- Removed LiteLLM provider (replaced by Claude Code Router).
 
 ## [0.3.0] - 2026-01-02
 
 ### Added
 
-- Colored ASCII art splash screens for each provider
-  - Z.ai: Gold/amber gradient
-  - MiniMax: Coral/red/orange gradient (matching brand)
-  - OpenRouter: Teal/cyan gradient
-  - LiteLLM: Sky blue gradient
-- Async operations for live TUI progress updates
-- MIT License
-
-### Changed
-
-- Renamed "Local LLMs" provider to "LiteLLM" throughout
-- Footer layout: creator info on left, social links stacked on right
-- tweakcc option now shows CLI command (avoids TUI-in-TUI conflict)
-- Prepared package.json for npm publish (removed private flag, added metadata)
-
-### Fixed
-
-- Progress bar and step animations now update in real-time
-- MiniMax colors now match official brand (coral/red, not purple)
+- Colored ASCII art splash screens for each provider.
+- Async operations for live TUI progress updates.
+- MIT License.
 
 ## [0.2.0] - 2026-01-02
 
 ### Added
 
-- Full-screen TUI wizard
-- Brand theme presets (zai, minimax, openrouter, local)
-- Prompt packs for enhanced system prompts
-- dev-browser skill auto-installation
-- Shell environment integration for Z.ai
-
-### Changed
-
-- Restructured to use ink for TUI
-- Modular provider templates
+- Full-screen TUI wizard.
+- Brand theme presets.
+- Prompt packs for enhanced system prompts.
+- dev-browser skill auto-installation.
 
 ## [0.1.0] - 2026-01-02
 
 ### Added
 
-- Initial release
-- CLI for creating Claude Code variants
-- Support for Z.ai, MiniMax, OpenRouter, Local LLMs
-- tweakcc integration for themes
-- Variant isolation with separate config directories
+- Initial release.
+- CLI for creating Claude Code variants.
+- Support for Z.ai, MiniMax, OpenRouter.
+- tweakcc integration for themes.
