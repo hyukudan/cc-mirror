@@ -49,9 +49,9 @@ OPTIONS (global)
 
 OPTIONS (create/quick)
   --name <name>                Variant name (becomes CLI command)
-  --provider <name>            Provider: zai | minimax | gatewayz | openrouter | nanogpt | ccrouter | mirror | kimi
+  --provider <name>            Provider: zai | minimax | gatewayz | openrouter | nanogpt | ccrouter | mirror | kimi | poe
   --api-key <key>              Provider API key
-  --brand <preset>             Theme: auto | none | zai | minimax | gatewayz | openrouter | nanogpt | ccrouter | mirror | kimi
+  --brand <preset>             Theme: auto | none | zai | minimax | gatewayz | openrouter | nanogpt | ccrouter | mirror | kimi | poe
   --quick                      Fast path mode
   --tui / --no-tui             Force TUI on/off
 

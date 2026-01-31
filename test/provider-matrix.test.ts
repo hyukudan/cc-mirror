@@ -59,6 +59,14 @@ test('Provider Feature Matrix', async (t) => {
     assert.equal(nanogpt.authMode, 'authToken', 'nanogpt should use authToken mode');
   });
 
+  await t.test('poe provider requires model mapping and authToken', () => {
+    const poe = getProvider('poe');
+    assert.ok(poe, 'poe provider should exist');
+    assert.ok(poe.requiresModelMapping, 'poe should require model mapping');
+    assert.equal(poe.authMode, 'authToken', 'poe should use authToken mode');
+    assert.equal(poe.env.CC_MIRROR_SPLASH_STYLE, 'poe', 'poe should have poe splash style');
+  });
+
   await t.test('zai and minimax providers have splash styles', () => {
     const zai = getProvider('zai');
     const minimax = getProvider('minimax');
