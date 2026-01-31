@@ -157,6 +157,8 @@ When team mode is enabled, CC-MIRROR installs two skills:
 | **orchestration** | Multi-agent coordination patterns (Fan-Out, Pipeline, Map-Reduce, Speculative). Teaches Claude to be "The Conductor" — decomposing work, spawning agents, synthesizing results. |
 | **task-manager**  | CLI task management helpers. Invoke with `/task-manager` for cleanup, archiving, and dependency visualization.                                                                  |
 
+> **Skip bundled skills:** Use `--no-team-skills` to enable team mode without installing these skills (useful if you have custom orchestration).
+
 #### Project-Scoped Tasks
 
 Tasks are automatically isolated by project folder:
@@ -565,6 +567,7 @@ npx cc-mirror cleanup --archive --older-than 30
 --name <name>            Variant name (becomes CLI command)
 --api-key <key>          Provider API key
 --enable-team-mode       Enable TaskCreate/Get/Update/List tools
+--no-team-skills         Skip bundled skills (orchestrator, task-manager)
 --model-sonnet <name>    Override sonnet model
 --env KEY=VALUE          Extra env var (repeatable)
 --prefer-ipv4            Force IPv4 DNS resolution
