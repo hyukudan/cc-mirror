@@ -261,7 +261,7 @@ Task(subagent_type="Explore", prompt="TaskId 1: Analyze requirements...",
      model="haiku", run_in_background=True)
 ```
 
-Agents mark tasks resolved immediately upon completion.
+Agents mark tasks completed immediately upon completion.
 
 ---
 

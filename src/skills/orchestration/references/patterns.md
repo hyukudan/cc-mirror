@@ -69,7 +69,7 @@ TaskList()  # Find tasks with empty blockedBy
 Task(subagent_type="general-purpose", prompt="TaskId 1: Setup database...", model="sonnet", run_in_background=True)
 
 # 4. Agents mark complete, repeat
-TaskUpdate(taskId="1", status="resolved")
+TaskUpdate(taskId="1", status="completed")
 TaskList()  # Task 2 now unblocked
 ```
 
@@ -301,12 +301,6 @@ Task(subagent_type="general-purpose", prompt=f"Refine and complete: {winner}", m
 # (Original was: Task(..., run_in_background=True))
 
 if result.failed or result.incomplete:
-    # Log the failure
-    TaskUpdate(taskId="3", addComment={
-        "author": "orchestrator",
-        "content": f"Attempt 1 failed: {result.error}. Retrying with adjusted approach."
-    })
-
     # Retry with more context (still background, same model as original)
     Task(subagent_type="general-purpose",
          prompt=f"""Previous attempt failed: {result.error}
@@ -329,9 +323,7 @@ if result.failed or result.incomplete:
 
 ```python
 # Agent completed some but not all work
-TaskUpdate(taskId="3", status="resolved",
-           addComment={"author": "orchestrator",
-                       "content": "Partial: Completed X and Y, but Z needs separate handling"})
+TaskUpdate(taskId="3", status="completed")
 
 # Create new task for remaining work
 TaskCreate(subject="Complete remaining Z work",

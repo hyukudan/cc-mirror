@@ -1,24 +1,24 @@
 <!--
 name: 'Team Mode: Task Management Note'
-description: Clarifies the transition from TodoWrite to Task* tools in Team Mode
+description: Guides usage of Task* tools in Team Mode
+ccVersion: 2.1.16
 -->
 
 # Task Management (Team Mode Active)
 
-Team Mode is enabled. Use the **Task\*** tools for task management instead of TodoWrite:
+Team Mode is enabled. Use the **Task\*** tools for task management:
 
-| Use This   | Not This               |
-| ---------- | ---------------------- |
-| TaskCreate | TodoWrite (deprecated) |
-| TaskUpdate | TodoWrite (deprecated) |
-| TaskList   | TodoWrite (deprecated) |
-| TaskGet    | TodoWrite (deprecated) |
-
-The TodoWrite tool may appear in your tool list but is blocked. Always use the Task\* tools for:
-
-- Creating tasks: `TaskCreate`
-- Tracking progress: `TaskUpdate` with comments
-- Viewing tasks: `TaskList` and `TaskGet`
-- Marking complete: `TaskUpdate` with status: "resolved"
+| Tool       | Purpose                                            |
+| ---------- | -------------------------------------------------- |
+| TaskCreate | Create new tasks with subject and description      |
+| TaskUpdate | Update status, set dependencies, assign ownership  |
+| TaskList   | View all tasks and find available work             |
+| TaskGet    | Get full details of a specific task                |
 
 The Task\* tools enable multi-agent collaboration with shared task storage.
+
+**Status workflow:** `pending` → `in_progress` → `completed`
+
+- Set `in_progress` when you start working on a task
+- Set `completed` when the work is done
+- Use `deleted` to permanently remove a task

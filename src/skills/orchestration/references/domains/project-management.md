@@ -175,14 +175,11 @@ Phase 2: REDUCE
 # Get current state
 TaskList()  # Returns all tasks with status
 
-# Update progress
-TaskUpdate(taskId="5", addComment={
-  author: "agent-id",
-  content: "50% complete, blocked on API review"
-})
+# Mark in progress
+TaskUpdate(taskId="5", status="in_progress")
 
 # Mark complete
-TaskUpdate(taskId="5", status="resolved")
+TaskUpdate(taskId="5", status="completed")
 ```
 
 ### Pattern: Burndown Tracking

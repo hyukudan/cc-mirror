@@ -418,14 +418,11 @@ TaskCreate(
 # Set dependency
 TaskUpdate(taskId="2", addBlockedBy=["1"])
 
-# Add progress note
-TaskUpdate(taskId="1", addComment={
-    "author": "orchestrator",
-    "content": "Schema design complete"
-})
+# Mark in progress
+TaskUpdate(taskId="1", status="in_progress")
 
 # Mark done
-TaskUpdate(taskId="1", status="resolved")
+TaskUpdate(taskId="1", status="completed")
 ```
 
 ### TaskList & TaskGet
@@ -460,7 +457,7 @@ The complete flow for orchestrated execution:
 │                                                             │
 │  6. PROCESS NOTIFICATIONS                                   │
 │     <agent-notification> arrives → Read results             │
-│     Mark TaskUpdate(status="resolved")                      │
+│     Mark TaskUpdate(status="completed")                     │
 │                                                             │
 │  7. REPEAT                                                  │
 │     Back to step 3 until all done                           │
@@ -501,7 +498,7 @@ Task(subagent_type="general-purpose",
 
 # Read results, mark complete
 Read(file_path="...output file...")
-TaskUpdate(taskId="1", status="resolved")
+TaskUpdate(taskId="1", status="completed")
 
 # 7. Repeat - task 2 now unblocked
 TaskList()
@@ -522,7 +519,7 @@ TaskList()
 │  ✓ Launch multiple background agents in single message      │
 │  ✓ Rich, detailed prompts for agents                        │
 │  ✓ Process notifications as they arrive                     │
-│  ✓ Mark tasks resolved immediately when done                │
+│  ✓ Mark tasks completed immediately when done                │
 │  ✓ Show active work in signature                            │
 │                                                             │
 │  ✗ Never use foreground (blocking) agents                   │

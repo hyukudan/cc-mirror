@@ -1,10 +1,14 @@
 /**
- * TeamModeUpdateStep - Patches cli.js to enable team mode features on update
+ * TeamModeUpdateStep - Configures team mode features on update
  *
  * Team mode enables:
  * - TaskCreate, TaskGet, TaskUpdate, TaskList tools
  * - Team collaboration via shared task storage
- * - TodoWrite shows deprecation message pointing to new tools
+ * - Orchestrator and task-manager skills
+ *
+ * Claude Code 2.1.16+ has native Task tools — the cli.js patch is only
+ * needed for older versions (<=2.0.x) where the feature was gated behind
+ * a minified flag. On newer versions the patch is skipped automatically.
  */
 
 import fs from 'node:fs';
@@ -19,7 +23,7 @@ import {
 import { copyTeamPackPrompts, configureTeamToolset } from '../../../team-pack/index.js';
 import type { UpdateContext, UpdateStep } from '../types.js';
 
-// The minified function that controls team mode
+// The minified function that controls team mode (only present in <=2.0.x)
 const TEAM_MODE_DISABLED = 'function sU(){return!1}';
 const TEAM_MODE_ENABLED = 'function sU(){return!0}';
 
@@ -42,79 +46,46 @@ export class TeamModeUpdateStep implements UpdateStep {
   execute(ctx: UpdateContext): void {
     if (this.shouldDisableTeamMode(ctx)) {
       ctx.report('Disabling team mode...');
-      this.unpatchCli(ctx);
+      this.disableTeamMode(ctx);
       return;
     }
     if (!this.shouldEnableTeamMode(ctx)) return;
     ctx.report('Enabling team mode...');
-    this.patchCli(ctx);
+    this.enableTeamMode(ctx);
   }
 
   async executeAsync(ctx: UpdateContext): Promise<void> {
     if (this.shouldDisableTeamMode(ctx)) {
       await ctx.report('Disabling team mode...');
-      this.unpatchCli(ctx);
+      this.disableTeamMode(ctx);
       return;
     }
     if (!this.shouldEnableTeamMode(ctx)) return;
     await ctx.report('Enabling team mode...');
-    this.patchCli(ctx);
+    this.enableTeamMode(ctx);
   }
 
-  private unpatchCli(ctx: UpdateContext): void {
+  private disableTeamMode(ctx: UpdateContext): void {
     const { state, meta, paths } = ctx;
 
-    // Find cli.js path
+    // Try to reverse the cli.js patch (only relevant for <=2.0.x)
     const cliPath = path.join(paths.npmDir, 'node_modules', '@anthropic-ai', 'claude-code', 'cli.js');
-
-    if (!fs.existsSync(cliPath)) {
-      state.notes.push('Warning: cli.js not found, skipping team mode unpatch');
-      // Still try to remove skill since user explicitly requested disable
-      this.removeSkill(ctx);
-      return;
-    }
-
-    // Read cli.js
-    let content = fs.readFileSync(cliPath, 'utf8');
-
-    // Check if already disabled
-    if (content.includes(TEAM_MODE_DISABLED)) {
-      state.notes.push('Team mode already disabled');
-      meta.teamModeEnabled = false;
-      // Still remove skill since user explicitly requested disable
-      this.removeSkill(ctx);
-      return;
-    }
-
-    // Check if patchable (has enabled version)
-    if (!content.includes(TEAM_MODE_ENABLED)) {
-      state.notes.push('Warning: Team mode function not found in cli.js');
-      // Still try to remove skill since user explicitly requested disable
-      this.removeSkill(ctx);
-      return;
-    }
-
-    // Reverse patch
-    content = content.replace(TEAM_MODE_ENABLED, TEAM_MODE_DISABLED);
-    fs.writeFileSync(cliPath, content);
-
-    // Verify unpatch
-    const verifyContent = fs.readFileSync(cliPath, 'utf8');
-    if (!verifyContent.includes(TEAM_MODE_DISABLED)) {
-      state.notes.push('Warning: Team mode unpatch verification failed');
-      // Still try to remove skill since user explicitly requested disable
-      this.removeSkill(ctx);
-      return;
+    if (fs.existsSync(cliPath)) {
+      const content = fs.readFileSync(cliPath, 'utf8');
+      if (content.includes(TEAM_MODE_ENABLED)) {
+        fs.writeFileSync(cliPath, content.replace(TEAM_MODE_ENABLED, TEAM_MODE_DISABLED));
+        state.notes.push('Reversed cli.js team mode patch');
+      }
     }
 
     meta.teamModeEnabled = false;
-    state.notes.push('Team mode disabled successfully');
+    state.notes.push('Team mode disabled');
 
-    // Remove the multi-agent orchestrator skill
-    this.removeSkill(ctx);
+    // Remove skills
+    this.removeSkills(ctx);
   }
 
-  private removeSkill(ctx: UpdateContext): void {
+  private removeSkills(ctx: UpdateContext): void {
     const { state, meta } = ctx;
     const skillResult = removeOrchestratorSkill(meta.configDir);
     if (skillResult.status === 'removed') {
@@ -131,86 +102,16 @@ export class TeamModeUpdateStep implements UpdateStep {
     }
   }
 
-  private patchCli(ctx: UpdateContext): void {
-    const { state, meta, paths } = ctx;
+  private enableTeamMode(ctx: UpdateContext): void {
+    const { state, meta } = ctx;
 
-    // Find cli.js path
-    const cliPath = path.join(paths.npmDir, 'node_modules', '@anthropic-ai', 'claude-code', 'cli.js');
-    const backupPath = `${cliPath}.backup`;
+    // --- 1. cli.js patch (only for <=2.0.x where Task tools are gated) ---
+    this.tryPatchCli(ctx);
 
-    if (!fs.existsSync(cliPath)) {
-      state.notes.push('Warning: cli.js not found, skipping team mode patch');
-      return;
-    }
+    // --- 2. Configure settings.json (env vars + skill permissions) ---
+    this.configureSettings(ctx);
 
-    // Create backup if not exists
-    if (!fs.existsSync(backupPath)) {
-      fs.copyFileSync(cliPath, backupPath);
-    }
-
-    // Read cli.js
-    let content = fs.readFileSync(cliPath, 'utf8');
-
-    // Check if already patched
-    if (content.includes(TEAM_MODE_ENABLED)) {
-      state.notes.push('Team mode already enabled');
-      meta.teamModeEnabled = true;
-      return;
-    }
-
-    // Check if patchable
-    if (!content.includes(TEAM_MODE_DISABLED)) {
-      state.notes.push('Warning: Team mode function not found in cli.js, patch may not work');
-      return;
-    }
-
-    // Apply patch
-    content = content.replace(TEAM_MODE_DISABLED, TEAM_MODE_ENABLED);
-    fs.writeFileSync(cliPath, content);
-
-    // Verify patch
-    const verifyContent = fs.readFileSync(cliPath, 'utf8');
-    if (!verifyContent.includes(TEAM_MODE_ENABLED)) {
-      state.notes.push('Warning: Team mode patch verification failed');
-      return;
-    }
-
-    // Add team env vars and permissions to settings.json
-    const settingsPath = path.join(meta.configDir, 'settings.json');
-    if (fs.existsSync(settingsPath)) {
-      try {
-        const settings = JSON.parse(fs.readFileSync(settingsPath, 'utf8'));
-        settings.env = settings.env || {};
-        // Use TEAM_MODE flag (not TEAM_NAME) - wrapper sets actual team name dynamically
-        if (!settings.env.CLAUDE_CODE_TEAM_MODE) {
-          settings.env.CLAUDE_CODE_TEAM_MODE = '1';
-        }
-        if (settings.env.CLAUDE_CODE_TEAM_NAME) {
-          delete settings.env.CLAUDE_CODE_TEAM_NAME;
-        }
-        if (!settings.env.CLAUDE_CODE_AGENT_TYPE) {
-          settings.env.CLAUDE_CODE_AGENT_TYPE = 'team-lead';
-        }
-
-        // Add orchestration skill to auto-approve list
-        settings.permissions = settings.permissions || {};
-        settings.permissions.allow = settings.permissions.allow || [];
-        for (const skill of ['Skill(orchestration)', 'Skill(task-manager)']) {
-          if (!settings.permissions.allow.includes(skill)) {
-            settings.permissions.allow.push(skill);
-          }
-        }
-
-        fs.writeFileSync(settingsPath, JSON.stringify(settings, null, 2));
-      } catch {
-        state.notes.push('Warning: Could not update settings.json with team env vars');
-      }
-    }
-
-    meta.teamModeEnabled = true;
-    state.notes.push('Team mode enabled successfully');
-
-    // Install the multi-agent orchestrator skill
+    // --- 3. Install skills ---
     const skillResult = installOrchestratorSkill(meta.configDir);
     if (skillResult.status === 'installed') {
       state.notes.push('Multi-agent orchestrator skill installed');
@@ -218,7 +119,6 @@ export class TeamModeUpdateStep implements UpdateStep {
       state.notes.push(`Warning: orchestrator skill install failed: ${skillResult.message}`);
     }
 
-    // Install the task-manager skill
     const taskSkillResult = installTaskManagerSkill(meta.configDir);
     if (taskSkillResult.status === 'installed') {
       state.notes.push('Task manager skill installed');
@@ -226,17 +126,92 @@ export class TeamModeUpdateStep implements UpdateStep {
       state.notes.push(`Warning: task-manager skill install failed: ${taskSkillResult.message}`);
     }
 
-    // Copy team pack prompt files
+    // --- 4. Team pack prompts ---
     const systemPromptsDir = path.join(meta.tweakDir, 'system-prompts');
     const copiedFiles = copyTeamPackPrompts(systemPromptsDir);
     if (copiedFiles.length > 0) {
       state.notes.push(`Team pack prompts installed (${copiedFiles.join(', ')})`);
     }
 
-    // Configure TweakCC toolset to block TodoWrite
+    // --- 5. Configure toolset (block TodoWrite) ---
     const tweakccConfigPath = path.join(meta.tweakDir, 'config.json');
     if (configureTeamToolset(tweakccConfigPath)) {
       state.notes.push('Team toolset configured (TodoWrite blocked)');
+    }
+
+    meta.teamModeEnabled = true;
+    state.notes.push('Team mode enabled successfully');
+  }
+
+  /**
+   * Attempt to patch cli.js for older Claude Code versions (<=2.0.x).
+   * On 2.1.16+ the Task tools are native, so no patch is needed.
+   */
+  private tryPatchCli(ctx: UpdateContext): void {
+    const { state, paths } = ctx;
+    const cliPath = path.join(paths.npmDir, 'node_modules', '@anthropic-ai', 'claude-code', 'cli.js');
+
+    if (!fs.existsSync(cliPath)) {
+      state.notes.push('Warning: cli.js not found, skipping patch');
+      return;
+    }
+
+    const content = fs.readFileSync(cliPath, 'utf8');
+
+    // Already patched
+    if (content.includes(TEAM_MODE_ENABLED)) return;
+
+    // Not patchable — newer version with native Task tools
+    if (!content.includes(TEAM_MODE_DISABLED)) {
+      state.notes.push('Native Task tools detected (2.1.16+), cli.js patch not needed');
+      return;
+    }
+
+    // Legacy version — apply patch
+    const backupPath = `${cliPath}.backup`;
+    if (!fs.existsSync(backupPath)) {
+      fs.copyFileSync(cliPath, backupPath);
+    }
+
+    const patched = content.replace(TEAM_MODE_DISABLED, TEAM_MODE_ENABLED);
+    fs.writeFileSync(cliPath, patched);
+
+    if (fs.readFileSync(cliPath, 'utf8').includes(TEAM_MODE_ENABLED)) {
+      state.notes.push('cli.js patched for legacy Task tools');
+    } else {
+      state.notes.push('Warning: cli.js patch verification failed');
+    }
+  }
+
+  private configureSettings(ctx: UpdateContext): void {
+    const { state, meta } = ctx;
+    const settingsPath = path.join(meta.configDir, 'settings.json');
+    if (!fs.existsSync(settingsPath)) return;
+
+    try {
+      const settings = JSON.parse(fs.readFileSync(settingsPath, 'utf8'));
+      settings.env = settings.env || {};
+      if (!settings.env.CLAUDE_CODE_TEAM_MODE) {
+        settings.env.CLAUDE_CODE_TEAM_MODE = '1';
+      }
+      if (settings.env.CLAUDE_CODE_TEAM_NAME) {
+        delete settings.env.CLAUDE_CODE_TEAM_NAME;
+      }
+      if (!settings.env.CLAUDE_CODE_AGENT_TYPE) {
+        settings.env.CLAUDE_CODE_AGENT_TYPE = 'team-lead';
+      }
+
+      settings.permissions = settings.permissions || {};
+      settings.permissions.allow = settings.permissions.allow || [];
+      for (const skill of ['Skill(orchestration)', 'Skill(task-manager)']) {
+        if (!settings.permissions.allow.includes(skill)) {
+          settings.permissions.allow.push(skill);
+        }
+      }
+
+      fs.writeFileSync(settingsPath, JSON.stringify(settings, null, 2));
+    } catch {
+      state.notes.push('Warning: Could not update settings.json with team env vars');
     }
   }
 }

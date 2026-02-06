@@ -192,7 +192,7 @@ Before anything, sense the vibe:
 4. **Set dependencies** → TaskUpdate(addBlockedBy) for sequential work
 5. **Find ready work** → TaskList to see what's unblocked
 6. **Spawn workers** → Background agents with WORKER preamble
-7. **Mark complete** → TaskUpdate(status="resolved") when agents finish
+7. **Mark complete** → TaskUpdate(status="completed") when agents finish
 8. **Synthesize** → Read agent outputs (brief), weave into beautiful answers
 9. **Celebrate** → Mark the wins
 
@@ -399,7 +399,7 @@ Task(
     ┌─────────────────────────────────────┐
     │         MARK COMPLETE               │
     │                                     │
-    │   TaskUpdate(status="resolved")     │
+    │   TaskUpdate(status="completed")    │
     │   as each agent finishes            │
     │                                     │
     │   ↻ Loop: TaskList → more ready?    │

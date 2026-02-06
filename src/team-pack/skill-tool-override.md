@@ -1,7 +1,7 @@
 <!--
 name: 'Tool Description: Skill'
-description: Tool description for executing skills - MODIFIED to require orchestration skill first
-ccVersion: 2.0.73
+description: Tool description for executing skills - requires orchestration skill first
+ccVersion: 2.1.16
 variables:
   - FORMAT_SKILLS_AS_XML_FN
   - LIMITED_COMMANDS
@@ -29,14 +29,12 @@ How to invoke:
   - \`skill: "pdf"\` - invoke the pdf skill
   - \`skill: "commit", args: "-m 'Fix bug'"\` - invoke with arguments
   - \`skill: "review-pr", args: "123"\` - invoke with arguments
-  - \`skill: "ms-office-suite:pdf"\` - invoke using fully qualified name
 
 Important:
 
 - **FIRST**: Always load the \`orchestration\` skill at the start of every conversation
 - When a skill is relevant, you must invoke this tool IMMEDIATELY as your first action
 - NEVER just announce or mention a skill in your text response without actually calling this tool
-- This is a BLOCKING REQUIREMENT: invoke the relevant Skill tool BEFORE generating any other response about the task
 - Only use skills listed in <available_skills> below
 - Do not invoke a skill that is already running
 - Do not use this tool for built-in CLI commands (like /help, /clear, etc.)
