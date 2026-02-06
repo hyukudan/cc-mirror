@@ -32,7 +32,7 @@ else
     echo "Error: npx not found; install tweakcc or ensure npm/npx is available." >&2
     exit 1
   fi
-  TWEAKCC_CMD=(npx tweakcc@3.2.2)
+  TWEAKCC_CMD=(npx tweakcc@3.4.0)
 fi
 
 mkdir -p "${ROOT_DIR}" "${INSTALL_BIN_DIR}"

@@ -39,7 +39,7 @@ All commands are available through `npx cc-mirror`.
 - `--root <path>` - Variants root (default: `~/.cc-mirror`)
 - `--bin-dir <path>` - Wrapper install dir (default: `~/.local/bin` or `%USERPROFILE%\\.cc-mirror\\bin`)
 - `--npm-package <name>` - Override Claude Code package (default: `@anthropic-ai/claude-code`)
-- `--npm-version <ver>` - Override Claude Code package version (default: `2.0.76`)
+- `--npm-version <ver>` - Override Claude Code package version (default: `2.1.32`)
 - `--no-tweak` - Skip tweakcc theming
 - `--no-prompt-pack` - Skip provider prompt pack
 - `--prompt-pack-mode <mode>` - minimal (maximal deprecated)
@@ -138,8 +138,8 @@ Run `npx cc-mirror tasks --help` for all operations and flags. Common examples:
 npx cc-mirror tasks
 npx cc-mirror tasks show 5
 npx cc-mirror tasks create --subject "Fix bug" --description "..."
-npx cc-mirror tasks update 5 --status resolved
-npx cc-mirror tasks clean --resolved --dry-run
+npx cc-mirror tasks update 5 --status completed
+npx cc-mirror tasks clean --completed --dry-run
 ```
 
 ## Interrupt Handling

@@ -1,7 +1,7 @@
 <!--
 name: 'Agent Prompt: Task tool (extra notes)'
 description: Additional notes for using the Task tool effectively
-ccVersion: 2.0.70
+ccVersion: 2.1.16
 -->
 
 Notes:
