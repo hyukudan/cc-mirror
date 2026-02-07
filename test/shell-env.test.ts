@@ -5,6 +5,8 @@ import os from 'node:os';
 import path from 'node:path';
 import { ensureZaiShellEnv } from '../src/core/shell-env.js';
 
+const isWindows = os.platform() === 'win32';
+
 delete process.env.Z_AI_API_KEY;
 
 const makeTempDir = () => fs.mkdtempSync(path.join(os.tmpdir(), 'cc-mirror-shell-env-'));
@@ -51,5 +53,9 @@ test('ensureZaiShellEnv writes a cc-mirror block when missing', () => {
   assert.equal(result.status, 'updated');
   const content = fs.readFileSync(profilePath, 'utf8');
   assert.ok(content.includes('cc-mirror: Z.ai env start'));
-  assert.ok(content.includes("export Z_AI_API_KEY='abc123'"));
+  if (isWindows) {
+    assert.ok(content.includes("$env:Z_AI_API_KEY = 'abc123'"));
+  } else {
+    assert.ok(content.includes("export Z_AI_API_KEY='abc123'"));
+  }
 });

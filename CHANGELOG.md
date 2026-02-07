@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.7.1] - 2026-02-07
+
+### Fixed
+
+- **Orchestration hang** (#34): All `TaskOutput` calls in orchestration skill now require `timeout=30000` to prevent infinite hangs when agents crash.
+- **Temp dir isolation** (#24): Unix wrapper `mktemp` now uses `XDG_RUNTIME_DIR` / `TMPDIR` for per-user temp files, avoiding conflicts on multi-user systems.
+- **Windows `nul` artifact**: Added `nul` to `.gitignore` to prevent Windows reserved device name from being tracked.
+
+### Added
+
+- `--no-team-skills` documented in CLI reference (`docs/reference/cli-reference.md`).
+- Timeout Handling subsection in orchestration patterns error recovery guide.
+
 ## [1.7.0] - 2026-01-31
 
 ### Added

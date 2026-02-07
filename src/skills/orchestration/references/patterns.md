@@ -148,8 +148,8 @@ Task(subagent_type="general-purpose", prompt="Analyze file1.ts for security issu
 Task(subagent_type="general-purpose", prompt="Analyze file2.ts for security issues", model="opus", run_in_background=True)
 Task(subagent_type="general-purpose", prompt="Analyze file3.ts for security issues", model="opus", run_in_background=True)
 
-# REDUCE: Collect and synthesize
-results = [TaskOutput(task_id=id) for id in task_ids]
+# REDUCE: Collect and synthesize (always use timeout)
+results = [TaskOutput(task_id=id, timeout=30000) for id in task_ids]
 # Synthesize findings into unified report
 ```
 
@@ -196,8 +196,9 @@ Task(subagent_type="general-purpose", prompt="Run full test suite...", model="so
 # ... do other tasks ...
 
 # Check later
-TaskOutput(task_id="...", block=False)  # Non-blocking check
-TaskOutput(task_id="...", block=True)   # Block until complete
+TaskOutput(task_id="...", block=False)       # Non-blocking check
+TaskOutput(task_id="...", timeout=30000)     # Wait with timeout (ALWAYS use timeout)
+# ❌ ANTI-PATTERN: TaskOutput(task_id="...", block=True) — hangs forever if agent crashes
 ```
 
 ---
@@ -263,8 +264,8 @@ Task(...file2..., run_in_background=True)
 
 # Do other work while waiting
 
-# Collect and reduce
-results = [TaskOutput(id) for id in task_ids]
+# Collect and reduce (always use timeout)
+results = [TaskOutput(id, timeout=30000) for id in task_ids]
 # Synthesize
 ```
 
@@ -313,6 +314,25 @@ if result.failed or result.incomplete:
          run_in_background=True)
 ```
 
+### Timeout Handling
+
+```python
+# Always use timeout to prevent infinite hangs
+result = TaskOutput(task_id="abc123", timeout=30000)
+
+# If timeout expires, the result will indicate the agent is still running
+# Retry with smaller scope or check if agent is stuck
+if result.timed_out:
+    # Option 1: Extend timeout for slow tasks
+    result = TaskOutput(task_id="abc123", timeout=60000)
+
+    # Option 2: Abandon and retry with simpler prompt
+    Task(subagent_type="general-purpose",
+         prompt="Simplified version of original task...",
+         model="haiku",
+         run_in_background=True)
+```
+
 ### Escalation Rules
 
 1. **After 2 failed retries** → Ask user for guidance
@@ -348,10 +368,10 @@ After parallel agents complete, synthesize their outputs into coherent results.
 ### Collection
 
 ```python
-# Wait for all background agents
-result1 = TaskOutput(task_id="agent-1")
-result2 = TaskOutput(task_id="agent-2")
-result3 = TaskOutput(task_id="agent-3")
+# Wait for all background agents (always use timeout)
+result1 = TaskOutput(task_id="agent-1", timeout=30000)
+result2 = TaskOutput(task_id="agent-2", timeout=30000)
+result3 = TaskOutput(task_id="agent-3", timeout=30000)
 ```
 
 ### Aggregation Approaches

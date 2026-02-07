@@ -319,7 +319,7 @@ Task(subagent_type="general-purpose", description="Run tests",
      model="sonnet", run_in_background=True)
 
 # Continue with other work or wait
-result = TaskOutput(task_id="...", block=True)
+result = TaskOutput(task_id="...", timeout=30000)
 
 # Phase 2: Fix failures (sonnet for fixes - single message)
 # If 3 failures found:

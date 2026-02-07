@@ -4,6 +4,7 @@
 
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import path from 'node:path';
 import { buildCreateSummary, buildCreateNextSteps, buildHelpLines } from '../../src/tui/hooks/useVariantCreate.js';
 import { buildUpdateSummary, buildUpdateNextSteps } from '../../src/tui/hooks/useVariantUpdate.js';
 
@@ -90,7 +91,8 @@ test('buildCreateNextSteps includes variant name and paths', () => {
   assert.ok(steps.some((line) => line.includes('Update: cc-mirror update my-variant')));
   assert.ok(steps.some((line) => line.includes('Tweak: cc-mirror tweak my-variant')));
   assert.ok(steps.some((line) => line.includes('Config:')));
-  assert.ok(steps.some((line) => line.includes('/home/user/.cc-mirror')));
+  const expectedConfigPath = path.join('/home/user/.cc-mirror', 'my-variant', 'config', 'settings.json');
+  assert.ok(steps.some((line) => line.includes(expectedConfigPath)));
 });
 
 test('buildHelpLines returns standard help commands', () => {

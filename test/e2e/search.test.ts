@@ -14,6 +14,7 @@ const cliPath = path.join(__dirname, '../../src/cli/index.ts');
 const runSearch = (args: string[] = []): { stdout: string; stderr: string; status: number | null } => {
   const result = spawnSync('npx', ['tsx', cliPath, 'search', ...args], {
     encoding: 'utf8',
+    shell: true,
     env: { ...process.env, NODE_ENV: 'test' },
   });
   return {

@@ -54,6 +54,8 @@ Notable fixes and optimizations in this fork:
 | **Termux/Android**         | Full support with PATH setup automation                            |
 | **Skill Auto-approve**     | Orchestration skill loads without permission prompts               |
 | **Async TUI Updates**      | Live progress bars and step animations                             |
+| **Orchestration Hang Fix** | TaskOutput calls now require timeout to prevent infinite hangs     |
+| **Temp Dir Isolation**     | Per-user temp files via XDG_RUNTIME_DIR/TMPDIR (multi-user safe)  |
 
 See [CHANGELOG.md](CHANGELOG.md) for complete version history.
 

@@ -5,11 +5,14 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
 import * as core from '../../src/core/index.js';
 import { getWrapperPath } from '../../src/core/wrapper.js';
 import { makeTempDir, readFile, cleanup, withFakeNpm } from '../helpers/index.js';
 import { PROVIDERS } from './providers.js';
+
+const isWindows = os.platform() === 'win32';
 
 test('E2E: Create variants for all providers', async (t) => {
   const createdDirs: string[] = [];
@@ -96,11 +99,20 @@ test('E2E: Create variants for all providers', async (t) => {
         // Verify ANSI color codes are present (escape character \x1b)
         assert.ok(wrapperContent.includes('\x1b[38;5;'), `${provider.name} wrapper should contain ANSI color codes`);
 
-        // Verify the case statement includes the provider's splash style
-        assert.ok(
-          wrapperContent.includes(`${provider.expectedSplashStyle})`),
-          `${provider.name} wrapper should have case for splash style`
-        );
+        // Verify the case/goto includes the provider's splash style
+        if (isWindows) {
+          // Windows .cmd uses: goto :splash_<style>
+          assert.ok(
+            wrapperContent.includes(`:splash_${provider.expectedSplashStyle}`),
+            `${provider.name} wrapper should have goto label for splash style`
+          );
+        } else {
+          // Unix bash uses: case <style>)
+          assert.ok(
+            wrapperContent.includes(`${provider.expectedSplashStyle})`),
+            `${provider.name} wrapper should have case for splash style`
+          );
+        }
 
         // Verify reset code is present
         assert.ok(wrapperContent.includes('\x1b[0m'), `${provider.name} wrapper should contain color reset code`);

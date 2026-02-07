@@ -247,7 +247,7 @@ Read(file_path="/tmp/claude/.../tasks/abc123.output")
 Or use TaskOutput:
 
 ```python
-TaskOutput(task_id="abc123")
+TaskOutput(task_id="abc123", timeout=30000)
 ```
 
 ### Model Selection
@@ -386,15 +386,20 @@ RETURN: List of files with brief description of each.
 
 Retrieve results from background agents.
 
+```
+⚠️  WARNING: ALWAYS use timeout= to prevent infinite hangs if an agent crashes.
+    A bare TaskOutput(task_id=...) with no timeout will block forever.
+```
+
 ```python
-# Wait for completion
-result = TaskOutput(task_id="abc123")
+# Wait with timeout (ALWAYS use this form)
+result = TaskOutput(task_id="abc123", timeout=30000)
 
 # Check without waiting
 result = TaskOutput(task_id="abc123", block=False)
 
-# Wait with timeout
-result = TaskOutput(task_id="abc123", timeout=60000)
+# ❌ ANTI-PATTERN: bare call without timeout — hangs forever if agent crashes
+# result = TaskOutput(task_id="abc123")
 ```
 
 ---

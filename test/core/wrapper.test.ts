@@ -5,9 +5,12 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
 import { writeWrapper } from '../../src/core/wrapper.js';
 import { makeTempDir, cleanup } from '../helpers/index.js';
+
+const isWindows = os.platform() === 'win32';
 
 test('writeWrapper creates executable wrapper script', () => {
   const tempDir = makeTempDir();
@@ -22,9 +25,11 @@ test('writeWrapper creates executable wrapper script', () => {
 
     assert.ok(fs.existsSync(wrapperPath));
 
-    const stats = fs.statSync(wrapperPath);
-    // Check executable bit
-    assert.ok((stats.mode & 0o111) !== 0, 'Wrapper should be executable');
+    if (!isWindows) {
+      const stats = fs.statSync(wrapperPath);
+      // Check executable bit (Unix only — Windows has no permission bits)
+      assert.ok((stats.mode & 0o111) !== 0, 'Wrapper should be executable');
+    }
   } finally {
     cleanup(tempDir);
   }

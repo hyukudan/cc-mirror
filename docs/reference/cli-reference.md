@@ -49,6 +49,7 @@ All commands are available through `npx cc-mirror`.
 - `--prefer-ipv4` - Prefer IPv4 DNS (sets `CC_MIRROR_PREFER_IPV4=1` unless `NODE_OPTIONS` is set)
 - `--enable-team-mode` - Enable team mode (orchestrator + task-manager skills, Task\* tools)
 - `--disable-team-mode` - Disable team mode for quick setup
+- `--no-team-skills` - Skip bundled team skills (orchestrator, task-manager) when team mode is enabled
 - `--no-skill-install` - Skip dev-browser skill install
 - `--skill-update` - Refresh managed skills during update
 

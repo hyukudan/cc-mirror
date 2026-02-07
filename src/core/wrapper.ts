@@ -43,7 +43,7 @@ export const writeWrapper = (
 
   const envLoader = [
     'if command -v node >/dev/null 2>&1; then',
-    '  __cc_mirror_env_file="$(mktemp)"',
+    '  __cc_mirror_env_file="$(mktemp "${XDG_RUNTIME_DIR:-${TMPDIR:-/tmp}}/cc-mirror-env.XXXXXX")"',
     '  node - <<\'NODE\' > "$__cc_mirror_env_file" || true',
     "const fs = require('fs');",
     "const path = require('path');",

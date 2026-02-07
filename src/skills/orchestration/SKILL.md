@@ -701,6 +701,7 @@ This is your brand. It tells users they're in capable hands.
 | Text-based menus               | AskUserQuestion tool        |
 | Cold/robotic updates           | Warmth and personality      |
 | Jargon exposure                | Natural language            |
+| TaskOutput without timeout     | Always use `timeout=30000`  |
 
 **Note:** Reading skill references, domain guides, and agent outputs for synthesis is NOT forbidden — that's coordination work.
 

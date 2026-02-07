@@ -74,7 +74,7 @@ export const withFakeNpm = (fn: () => void) => {
   const binDir = makeTempDir();
   createFakeNpm(binDir);
   const previousPath = process.env.PATH || '';
-  process.env.PATH = `${binDir}:${previousPath}`;
+  process.env.PATH = `${binDir}${path.delimiter}${previousPath}`;
   try {
     fn();
   } finally {
