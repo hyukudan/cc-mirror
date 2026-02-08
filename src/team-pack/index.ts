@@ -17,7 +17,6 @@ export const TEAM_PACK_FILES = [
   { source: 'task-extra-notes.md', target: 'agent-prompt-task-tool-extra-notes.md' },
   { source: 'task-management-note.md', target: 'system-prompt-task-management-note.md' },
   { source: 'orchestration-skill.md', target: 'system-prompt-orchestration-skill.md' },
-  { source: 'skill-tool-override.md', target: 'tool-description-skill.md' },
 ];
 
 /**
