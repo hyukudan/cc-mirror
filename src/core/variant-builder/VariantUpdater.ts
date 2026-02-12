@@ -24,6 +24,7 @@ import { WrapperUpdateStep } from './update-steps/WrapperUpdateStep.js';
 import { ConfigUpdateStep } from './update-steps/ConfigUpdateStep.js';
 import { ShellEnvUpdateStep } from './update-steps/ShellEnvUpdateStep.js';
 import { SkillInstallUpdateStep } from './update-steps/SkillInstallUpdateStep.js';
+import { PluginRepairStep } from './update-steps/PluginRepairStep.js';
 import { FinalizeUpdateStep } from './update-steps/FinalizeUpdateStep.js';
 
 // Helper functions
@@ -64,6 +65,7 @@ export class VariantUpdater {
       new ConfigUpdateStep(),
       new ShellEnvUpdateStep(),
       new SkillInstallUpdateStep(),
+      new PluginRepairStep(),
       new FinalizeUpdateStep(),
     ];
   }

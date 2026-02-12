@@ -23,6 +23,7 @@ COMMANDS
   list                         List all variants
   search [options]             Search providers by capability/auth
   update [name]                Update to latest Claude Code
+  apply [name]                 Re-apply tweakcc theming (no npm reinstall)
   refresh [name|--all]         Re-apply provider defaults (keeps API key)
   remove <name>                Remove a variant
   version                      Print CLI version
@@ -49,9 +50,9 @@ OPTIONS (global)
 
 OPTIONS (create/quick)
   --name <name>                Variant name (becomes CLI command)
-  --provider <name>            Provider: zai | minimax | gatewayz | openrouter | nanogpt | ccrouter | mirror | kimi | poe
+  --provider <name>            Provider: zai | minimax | gatewayz | openrouter | nanogpt | ccrouter | mirror | kimi | poe | ollama
   --api-key <key>              Provider API key
-  --brand <preset>             Theme: auto | none | zai | minimax | gatewayz | openrouter | nanogpt | ccrouter | mirror | kimi | poe
+  --brand <preset>             Theme: auto | none | zai | minimax | gatewayz | openrouter | nanogpt | ccrouter | mirror | kimi | poe | ollama
   --quick                      Fast path mode
   --tui / --no-tui             Force TUI on/off
 
@@ -101,6 +102,11 @@ OPTIONS (refresh)
   --all                        Refresh all variants
   --dry-run                    Show what would change without writing
   --json                       Output changes as JSON
+
+OPTIONS (apply)
+  --all                        Apply to all variants
+  --brand <preset>             Override brand theme
+  --verbose                    Show detailed progress
 
 OPTIONS (search)
   --capability <name>          Filter by: vision, tool-use, streaming, extended-context, code-execution, web-search, reasoning

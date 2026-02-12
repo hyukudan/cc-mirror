@@ -15,7 +15,7 @@
 </p>
 
 <p align="center">
-  <code>15 providers</code> · <code>35+ CLI commands</code> · <code>Team mode</code> · <code>MCP registry</code> · <code>API translator</code>
+  <code>16 providers</code> · <code>35+ CLI commands</code> · <code>Team mode</code> · <code>MCP registry</code> · <code>API translator</code>
 </p>
 
 ---
@@ -29,7 +29,7 @@ This fork extends cc-mirror with enterprise tooling and additional providers:
 | Addition                 | Description                                                           |
 | ------------------------ | --------------------------------------------------------------------- |
 | **Cloud Providers**      | Vertex AI (GCP), Bedrock (AWS), Foundry (Azure)                       |
-| **Extended Providers**   | Kimi Code, DeepSeek, Vercel AI, Poe, GatewayZ, NanoGPT                |
+| **Extended Providers**   | Kimi Code, DeepSeek, Ollama, Vercel AI, Poe, GatewayZ, NanoGPT       |
 | **API Translator**       | Built-in Anthropic↔OpenAI translation for OpenAI-compatible providers |
 | **MCP Management**       | `cc-mirror mcp` commands + MCP server registry with one-click install |
 | **Config Export/Import** | Snapshot and restore variant configurations                           |
@@ -65,7 +65,7 @@ See [CHANGELOG.md](CHANGELOG.md) for complete version history.
 
 ### Multi-Provider Support
 
-Connect Claude Code to **15 different AI providers**:
+Connect Claude Code to **16 different AI providers**:
 
 | Provider       | Type    | Models                 | Auth            | Notes                    |
 | -------------- | ------- | ---------------------- | --------------- | ------------------------ |
@@ -82,6 +82,7 @@ Connect Claude Code to **15 different AI providers**:
 | **Mirror**     | Native  | Claude (native)        | OAuth/Key       | Pure Claude + team mode  |
 | **Kimi Code**  | Native  | K2.5                   | API Key         | Moonshot AI coding       |
 | **DeepSeek**   | Native  | deepseek-chat/reasoner | API Key         | Uses translator          |
+| **Ollama**     | Local   | Any Ollama model       | Optional        | Direct Ollama support    |
 | **CCRouter**   | Local   | Ollama, local LLMs     | Optional        | Local-first dev          |
 
 ### Team Mode (Multi-Agent Orchestration)
@@ -322,6 +323,9 @@ npx cc-mirror quick --provider mirror --name mclaude
 npx cc-mirror quick --provider kimi --api-key "$KIMI_API_KEY"
 npx cc-mirror quick --provider deepseek --api-key "$DEEPSEEK_API_KEY"
 npx cc-mirror quick --provider ccrouter
+
+# Local Ollama
+npx cc-mirror quick --provider ollama --name ollama-local
 ```
 
 ---
@@ -400,17 +404,19 @@ bedrock
 
 ### 5. Local LLMs for Offline Development
 
-Use Ollama or other local models when offline:
+Use Ollama directly or through CCRouter for local models:
 
 ```bash
-# Start Ollama first
+# Direct Ollama support (new!)
 ollama serve
+npx cc-mirror quick --provider ollama --name ollama-local
+ollama-local
 
-# Create CCRouter variant pointing to local Ollama
+# Or use CCRouter for advanced routing
 npx cc-mirror quick --provider ccrouter
 ccrouter
 
-# Works completely offline with local models
+# Both work completely offline with local models
 ```
 
 ### 6. Syncing Configurations Across Variants
@@ -460,6 +466,7 @@ npx cc-mirror tasks clean --resolved --older-than 7 --variant team
 | `npx cc-mirror list [--json]` | List all variants                             |
 | `npx cc-mirror update`        | **Update ALL variants** to latest Claude Code |
 | `npx cc-mirror update <name>` | Update specific variant only                  |
+| `npx cc-mirror apply [name]`  | Re-apply tweakcc theming (no npm reinstall)   |
 | `npx cc-mirror remove <name>` | Delete a variant                              |
 | `npx cc-mirror doctor`        | Health check all variants                     |
 | `npx cc-mirror run <name>`    | Launch a variant                              |
@@ -565,7 +572,7 @@ npx cc-mirror cleanup --archive --older-than 30
 ### Key Options
 
 ```
---provider <name>        zai | minimax | openrouter | vertex | bedrock | mirror | kimi | deepseek | ...
+--provider <name>        zai | minimax | openrouter | vertex | bedrock | mirror | kimi | deepseek | ollama | ...
 --name <name>            Variant name (becomes CLI command)
 --api-key <key>          Provider API key
 --enable-team-mode       Enable TaskCreate/Get/Update/List tools
@@ -592,6 +599,7 @@ Each provider has a custom color theme via [tweakcc](https://github.com/Piebald-
 | vertex     | Cloud   | Google blue/green/yellow  |
 | bedrock    | Ember   | AWS orange warm           |
 | foundry    | Azure   | Azure blue professional   |
+| ollama     | Sandstone | Warm brown/sandstone    |
 
 ---
 

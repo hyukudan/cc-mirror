@@ -12,7 +12,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import * as core from '../../src/core/index.js';
-import { TEAM_PACK_FILES } from '../../src/team-pack/index.js';
+import { TEAM_PACK_FILES, STALE_TEAM_PACK_TARGETS } from '../../src/team-pack/index.js';
 import { makeTempDir, readFile, cleanup, withFakeNpm } from '../helpers/index.js';
 
 const TEAM_MODE_ENABLED = 'function sU(){return!0}';
@@ -246,6 +246,51 @@ test('E2E: Team Mode', async (t) => {
         // Verify content is not empty
         const content = fs.readFileSync(targetPath, 'utf8');
         assert.ok(content.length > 0, `team pack file ${file.target} should have content`);
+      }
+    });
+  });
+
+  await t.test('team pack cleans up stale files from previous versions', () => {
+    withFakeNpm(() => {
+      const rootDir = makeTempDir();
+      const binDir = makeTempDir();
+      createdDirs.push(rootDir, binDir);
+
+      // Create variant with team mode
+      core.createVariant({
+        name: 'test-stale-cleanup',
+        providerKey: 'zai',
+        apiKey: 'test-key',
+        rootDir,
+        binDir,
+        enableTeamMode: true,
+        promptPack: false,
+        skillInstall: false,
+        noTweak: true,
+        tweakccStdio: 'pipe',
+      });
+
+      const variantDir = path.join(rootDir, 'test-stale-cleanup');
+      const systemPromptsDir = path.join(variantDir, 'tweakcc', 'system-prompts');
+
+      // Simulate stale files left from a previous version
+      for (const staleFile of STALE_TEAM_PACK_TARGETS) {
+        fs.writeFileSync(path.join(systemPromptsDir, staleFile), 'stale content');
+      }
+
+      // Re-run update which should clean up stale files
+      core.updateVariant(rootDir, 'test-stale-cleanup', { noTweak: true, settingsOnly: true });
+
+      // Verify stale files are gone
+      for (const staleFile of STALE_TEAM_PACK_TARGETS) {
+        const targetPath = path.join(systemPromptsDir, staleFile);
+        assert.ok(!fs.existsSync(targetPath), `stale file ${staleFile} should be removed after update`);
+      }
+
+      // Verify current files are still there
+      for (const file of TEAM_PACK_FILES) {
+        const targetPath = path.join(systemPromptsDir, file.target);
+        assert.ok(fs.existsSync(targetPath), `current file ${file.target} should still exist`);
       }
     });
   });

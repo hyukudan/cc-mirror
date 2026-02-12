@@ -24,3 +24,4 @@ export { runSkillCommand, type SkillCommandOptions } from './skill.js';
 export { runRegistryCommand, type RegistryCommandOptions } from './registry.js';
 export { runDashboardCommand, type DashboardCommandOptions } from './dashboard.js';
 export { runSearchCommand, type SearchCommandOptions } from './search.js';
+export { runApplyCommand, type ApplyCommandOptions } from './apply.js';

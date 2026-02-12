@@ -20,7 +20,33 @@ export const TEAM_PACK_FILES = [
 ];
 
 /**
- * Copy team pack prompt files to the tweakcc system-prompts directory
+ * Target filenames that were previously installed by the team pack but have
+ * been removed. These are cleaned up automatically during create/update to
+ * prevent stale prompts with unresolved variables from crashing Claude Code.
+ */
+export const STALE_TEAM_PACK_TARGETS = [
+  'tool-description-skill.md', // removed in d350fce — contained FORMAT_SKILLS_AS_XML_FN
+];
+
+/**
+ * Remove stale team pack files that are no longer part of the pack.
+ * Returns the list of filenames that were actually deleted.
+ */
+export const cleanStaleTeamPackFiles = (systemPromptsDir: string): string[] => {
+  const removed: string[] = [];
+  for (const target of STALE_TEAM_PACK_TARGETS) {
+    const targetPath = path.join(systemPromptsDir, target);
+    if (fs.existsSync(targetPath)) {
+      fs.unlinkSync(targetPath);
+      removed.push(target);
+    }
+  }
+  return removed;
+};
+
+/**
+ * Copy team pack prompt files to the tweakcc system-prompts directory.
+ * Also cleans up stale files from previous versions of the pack.
  */
 export const copyTeamPackPrompts = (systemPromptsDir: string): string[] => {
   const copied: string[] = [];
@@ -28,6 +54,9 @@ export const copyTeamPackPrompts = (systemPromptsDir: string): string[] => {
   if (!fs.existsSync(systemPromptsDir)) {
     fs.mkdirSync(systemPromptsDir, { recursive: true });
   }
+
+  // Clean up stale files from previous pack versions
+  cleanStaleTeamPackFiles(systemPromptsDir);
 
   for (const file of TEAM_PACK_FILES) {
     const sourcePath = path.join(__dirname, file.source);

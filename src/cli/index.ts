@@ -31,6 +31,7 @@ import {
   runRegistryCommand,
   runDashboardCommand,
   runSearchCommand,
+  runApplyCommand,
 } from './commands/index.js';
 
 const readPackageVersion = (): string => {
@@ -74,7 +75,7 @@ const main = async () => {
 
   // Help command (only for main help, not subcommand help)
   // Subcommands like 'tasks' handle their own --help
-  const commandsWithOwnHelp = ['tasks', 'mcp', 'config', 'backup', 'template', 'cleanup', 'skill', 'registry'];
+  const commandsWithOwnHelp = ['tasks', 'mcp', 'config', 'backup', 'template', 'cleanup', 'skill', 'registry', 'apply'];
   if (cmd === 'help' || cmd === '--help' || (opts.help && !commandsWithOwnHelp.includes(cmd))) {
     printHelp();
     return;
@@ -94,6 +95,10 @@ const main = async () => {
 
   // Route to command handlers
   switch (cmd) {
+    case 'apply':
+      runApplyCommand({ opts });
+      break;
+
     case 'list':
       runListCommand({ opts });
       break;

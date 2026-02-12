@@ -184,6 +184,27 @@ export const PROVIDER_EDUCATION: Record<string, ProviderEducation> = {
     },
     setupNote: 'Uses normal Claude authentication. Sign in via OAuth or set ANTHROPIC_API_KEY.',
   },
+
+  ollama: {
+    headline: 'Ollama — Run Models Locally',
+    tagline: 'Your hardware, your models',
+    features: [
+      'Run any model locally via Ollama',
+      'No API key needed for local use',
+      'Supports cloud Ollama endpoints too',
+      'Sandstone-themed interface',
+    ],
+    bestFor: 'Running models on your own hardware with zero cloud dependency',
+    requiresMapping: true,
+    hasPromptPack: false,
+    setupLinks: {
+      subscribe: 'https://ollama.com/download',
+      apiKey: 'https://ollama.com/download',
+      docs: 'https://ollama.com',
+      github: 'https://github.com/ollama/ollama',
+    },
+    setupNote: 'Install Ollama, pull a model (ollama pull llama3.3), then use "ollama" as the API key.',
+  },
 };
 
 /**
@@ -200,7 +221,7 @@ export const PROVIDER_COMPARISON = {
   fullySupported: ['zai', 'minimax'],
   requiresMapping: ['openrouter', 'gatewayz', 'nanogpt'],
   hasPromptPack: ['zai', 'minimax'],
-  localFirst: ['ccrouter'],
+  localFirst: ['ccrouter', 'ollama'],
   pureClaudeCode: ['mirror'],
   teamModeDefault: ['mirror'],
 };

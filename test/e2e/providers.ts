@@ -51,4 +51,12 @@ export const PROVIDERS = [
     expectedSplashStyle: 'ccrouter',
     colorCode: '\\x1b[38;5;39m', // Sky blue
   },
+  {
+    key: 'ollama',
+    name: 'Ollama',
+    apiKey: 'ollama',
+    expectedThemeId: 'ollama-sandstone',
+    expectedSplashStyle: 'ollama',
+    colorCode: '\\x1b[38;5;180m', // Warm sandstone
+  },
 ];

@@ -11,4 +11,5 @@ export { WrapperUpdateStep } from './WrapperUpdateStep.js';
 export { ConfigUpdateStep } from './ConfigUpdateStep.js';
 export { ShellEnvUpdateStep } from './ShellEnvUpdateStep.js';
 export { SkillInstallUpdateStep } from './SkillInstallUpdateStep.js';
+export { PluginRepairStep } from './PluginRepairStep.js';
 export { FinalizeUpdateStep } from './FinalizeUpdateStep.js';

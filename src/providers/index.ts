@@ -24,6 +24,8 @@ export interface ProviderTemplate {
   requiresTranslation?: boolean;
   /** Target URL for translation proxy (OpenAI-compatible endpoint) */
   translationTargetUrl?: string;
+  /** When true, keep ANTHROPIC_API_KEY even for authToken providers */
+  authTokenAlsoSetsApiKey?: boolean;
 }
 
 export interface ModelOverrides {
@@ -266,6 +268,24 @@ const PROVIDERS: Record<string, ProviderTemplate> = {
     authMode: 'none',
     noPromptPack: true, // Pure Claude experience
   },
+  ollama: {
+    key: 'ollama',
+    label: 'Ollama',
+    description: 'Local + cloud models via Ollama',
+    baseUrl: 'http://localhost:11434',
+    env: {
+      API_TIMEOUT_MS: DEFAULT_TIMEOUT_MS,
+      ANTHROPIC_AUTH_TOKEN: 'ollama',
+      ANTHROPIC_API_KEY: 'ollama',
+      CC_MIRROR_SPLASH: 1,
+      CC_MIRROR_PROVIDER_LABEL: 'Ollama',
+      CC_MIRROR_SPLASH_STYLE: 'ollama',
+    },
+    apiKeyLabel: 'Ollama API key (use "ollama" for local)',
+    authMode: 'authToken',
+    authTokenAlsoSetsApiKey: true,
+    requiresModelMapping: true,
+  },
   custom: {
     key: 'custom',
     label: 'Custom',
@@ -369,7 +389,7 @@ export const buildEnv = ({ providerKey, baseUrl, apiKey, extraEnv, modelOverride
     } else if (providerKey === 'ccrouter') {
       env.ANTHROPIC_AUTH_TOKEN = CCROUTER_AUTH_FALLBACK;
     }
-    if (Object.hasOwn(env, 'ANTHROPIC_API_KEY')) {
+    if (!provider.authTokenAlsoSetsApiKey && Object.hasOwn(env, 'ANTHROPIC_API_KEY')) {
       delete env.ANTHROPIC_API_KEY;
     }
   } else if (apiKey) {
@@ -395,7 +415,7 @@ export const buildEnv = ({ providerKey, baseUrl, apiKey, extraEnv, modelOverride
     }
   }
 
-  if (authMode === 'authToken' && Object.hasOwn(env, 'ANTHROPIC_API_KEY')) {
+  if (authMode === 'authToken' && !provider.authTokenAlsoSetsApiKey && Object.hasOwn(env, 'ANTHROPIC_API_KEY')) {
     delete env.ANTHROPIC_API_KEY;
   }
   if (authMode !== 'authToken' && Object.hasOwn(env, 'ANTHROPIC_AUTH_TOKEN')) {

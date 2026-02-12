@@ -12,6 +12,7 @@ import { buildPoeTweakccConfig } from './poe.js';
 import { buildVertexTweakccConfig } from './vertex.js';
 import { buildBedrockTweakccConfig } from './bedrock.js';
 import { buildFoundryTweakccConfig } from './foundry.js';
+import { buildOllamaTweakccConfig } from './ollama.js';
 
 export interface BrandPreset {
   key: string;
@@ -98,6 +99,12 @@ const BRAND_PRESETS: Record<string, BrandPreset> = {
     label: 'Foundry Azure',
     description: 'Azure blue theme for AI Foundry.',
     buildTweakccConfig: buildFoundryTweakccConfig,
+  },
+  ollama: {
+    key: 'ollama',
+    label: 'Ollama Sandstone',
+    description: 'Warm sandstone theme for local Ollama models.',
+    buildTweakccConfig: buildOllamaTweakccConfig,
   },
 };
 

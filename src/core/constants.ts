@@ -6,7 +6,7 @@ export const DEFAULT_BIN_DIR =
   process.platform === 'win32'
     ? path.join(os.homedir(), '.cc-mirror', 'bin')
     : path.join(os.homedir(), '.local', 'bin');
-export const TWEAKCC_VERSION = '3.4.0';
+export const TWEAKCC_VERSION = '4.0.1';
 export const DEFAULT_NPM_PACKAGE = '@anthropic-ai/claude-code';
 export const DEFAULT_NPM_VERSION = '2.1.32';
 
@@ -84,6 +84,11 @@ export const SPLASH_COLORS = {
   foundrySecondary: '\x1b[38;5;39m',
   foundryAccent: '\x1b[38;5;45m',
   foundryDim: '\x1b[38;5;24m',
+  // Ollama: Warm brown/sandstone
+  ollamaPrimary: '\x1b[38;5;180m',
+  ollamaSecondary: '\x1b[38;5;173m',
+  ollamaAccent: '\x1b[38;5;137m',
+  ollamaDim: '\x1b[38;5;130m',
   // Default: White/Gray
   defPrimary: '\x1b[38;5;255m',
   defDim: '\x1b[38;5;245m',

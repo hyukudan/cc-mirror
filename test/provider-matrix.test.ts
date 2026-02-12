@@ -59,6 +59,15 @@ test('Provider Feature Matrix', async (t) => {
     assert.equal(nanogpt.authMode, 'authToken', 'nanogpt should use authToken mode');
   });
 
+  await t.test('ollama provider uses authToken with API key preserved', () => {
+    const ollama = getProvider('ollama');
+    assert.ok(ollama, 'ollama provider should exist');
+    assert.equal(ollama.authMode, 'authToken', 'ollama should use authToken mode');
+    assert.ok(ollama.authTokenAlsoSetsApiKey, 'ollama should have authTokenAlsoSetsApiKey: true');
+    assert.ok(ollama.requiresModelMapping, 'ollama should require model mapping');
+    assert.equal(ollama.env.CC_MIRROR_SPLASH_STYLE, 'ollama', 'ollama should have ollama splash style');
+  });
+
   await t.test('poe provider requires model mapping and authToken', () => {
     const poe = getProvider('poe');
     assert.ok(poe, 'poe provider should exist');
