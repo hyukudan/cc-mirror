@@ -917,6 +917,35 @@ npx cc-mirror quick --provider <provider> --name <variant>
 
 ---
 
+## Known Issues
+
+### tweakcc `findChalkVar` returns `6` instead of `$6` (Claude Code 2.1.39+)
+
+**Status:** Not yet reported upstream ([Piebald-AI/tweakcc](https://github.com/Piebald-AI/tweakcc/issues))
+
+When tweakcc patches cli.js for userMessageDisplay styling, its `findChalkVar` function detects the minified chalk variable `$6` but strips the `$` prefix, generating code like `6.rgb(229,228,226)` instead of `$6.rgb(229,228,226)`.
+
+In JavaScript, `6.rgb()` is a **SyntaxError** — the parser consumes `6.` as a floating-point literal, then `rgb` is unexpected.
+
+**Evidence:**
+- Original cli.js (backup): `$6.rgb()` used 166 times, `6.rgb()` used 0 times, passes `node --check`
+- Patched cli.js: tweakcc inserts `6.rgb()`, `6.bold()`, `6.red()` — all SyntaxErrors
+- Affects all variants (claudefase, deepseek, kimi) identically
+
+**Workaround:** After tweakcc patches, run:
+
+```python
+import re
+chalk_methods = ['red','green','blue','bold','dim','rgb','bgRgb','hex','bgHex',
+                 'yellow','cyan','gray','grey','magenta','white','black']
+pattern = re.compile(r'(?<=[^$\w])6\.(' + '|'.join(chalk_methods) + r')\(')
+with open('cli.js', 'r') as f: content = f.read()
+content = pattern.sub(r'$6.\1(', content)
+with open('cli.js', 'w') as f: f.write(content)
+```
+
+---
+
 ## Contributing
 
 Contributions welcome! See [CONTRIBUTING.md](CONTRIBUTING.md).
