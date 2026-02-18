@@ -104,7 +104,10 @@ const checkWrapperPermissions = (wrapperPath: string): { executable: boolean; er
 };
 
 export { DEFAULT_ROOT, DEFAULT_BIN_DIR, DEFAULT_NPM_PACKAGE, DEFAULT_NPM_VERSION };
-export { expandTilde } from './paths.js';
+export { expandTilde, detectCommandCollision } from './paths.js';
+export type { CommandCollisionCheck } from './paths.js';
+export { ensureWindowsUserPath } from './windows-path.js';
+export type { WindowsPathResult } from './windows-path.js';
 export { syncVariants, syncVariantsAsync, createConfigBackup, restoreConfigBackup, computeSyncDiff } from './sync.js';
 export type { SyncItem, SyncOptions, SyncResult, SyncItemResult, SyncDiff, DiffEntry } from './sync.js';
 export { exportVariant, importVariant, readExportArchive, writeExportArchive } from './export.js';
@@ -299,7 +302,10 @@ export const doctor = (rootDir: string, binDir: string, opts: DoctorOptions = {}
   });
 };
 
-export const listVariants = (rootDir: string): VariantEntry[] => listVariantsImpl(rootDir);
+export const listVariants = (rootDir: string): VariantEntry[] => {
+  const resolvedRoot = expandTilde(rootDir || DEFAULT_ROOT) ?? rootDir;
+  return listVariantsImpl(resolvedRoot);
+};
 
 export const tweakVariant = (rootDir: string, name: string): void => {
   const safeName = assertValidVariantName(name);

@@ -21,6 +21,8 @@ export interface ParsedArgs {
   ['no-team-skills']?: boolean;
   ['no-backup']?: boolean;
   ['dry-run']?: boolean;
+  prefix?: string;
+  ['allow-collision']?: boolean;
   items?: string;
   source?: string;
   targets?: string;

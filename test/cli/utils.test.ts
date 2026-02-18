@@ -62,18 +62,18 @@ test('buildShareUrl includes minimal mode', () => {
 // getModelOverridesFromArgs tests
 test('getModelOverridesFromArgs extracts all model overrides', () => {
   const opts = createOpts({
-    'model-sonnet': 'claude-3-sonnet-v2',
-    'model-opus': 'claude-3-opus',
-    'model-haiku': 'claude-3-haiku',
-    'model-small-fast': 'claude-3-5-haiku',
+    'model-sonnet': 'claude-sonnet-4-6',
+    'model-opus': 'claude-opus-4-6',
+    'model-haiku': 'claude-haiku-4-5-20251001',
+    'model-small-fast': 'claude-haiku-4-5-20251001',
     'model-default': 'default-model',
     'model-subagent': 'subagent-model',
   });
   const overrides = getModelOverridesFromArgs(opts);
-  assert.equal(overrides.sonnet, 'claude-3-sonnet-v2');
-  assert.equal(overrides.opus, 'claude-3-opus');
-  assert.equal(overrides.haiku, 'claude-3-haiku');
-  assert.equal(overrides.smallFast, 'claude-3-5-haiku');
+  assert.equal(overrides.sonnet, 'claude-sonnet-4-6');
+  assert.equal(overrides.opus, 'claude-opus-4-6');
+  assert.equal(overrides.haiku, 'claude-haiku-4-5-20251001');
+  assert.equal(overrides.smallFast, 'claude-haiku-4-5-20251001');
   assert.equal(overrides.defaultModel, 'default-model');
   assert.equal(overrides.subagentModel, 'subagent-model');
 });
@@ -100,29 +100,29 @@ test('formatModelNote returns null for empty overrides', () => {
 });
 
 test('formatModelNote formats single override', () => {
-  const result = formatModelNote({ sonnet: 'claude-3-sonnet' });
-  assert.equal(result, 'Model mapping: sonnet=claude-3-sonnet');
+  const result = formatModelNote({ sonnet: 'claude-sonnet-4-6' });
+  assert.equal(result, 'Model mapping: sonnet=claude-sonnet-4-6');
 });
 
 test('formatModelNote formats multiple overrides', () => {
   const result = formatModelNote({
-    sonnet: 'claude-3-sonnet',
-    opus: 'claude-3-opus',
-    haiku: 'claude-3-haiku',
+    sonnet: 'claude-sonnet-4-6',
+    opus: 'claude-opus-4-6',
+    haiku: 'claude-haiku-4-5-20251001',
   });
-  assert.ok(result?.includes('sonnet=claude-3-sonnet'));
-  assert.ok(result?.includes('opus=claude-3-opus'));
-  assert.ok(result?.includes('haiku=claude-3-haiku'));
+  assert.ok(result?.includes('sonnet=claude-sonnet-4-6'));
+  assert.ok(result?.includes('opus=claude-opus-4-6'));
+  assert.ok(result?.includes('haiku=claude-haiku-4-5-20251001'));
 });
 
 test('formatModelNote ignores empty string values', () => {
-  const result = formatModelNote({ sonnet: '', opus: 'claude-3-opus' });
-  assert.equal(result, 'Model mapping: opus=claude-3-opus');
+  const result = formatModelNote({ sonnet: '', opus: 'claude-opus-4-6' });
+  assert.equal(result, 'Model mapping: opus=claude-opus-4-6');
 });
 
 test('formatModelNote ignores whitespace-only values', () => {
-  const result = formatModelNote({ sonnet: '   ', opus: 'claude-3-opus' });
-  assert.equal(result, 'Model mapping: opus=claude-3-opus');
+  const result = formatModelNote({ sonnet: '   ', opus: 'claude-opus-4-6' });
+  assert.equal(result, 'Model mapping: opus=claude-opus-4-6');
 });
 
 // parsePromptPackMode tests

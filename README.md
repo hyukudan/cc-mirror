@@ -29,7 +29,7 @@ This fork extends cc-mirror with enterprise tooling and additional providers:
 | Addition                 | Description                                                           |
 | ------------------------ | --------------------------------------------------------------------- |
 | **Cloud Providers**      | Vertex AI (GCP), Bedrock (AWS), Foundry (Azure)                       |
-| **Extended Providers**   | Kimi Code, DeepSeek, Ollama, Vercel AI, Poe, GatewayZ, NanoGPT       |
+| **Extended Providers**   | Kimi Code, DeepSeek, Ollama, Vercel AI, Poe, GatewayZ, NanoGPT        |
 | **API Translator**       | Built-in Anthropic↔OpenAI translation for OpenAI-compatible providers |
 | **MCP Management**       | `cc-mirror mcp` commands + MCP server registry with one-click install |
 | **Config Export/Import** | Snapshot and restore variant configurations                           |
@@ -43,19 +43,20 @@ We maintain compatibility with upstream and contribute improvements back when po
 
 Notable fixes and optimizations in this fork:
 
-| Change                     | Description                                                        |
-| -------------------------- | ------------------------------------------------------------------ |
-| **Windows Support**        | `.cmd` wrappers, PowerShell profile integration, npm install fixes |
-| **IPv4-first DNS**         | `--prefer-ipv4` flag for Z.ai connectivity issues                  |
-| **Ctrl+C Handling**        | Fixed interrupt handling (ESC fallback, double-press exit)         |
-| **Model Tier System**      | Explicit model selection (haiku/sonnet/opus) in orchestration      |
-| **Worker Agent Detection** | Prevents recursive orchestration chaos in spawned agents           |
-| **Task Isolation**         | Project-scoped tasks prevent cross-project pollution               |
-| **Termux/Android**         | Full support with PATH setup automation                            |
-| **Skill Auto-approve**     | Orchestration skill loads without permission prompts               |
-| **Async TUI Updates**      | Live progress bars and step animations                             |
-| **Orchestration Hang Fix** | TaskOutput calls now require timeout to prevent infinite hangs     |
-| **Temp Dir Isolation**     | Per-user temp files via XDG_RUNTIME_DIR/TMPDIR (multi-user safe)  |
+| Change                     | Description                                                                                                                    |
+| -------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| **Windows Support**        | `.cmd` wrappers, PowerShell profile integration, npm install fixes, automatic user PATH update on variant create/update        |
+| **IPv4-first DNS**         | `--prefer-ipv4` flag for Z.ai connectivity issues                                                                              |
+| **Ctrl+C Handling**        | Fixed interrupt handling (ESC fallback, double-press exit)                                                                     |
+| **Model Tier System**      | Explicit model selection (haiku/sonnet/opus) in orchestration                                                                  |
+| **Worker Agent Detection** | Prevents recursive orchestration chaos in spawned agents                                                                       |
+| **Task Isolation**         | Project-scoped tasks prevent cross-project pollution                                                                           |
+| **Termux/Android**         | Full support with PATH setup automation                                                                                        |
+| **Skill Auto-approve**     | Orchestration skill loads without permission prompts                                                                           |
+| **Async TUI Updates**      | Live progress bars and step animations                                                                                         |
+| **Orchestration Hang Fix** | TaskOutput calls now require timeout to prevent infinite hangs                                                                 |
+| **Temp Dir Isolation**     | Per-user temp files via XDG_RUNTIME_DIR/TMPDIR (multi-user safe)                                                               |
+| **Compact Mitigation**     | Mirror provider sets `ANTHROPIC_SMALL_FAST_MODEL=claude-haiku-4-5-20251001` to avoid "Conversation too long" compaction errors |
 
 See [CHANGELOG.md](CHANGELOG.md) for complete version history.
 
@@ -574,12 +575,14 @@ npx cc-mirror cleanup --archive --older-than 30
 ```
 --provider <name>        zai | minimax | openrouter | vertex | bedrock | mirror | kimi | deepseek | ollama | ...
 --name <name>            Variant name (becomes CLI command)
+--prefix <value>         Prefix for auto-generated name when --name is omitted (e.g. --prefix dev → dev-zai)
 --api-key <key>          Provider API key
 --enable-team-mode       Enable TaskCreate/Get/Update/List tools
 --no-team-skills         Skip bundled skills (orchestrator, task-manager)
 --model-sonnet <name>    Override sonnet model
 --env KEY=VALUE          Extra env var (repeatable)
 --prefer-ipv4            Force IPv4 DNS resolution
+--allow-collision        Allow wrapper to shadow an existing command (overrides collision guard)
 ```
 
 ---
@@ -588,24 +591,28 @@ npx cc-mirror cleanup --archive --older-than 30
 
 Each provider has a custom color theme via [tweakcc](https://github.com/Piebald-AI/tweakcc):
 
-| Provider   | Theme   | Style                     |
-| ---------- | ------- | ------------------------- |
-| zai        | Emerald | Dark carbon with gold     |
-| minimax    | Coral   | Coral/red/orange spectrum |
-| openrouter | Ocean   | Teal/cyan gradient        |
-| mirror     | Chrome  | Silver with electric blue |
-| kimi       | Lunar   | Indigo/silver moonlit     |
-| deepseek   | Deep    | Blue gradient             |
-| vertex     | Cloud   | Google blue/green/yellow  |
-| bedrock    | Ember   | AWS orange warm           |
-| foundry    | Azure   | Azure blue professional   |
-| ollama     | Sandstone | Warm brown/sandstone    |
+| Provider   | Theme     | Style                     |
+| ---------- | --------- | ------------------------- |
+| zai        | Emerald   | Dark carbon with gold     |
+| minimax    | Coral     | Coral/red/orange spectrum |
+| openrouter | Ocean     | Teal/cyan gradient        |
+| mirror     | Chrome    | Silver with electric blue |
+| kimi       | Lunar     | Indigo/silver moonlit     |
+| deepseek   | Deep      | Blue gradient             |
+| vertex     | Cloud     | Google blue/green/yellow  |
+| bedrock    | Ember     | AWS orange warm           |
+| foundry    | Azure     | Azure blue professional   |
+| ollama     | Sandstone | Warm brown/sandstone      |
 
 ---
 
 ## Platform Notes
 
 ### Windows
+
+On Windows, cc-mirror automatically adds `%USERPROFILE%\.cc-mirror\bin` to the user PATH registry entry when creating or updating a variant (via PowerShell `[Environment]::SetEnvironmentVariable`). Open a new terminal window for the change to take effect.
+
+If automatic PATH management fails or you need to add it manually:
 
 ```powershell
 # PowerShell (recommended)
@@ -615,6 +622,8 @@ npx cc-mirror path --apply
 # CMD: Add manually to PATH
 %USERPROFILE%\.cc-mirror\bin
 ```
+
+Set `CC_MIRROR_DISABLE_PATH_UPDATE=1` to opt out of automatic PATH management.
 
 ### Termux / Android
 
@@ -822,7 +831,7 @@ npx cc-mirror update <variant> --enable-team-mode
 
 #### Command not found after installation
 
-PowerShell and CMD have different PATH handling:
+CC-MIRROR automatically adds the bin directory to the Windows user PATH when creating a variant. If the command still isn't found, open a new terminal window first. If the issue persists:
 
 ```powershell
 # PowerShell: Run this, then open NEW window
@@ -897,15 +906,15 @@ npx cc-mirror quick --provider <provider> --name <variant>
 
 ## Documentation
 
-| Document                                               | Description                     |
-| ------------------------------------------------------ | ------------------------------- |
-| [Team Mode](docs/features/team-mode.md)                | Multi-agent collaboration guide |
-| [Mirror Claude](docs/features/mirror-claude.md)        | Pure Claude variant docs        |
-| [Termux Guide](docs/features/termux.md)                | Android setup                   |
-| [Architecture](docs/architecture/overview.md)          | System internals                |
+| Document                                                  | Description                     |
+| --------------------------------------------------------- | ------------------------------- |
+| [Team Mode](docs/features/team-mode.md)                   | Multi-agent collaboration guide |
+| [Mirror Claude](docs/features/mirror-claude.md)           | Pure Claude variant docs        |
+| [Termux Guide](docs/features/termux.md)                   | Android setup                   |
+| [Architecture](docs/architecture/overview.md)             | System internals                |
 | [TUI Architecture](docs/architecture/tui-architecture.md) | Router, state, hooks patterns   |
-| [CLI Reference](docs/reference/cli-reference.md)       | Full command docs               |
-| [Provider Guide](docs/TWEAKCC-GUIDE.md)                | Adding new providers            |
+| [CLI Reference](docs/reference/cli-reference.md)          | Full command docs               |
+| [Provider Guide](docs/TWEAKCC-GUIDE.md)                   | Adding new providers            |
 
 ---
 
@@ -928,6 +937,7 @@ When tweakcc patches cli.js for userMessageDisplay styling, its `findChalkVar` f
 In JavaScript, `6.rgb()` is a **SyntaxError** — the parser consumes `6.` as a floating-point literal, then `rgb` is unexpected.
 
 **Evidence:**
+
 - Original cli.js (backup): `$6.rgb()` used 166 times, `6.rgb()` used 0 times, passes `node --check`
 - Patched cli.js: tweakcc inserts `6.rgb()`, `6.bold()`, `6.red()` — all SyntaxErrors
 - Affects all variants (claudefase, deepseek, kimi) identically

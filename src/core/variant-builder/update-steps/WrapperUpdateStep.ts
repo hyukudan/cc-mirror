@@ -5,6 +5,7 @@
 import { ensureDir } from '../../fs.js';
 import { expandTilde } from '../../paths.js';
 import { getWrapperPath, writeWrapperForPlatform, type WrapperOptions } from '../../wrapper.js';
+import { ensureWindowsUserPath } from '../../windows-path.js';
 import { getProvider } from '../../../providers/index.js';
 import type { UpdateContext, UpdateStep } from '../types.js';
 
@@ -39,6 +40,12 @@ export class WrapperUpdateStep implements UpdateStep {
       };
 
       writeWrapperForPlatform(wrapperPath, meta.configDir, meta.binaryPath, 'node', options);
+      if (process.platform === 'win32') {
+        const pathResult = ensureWindowsUserPath(resolvedBin);
+        if (pathResult.added) {
+          ctx.report(`Added ${resolvedBin} to Windows user PATH`);
+        }
+      }
       meta.binDir = resolvedBin;
     }
   }

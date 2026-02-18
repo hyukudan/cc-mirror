@@ -9,7 +9,7 @@ import path from 'node:path';
 import { getProvider, type ProviderTemplate } from '../../providers/index.js';
 import { DEFAULT_BIN_DIR, DEFAULT_NPM_PACKAGE, DEFAULT_NPM_VERSION, DEFAULT_ROOT } from '../constants.js';
 import { getWrapperPath } from '../wrapper.js';
-import { expandTilde } from '../paths.js';
+import { expandTilde, detectCommandCollision } from '../paths.js';
 import { assertValidVariantName } from '../validation.js';
 import type { CreateVariantParams, CreateVariantResult } from '../types.js';
 import type { BuildContext, BuildPaths, BuildPreferences, BuildState, BuildStep, ReportFn } from './types.js';
@@ -81,6 +81,26 @@ export class VariantBuilder {
     const binDir = params.binDir ?? DEFAULT_BIN_DIR;
     const resolvedRoot = expandTilde(rootDir) ?? rootDir;
     const resolvedBin = expandTilde(binDir) ?? binDir;
+
+    // Collision guard: prevent wrapper from shadowing existing system commands
+    if (!params.allowCollision) {
+      const collision = detectCommandCollision(safeName, resolvedBin);
+      if (collision.hasCollision) {
+        const messages: string[] = [];
+        if (collision.existingWrapper) {
+          messages.push(`A wrapper named "${safeName}" already exists in ${resolvedBin}`);
+        }
+        if (collision.pathConflict) {
+          messages.push(
+            `"${safeName}" resolves to ${collision.resolvedPath} on PATH — creating a wrapper would shadow it`
+          );
+        }
+        throw new Error(
+          `Command collision detected:\n${messages.join('\n')}\n\n` +
+            `Use --allow-collision to override, or choose a different name with --name <name>`
+        );
+      }
+    }
 
     const variantDir = path.join(resolvedRoot, safeName);
     const configDir = path.join(variantDir, 'config');

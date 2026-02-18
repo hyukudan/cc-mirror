@@ -143,6 +143,8 @@ const PROVIDERS: Record<string, ProviderTemplate> = {
     baseUrl: '', // Empty = use Claude Code defaults (no ANTHROPIC_BASE_URL override)
     env: {
       // Only cosmetic settings - no auth or model overrides
+      // Use Haiku 4.5 for compaction to avoid "Conversation too long" errors (#29)
+      ANTHROPIC_SMALL_FAST_MODEL: 'claude-haiku-4-5-20251001',
       CC_MIRROR_SPLASH: 1,
       CC_MIRROR_PROVIDER_LABEL: 'Mirror Claude',
       CC_MIRROR_SPLASH_STYLE: 'mirror',

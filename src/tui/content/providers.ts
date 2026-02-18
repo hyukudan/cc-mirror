@@ -89,9 +89,9 @@ export const PROVIDER_EDUCATION: Record<string, ProviderEducation> = {
     ],
     bestFor: 'Anthropic API access through GatewayZ',
     models: {
-      opus: 'claude-opus-4-5-20251101',
-      sonnet: 'claude-sonnet-4-20250514',
-      haiku: 'claude-haiku-3-5-20241022',
+      opus: 'claude-opus-4-6',
+      sonnet: 'claude-sonnet-4-6',
+      haiku: 'claude-haiku-4-5-20251001',
     },
     requiresMapping: true,
     hasPromptPack: false,
@@ -100,7 +100,7 @@ export const PROVIDER_EDUCATION: Record<string, ProviderEducation> = {
       apiKey: 'https://gatewayz.ai',
       docs: 'https://api.gatewayz.ai/docs',
     },
-    setupNote: 'Get your API key from GatewayZ. You must set model aliases (e.g., claude-opus-4-5-20251101).',
+    setupNote: 'Get your API key from GatewayZ. You must set model aliases (e.g., claude-opus-4-6).',
   },
 
   openrouter: {

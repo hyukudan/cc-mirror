@@ -6,6 +6,7 @@
 import { useEffect, useRef } from 'react';
 import type { Screen } from '../router/types.js';
 import path from 'node:path';
+import { detectCommandCollision } from '../../core/paths.js';
 import type { CoreModule } from '../app.js';
 import type { CreateVariantParams, CompletionResult, ModelOverrides } from './types.js';
 
@@ -114,6 +115,25 @@ export function useVariantCreate(options: UseVariantCreateOptions): void {
     const runCreate = async () => {
       try {
         setProgressLines(() => []);
+
+        // Collision guard: prevent wrapper from shadowing existing system commands
+        const collision = detectCommandCollision(params.name, params.binDir);
+        if (collision.hasCollision) {
+          const messages: string[] = [];
+          if (collision.existingWrapper) {
+            messages.push(`A wrapper named "${params.name}" already exists in ${params.binDir}`);
+          }
+          if (collision.pathConflict) {
+            messages.push(
+              `"${params.name}" resolves to ${collision.resolvedPath} on PATH — creating a wrapper would shadow it`
+            );
+          }
+          throw new Error(
+            `Command collision detected:\n${messages.join('\n')}\n\n` +
+              `Choose a different name to avoid shadowing an existing command.`
+          );
+        }
+
         const createParams = {
           name: params.name,
           providerKey: params.providerKey || 'zai',

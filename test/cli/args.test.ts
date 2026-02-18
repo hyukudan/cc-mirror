@@ -119,14 +119,14 @@ test('parseArgs handles mixed arguments', () => {
 
 test('parseArgs handles model override arguments', () => {
   const result = parseArgs([
-    '--model-sonnet=claude-3-5-sonnet-20241022',
-    '--model-opus=claude-3-opus-20240229',
-    '--model-haiku=claude-3-haiku-20240307',
+    '--model-sonnet=claude-sonnet-4-6',
+    '--model-opus=claude-opus-4-6',
+    '--model-haiku=claude-haiku-4-5-20251001',
   ]);
 
-  assert.equal(result['model-sonnet'], 'claude-3-5-sonnet-20241022');
-  assert.equal(result['model-opus'], 'claude-3-opus-20240229');
-  assert.equal(result['model-haiku'], 'claude-3-haiku-20240307');
+  assert.equal(result['model-sonnet'], 'claude-sonnet-4-6');
+  assert.equal(result['model-opus'], 'claude-opus-4-6');
+  assert.equal(result['model-haiku'], 'claude-haiku-4-5-20251001');
 });
 
 test('parseArgs ignores non-flag arguments starting with single dash', () => {
@@ -146,4 +146,26 @@ test('parseArgs handles empty array', () => {
   const result = parseArgs([]);
   assert.deepEqual(result._, []);
   assert.deepEqual(result.env, []);
+});
+
+test('parseArgs handles --prefix with value', () => {
+  const result = parseArgs(['create', '--prefix', 'team1']);
+  assert.equal(result.prefix, 'team1');
+});
+
+test('parseArgs handles --prefix=value syntax', () => {
+  const result = parseArgs(['create', '--prefix=dev']);
+  assert.equal(result.prefix, 'dev');
+});
+
+test('parseArgs handles --allow-collision flag', () => {
+  const result = parseArgs(['create', '--allow-collision']);
+  assert.equal(result['allow-collision'], true);
+});
+
+test('parseArgs handles --prefix and --allow-collision together', () => {
+  const result = parseArgs(['create', '--prefix', 'my', '--allow-collision', '--provider', 'zai']);
+  assert.equal(result.prefix, 'my');
+  assert.equal(result['allow-collision'], true);
+  assert.equal(result.provider, 'zai');
 });

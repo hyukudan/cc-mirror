@@ -77,6 +77,8 @@ OPTIONS (advanced)
   --enable-team-mode           Enable team mode
   --disable-team-mode          Disable team mode (quick setup)
   --no-team-skills             Skip bundled team skills (orchestrator, task-manager)
+  --prefix <value>             Prefix for auto-generated variant name (when --name is omitted)
+  --allow-collision            Allow wrapper to shadow existing commands
 
 OPTIONS (path)
   --apply                      Append PATH export to shell profile (POSIX/PowerShell)

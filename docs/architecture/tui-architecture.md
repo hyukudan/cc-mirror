@@ -43,7 +43,7 @@ Declarative navigation with parent/child screen relationships.
 ```typescript
 // routes.ts - 69 screens defined
 export const ROUTE_MAP: RouteMap = {
-  'home': { parent: null },
+  home: { parent: null },
   'quick-provider': { parent: 'home' },
   'quick-api-key': { parent: 'quick-provider' },
   'quick-running': { parent: null, isProgress: true },
@@ -55,6 +55,7 @@ useEscapeNavigation({ screen, provider, setScreen });
 ```
 
 **Benefits:**
+
 - Single source of truth for navigation
 - Type-safe Screen union (catches typos at compile time)
 - Progress screens automatically block ESC
@@ -89,6 +90,7 @@ const { state, actions } = useCreateAppState({
 ```
 
 **Benefits:**
+
 - All state in one place
 - `resetWizard()` defined once, not duplicated
 - Testable in isolation
@@ -97,16 +99,17 @@ const { state, actions } = useCreateAppState({
 
 Each async operation is extracted to its own hook:
 
-| Hook | Screen | Purpose |
-|------|--------|---------|
-| `useVariantCreate` | create-running | Creates new variant |
-| `useVariantUpdate` | manage-update | Updates existing variant |
-| `useModelConfig` | manage-models-saving | Saves model mappings |
-| `useTeamModeToggle` | manage-team-mode | Toggles team mode |
-| `useUpdateAll` | updateAll | Updates all variants |
-| `useSync` | sync-running | Syncs config between variants |
+| Hook                | Screen               | Purpose                       |
+| ------------------- | -------------------- | ----------------------------- |
+| `useVariantCreate`  | create-running       | Creates new variant           |
+| `useVariantUpdate`  | manage-update        | Updates existing variant      |
+| `useModelConfig`    | manage-models-saving | Saves model mappings          |
+| `useTeamModeToggle` | manage-team-mode     | Toggles team mode             |
+| `useUpdateAll`      | updateAll            | Updates all variants          |
+| `useSync`           | sync-running         | Syncs config between variants |
 
 **Pattern:**
+
 ```typescript
 export function useVariantCreate(options: UseVariantCreateOptions): void {
   const { screen, params, core, setProgressLines, setScreen, onComplete } = options;
@@ -160,14 +163,25 @@ The `Screen` type is a union of all valid screen names:
 
 ```typescript
 type Screen =
-  | 'home' | 'exit'
-  | 'quick-provider' | 'quick-api-key' | 'quick-running' | 'quick-done'
-  | 'create-provider' | 'create-name' | 'create-running' | 'create-done'
-  | 'manage' | 'manage-actions' | 'manage-update' | 'manage-update-done'
-  // ... 69 total screens
+  | 'home'
+  | 'exit'
+  | 'quick-provider'
+  | 'quick-api-key'
+  | 'quick-running'
+  | 'quick-done'
+  | 'create-provider'
+  | 'create-name'
+  | 'create-running'
+  | 'create-done'
+  | 'manage'
+  | 'manage-actions'
+  | 'manage-update'
+  | 'manage-update-done';
+// ... 69 total screens
 ```
 
 **Benefits:**
+
 - TypeScript catches invalid screen names
 - Autocomplete in IDE
 - Refactoring-safe (rename propagates everywhere)
@@ -175,12 +189,14 @@ type Screen =
 ## Adding a New Screen
 
 1. **Add to router** (`src/tui/router/routes.ts`):
+
    ```typescript
    'my-new-screen': { parent: 'home' },
    'my-new-screen-done': { parent: null },
    ```
 
 2. **Add render logic** (`src/tui/app.tsx`):
+
    ```typescript
    if (screen === 'my-new-screen') {
      return <MyNewScreen onDone={() => setScreen('my-new-screen-done')} />;
@@ -203,6 +219,7 @@ npm test -- --test-name-pattern="Screen"     # Screen component tests
 ```
 
 Test helpers:
+
 ```typescript
 import { tick, send, KEYS, waitForText } from '../helpers/index.js';
 

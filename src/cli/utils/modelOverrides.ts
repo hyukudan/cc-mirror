@@ -23,9 +23,9 @@ export function getModelOverridesFromArgs(opts: ParsedArgs): ModelOverrides {
 
 const PROVIDER_MODEL_DEFAULTS: Record<string, { sonnet: string; opus: string; haiku: string }> = {
   gatewayz: {
-    sonnet: 'claude-sonnet-4-20250514',
-    opus: 'claude-opus-4-5-20251101',
-    haiku: 'claude-haiku-3-5-20241022',
+    sonnet: 'claude-sonnet-4-6',
+    opus: 'claude-opus-4-6',
+    haiku: 'claude-haiku-4-5-20251001',
   },
 };
 

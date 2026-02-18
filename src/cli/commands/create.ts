@@ -23,6 +23,13 @@ export interface CreateCommandOptions {
   quickMode: boolean;
 }
 
+/**
+ * Build a default variant name from the provider key, optionally applying a prefix
+ */
+function buildDefaultName(providerKey: string, prefix?: string): string {
+  return prefix ? `${prefix}-${providerKey}` : providerKey;
+}
+
 interface CreateParams {
   provider: ProviderTemplate;
   providerKey: string;
@@ -97,7 +104,8 @@ async function prepareCreateParams(opts: ParsedArgs): Promise<CreateParams & { t
     throw new Error(`Unknown provider: ${providerKey}`);
   }
 
-  const name = (opts.name as string) || providerKey;
+  const prefix = opts.prefix as string | undefined;
+  const name = (opts.name as string) || buildDefaultName(providerKey, prefix);
   const envZaiBaseUrl = providerKey === 'zai' ? process.env.Z_AI_BASE_URL?.trim() : undefined;
   const baseUrl = (opts['base-url'] as string) || envZaiBaseUrl || provider.baseUrl;
   const envZaiKey = providerKey === 'zai' ? process.env.Z_AI_API_KEY : undefined;
@@ -227,6 +235,7 @@ async function handleQuickMode(opts: ParsedArgs, params: CreateParams & { templa
     modelOverrides: resolvedModelOverrides,
     enableTeamMode,
     noTeamSkills,
+    allowCollision: Boolean(opts['allow-collision']),
     tweakccStdio: 'pipe',
   });
 
@@ -330,6 +339,7 @@ async function handleInteractiveMode(opts: ParsedArgs, params: CreateParams & { 
     modelOverrides: resolvedModelOverrides,
     enableTeamMode,
     noTeamSkills,
+    allowCollision: Boolean(opts['allow-collision']),
     tweakccStdio: 'pipe',
   });
 
@@ -403,6 +413,7 @@ async function handleNonInteractiveMode(
     modelOverrides: resolvedModelOverrides,
     enableTeamMode,
     noTeamSkills,
+    allowCollision: Boolean(opts['allow-collision']),
     tweakccStdio: 'pipe',
   });
 

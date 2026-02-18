@@ -69,7 +69,7 @@ export const EDUCATION = {
       '  Haiku  → Quick tasks, subagents, fast iteration',
       '',
       'When using providers like OpenRouter or LiteLLM, you map',
-      'these aliases to actual model names (e.g., claude-3-opus).',
+      'these aliases to actual model names (e.g., claude-opus-4-6).',
     ],
   },
 

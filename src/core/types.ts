@@ -62,6 +62,8 @@ export interface CreateVariantParams {
   enableTeamMode?: boolean;
   /** Skip bundled team skills (orchestrator, task-manager) even when team mode is enabled */
   noTeamSkills?: boolean;
+  /** Allow creating a wrapper even if it collides with an existing command */
+  allowCollision?: boolean;
   /** Callback for progress updates during installation */
   onProgress?: ProgressCallback;
 }
