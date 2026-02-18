@@ -295,7 +295,7 @@ test('E2E: Team Mode', async (t) => {
     });
   });
 
-  await t.test('team pack toolset configures TodoWrite blocking', () => {
+  await t.test('team mode blocks TodoWrite via permissions.deny', () => {
     withFakeNpm(() => {
       const rootDir = makeTempDir();
       const binDir = makeTempDir();
@@ -326,6 +326,12 @@ test('E2E: Team Mode', async (t) => {
       // Check that permissions.deny includes TodoWrite
       assert.ok(Array.isArray(settings.permissions?.deny), 'permissions.deny should be an array');
       assert.ok(settings.permissions.deny.includes('TodoWrite'), 'TodoWrite should be in permissions.deny');
+
+      // Verify tweakcc config does NOT have toolsets (crash-prone)
+      const tweakccConfigPath = path.join(variantDir, 'tweakcc', 'config.json');
+      assert.ok(fs.existsSync(tweakccConfigPath), 'tweakcc config should exist');
+      const tweakccConfig = JSON.parse(readFile(tweakccConfigPath));
+      assert.equal(tweakccConfig.settings?.toolsets, undefined, 'tweakcc config should not have toolsets');
     });
   });
 

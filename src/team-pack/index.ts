@@ -81,41 +81,6 @@ export const copyTeamPackPrompts = (systemPromptsDir: string): string[] => {
   return copied;
 };
 
-/**
- * Add TodoWrite to settings.json permissions.deny to block it in Team Mode.
- * Provider-specific blocked tools are handled separately by BrandThemeStep.
- */
-export const configureTeamToolset = (configDir: string): boolean => {
-  const settingsPath = path.join(configDir, 'settings.json');
-  if (!fs.existsSync(settingsPath)) {
-    return false;
-  }
-
-  try {
-    const existing = readJson<SettingsFile>(settingsPath) || {};
-    const permissions = existing.permissions || {};
-    const deny = Array.isArray(permissions.deny) ? [...permissions.deny] : [];
-
-    if (deny.includes('TodoWrite')) {
-      return false;
-    }
-
-    deny.push('TodoWrite');
-
-    const next: SettingsFile = {
-      ...existing,
-      permissions: {
-        ...permissions,
-        deny,
-      },
-    };
-
-    writeJson(settingsPath, next);
-    return true;
-  } catch {
-    return false;
-  }
-};
 
 /**
  * Remove TodoWrite from settings.json permissions.deny when disabling Team Mode.

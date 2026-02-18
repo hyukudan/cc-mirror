@@ -144,6 +144,10 @@ export interface UpdateVariantResult {
 
 export interface VariantConfig {
   env: ProviderEnv;
+  permissions?: {
+    allow?: string[];
+    deny?: string[];
+  };
 }
 
 export interface TweakResult {

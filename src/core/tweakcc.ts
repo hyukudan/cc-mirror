@@ -112,6 +112,17 @@ export const ensureTweakccConfig = (tweakDir: string, brandKey?: string | null):
         }
       }
 
+      // Strip legacy toolset properties — tweakcc 4.0.1+ toolset patch crashes cli.js
+      const settingsRecord = existing.settings as Record<string, unknown> | undefined;
+      if (settingsRecord) {
+        for (const key of ['toolsets', 'defaultToolset', 'planModeToolset']) {
+          if (key in settingsRecord) {
+            delete settingsRecord[key];
+            didUpdate = true;
+          }
+        }
+      }
+
       if (didUpdate) {
         fs.writeFileSync(configPath, JSON.stringify(existing, null, 2));
         return true;

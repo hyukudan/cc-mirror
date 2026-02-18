@@ -72,6 +72,7 @@ export const ZAI_DENY_TOOLS = [
 export const MINIMAX_DENY_TOOLS = ['WebSearch'];
 
 export const ensureSettingsPermissionsDeny = (configDir: string, tools: string[]): boolean => {
+  if (tools.length === 0) return false;
   const settingsPath = path.join(configDir, SETTINGS_FILE);
   const existing = readJson<SettingsFile>(settingsPath) || {};
   const permissions = existing.permissions || {};

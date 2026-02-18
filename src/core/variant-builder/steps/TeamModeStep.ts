@@ -14,7 +14,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { installOrchestratorSkill, installTaskManagerSkill } from '../../skills.js';
-import { copyTeamPackPrompts, configureTeamToolset } from '../../../team-pack/index.js';
+import { copyTeamPackPrompts } from '../../../team-pack/index.js';
 import type { BuildContext, BuildStep } from '../types.js';
 
 // The minified function that controls team mode (only present in <=2.0.x)
@@ -70,11 +70,6 @@ export class TeamModeStep implements BuildStep {
     const copiedFiles = copyTeamPackPrompts(systemPromptsDir);
     if (copiedFiles.length > 0) {
       state.notes.push(`Team pack prompts installed (${copiedFiles.join(', ')})`);
-    }
-
-    // --- 5. Block TodoWrite via settings.json permissions.deny ---
-    if (configureTeamToolset(paths.configDir)) {
-      state.notes.push('Team toolset configured (TodoWrite blocked)');
     }
 
     state.notes.push('Team mode enabled successfully');
@@ -144,6 +139,13 @@ export class TeamModeStep implements BuildStep {
         if (!settings.permissions.allow.includes(skill)) {
           settings.permissions.allow.push(skill);
         }
+      }
+
+      // Block TodoWrite via native permissions (not tweakcc toolsets)
+      settings.permissions.deny = settings.permissions.deny || [];
+      if (!settings.permissions.deny.includes('TodoWrite')) {
+        settings.permissions.deny.push('TodoWrite');
+        state.notes.push('TodoWrite blocked via permissions.deny');
       }
 
       fs.writeFileSync(settingsPath, JSON.stringify(settings, null, 2));
