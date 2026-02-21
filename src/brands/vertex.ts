@@ -48,7 +48,7 @@ const makeTheme = (): Theme => {
   const tint = (hex: string, weight: number) => mix(palette.base, hex, weight);
   return {
     name: 'Vertex Cloud',
-    id: 'vertex-cloud',
+    id: 'dark',
     colors: {
       autoAccept: rgb(palette.green),
       bashBorder: rgb(palette.core),
@@ -173,14 +173,5 @@ export const buildVertexTweakccConfig = (): TweakccConfig => ({
       hideStartupClawd: true,
       increaseFileReadLimit: true,
     },
-    toolsets: [
-      {
-        name: 'vertex',
-        allowedTools: '*',
-        blockedTools: [],
-      },
-    ],
-    defaultToolset: 'vertex',
-    planModeToolset: 'vertex',
   },
 });

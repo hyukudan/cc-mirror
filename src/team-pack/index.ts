@@ -8,6 +8,16 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { readJson, writeJson } from '../core/fs.js';
+
+type SettingsFile = {
+  env?: Record<string, string | number | undefined>;
+  permissions?: {
+    allow?: string[];
+    ask?: string[];
+    deny?: string[];
+  };
+};
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -72,53 +82,71 @@ export const copyTeamPackPrompts = (systemPromptsDir: string): string[] => {
 };
 
 /**
- * Configure TweakCC toolset to disable TodoWrite for Team Mode
- * Merges blocked tools from the existing default toolset with TodoWrite
+ * Add TodoWrite to settings.json permissions.deny to block it in Team Mode.
+ * Provider-specific blocked tools are handled separately by BrandThemeStep.
  */
-export const configureTeamToolset = (configPath: string): boolean => {
-  if (!fs.existsSync(configPath)) {
+export const configureTeamToolset = (configDir: string): boolean => {
+  const settingsPath = path.join(configDir, 'settings.json');
+  if (!fs.existsSync(settingsPath)) {
     return false;
   }
 
   try {
-    const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+    const existing = readJson<SettingsFile>(settingsPath) || {};
+    const permissions = existing.permissions || {};
+    const deny = Array.isArray(permissions.deny) ? [...permissions.deny] : [];
 
-    // Ensure settings object exists
-    config.settings = config.settings || {};
-
-    // Get existing toolsets
-    const toolsets = Array.isArray(config.settings.toolsets) ? config.settings.toolsets : [];
-
-    // Find existing default toolset to inherit its blocked tools
-    const defaultToolsetName = config.settings.defaultToolset;
-    const existingDefaultToolset = toolsets.find(
-      (t: { name: string; blockedTools?: string[] }) => t.name === defaultToolsetName
-    );
-
-    // Merge existing blocked tools with TodoWrite
-    const existingBlockedTools: string[] = existingDefaultToolset?.blockedTools || [];
-    const mergedBlockedTools = [...new Set([...existingBlockedTools, 'TodoWrite'])];
-
-    // Create or update team toolset
-    const teamToolset = {
-      name: 'team',
-      allowedTools: '*' as const,
-      blockedTools: mergedBlockedTools,
-    };
-
-    // Find and update or add team toolset
-    const existingTeamIndex = toolsets.findIndex((t: { name: string }) => t.name === 'team');
-    if (existingTeamIndex >= 0) {
-      toolsets[existingTeamIndex] = teamToolset;
-    } else {
-      toolsets.push(teamToolset);
+    if (deny.includes('TodoWrite')) {
+      return false;
     }
 
-    config.settings.toolsets = toolsets;
-    config.settings.defaultToolset = 'team';
-    config.settings.planModeToolset = 'team';
+    deny.push('TodoWrite');
 
-    fs.writeFileSync(configPath, JSON.stringify(config, null, 2));
+    const next: SettingsFile = {
+      ...existing,
+      permissions: {
+        ...permissions,
+        deny,
+      },
+    };
+
+    writeJson(settingsPath, next);
+    return true;
+  } catch {
+    return false;
+  }
+};
+
+/**
+ * Remove TodoWrite from settings.json permissions.deny when disabling Team Mode.
+ */
+export const removeTeamToolset = (configDir: string): boolean => {
+  const settingsPath = path.join(configDir, 'settings.json');
+  if (!fs.existsSync(settingsPath)) {
+    return false;
+  }
+
+  try {
+    const existing = readJson<SettingsFile>(settingsPath) || {};
+    const permissions = existing.permissions || {};
+    const deny = Array.isArray(permissions.deny) ? [...permissions.deny] : [];
+
+    const index = deny.indexOf('TodoWrite');
+    if (index === -1) {
+      return false;
+    }
+
+    deny.splice(index, 1);
+
+    const next: SettingsFile = {
+      ...existing,
+      permissions: {
+        ...permissions,
+        deny,
+      },
+    };
+
+    writeJson(settingsPath, next);
     return true;
   } catch {
     return false;

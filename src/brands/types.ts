@@ -55,12 +55,6 @@ export interface MiscConfig {
   increaseFileReadLimit: boolean;
 }
 
-export interface Toolset {
-  name: string;
-  allowedTools: string[] | '*';
-  blockedTools?: string[];
-}
-
 export interface TweakccSettings {
   themes: Theme[];
   thinkingVerbs: ThinkingVerbsConfig;
@@ -68,9 +62,6 @@ export interface TweakccSettings {
   userMessageDisplay: UserMessageDisplayConfig;
   inputBox: InputBoxConfig;
   misc: MiscConfig;
-  toolsets: Toolset[];
-  defaultToolset: string | null;
-  planModeToolset: string | null;
 }
 
 export interface TweakccConfig {

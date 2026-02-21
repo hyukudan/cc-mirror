@@ -48,7 +48,7 @@ const makeTheme = (): Theme => {
   const tint = (hex: string, weight: number) => mix(palette.base, hex, weight);
   return {
     name: 'Bedrock Ember',
-    id: 'bedrock-ember',
+    id: 'dark',
     colors: {
       autoAccept: rgb(palette.green),
       bashBorder: rgb(palette.core),
@@ -173,14 +173,5 @@ export const buildBedrockTweakccConfig = (): TweakccConfig => ({
       hideStartupClawd: true,
       increaseFileReadLimit: true,
     },
-    toolsets: [
-      {
-        name: 'bedrock',
-        allowedTools: '*',
-        blockedTools: [],
-      },
-    ],
-    defaultToolset: 'bedrock',
-    planModeToolset: 'bedrock',
   },
 });

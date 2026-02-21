@@ -1,8 +1,8 @@
 /**
  * E2E Tests - Blocked Tools Configuration
  *
- * Tests that provider toolsets correctly block specified tools and
- * team mode merges blocked tools with TodoWrite.
+ * Tests that provider blocked tools are correctly written to
+ * settings.json permissions.deny and team mode adds TodoWrite.
  */
 
 import test from 'node:test';
@@ -10,8 +10,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import * as core from '../../src/core/index.js';
-import { ZAI_BLOCKED_TOOLS } from '../../src/brands/zai.js';
-import { MINIMAX_BLOCKED_TOOLS } from '../../src/brands/minimax.js';
+import { ZAI_DENY_TOOLS, MINIMAX_DENY_TOOLS } from '../../src/core/claude-config.js';
 import { makeTempDir, readFile, cleanup, withFakeNpm } from '../helpers/index.js';
 
 test('E2E: Blocked Tools', async (t) => {
@@ -23,7 +22,7 @@ test('E2E: Blocked Tools', async (t) => {
     }
   });
 
-  await t.test('zai brand has blocked tools configured', () => {
+  await t.test('zai brand has blocked tools configured in settings.json', () => {
     withFakeNpm(() => {
       const rootDir = makeTempDir();
       const binDir = makeTempDir();
@@ -43,27 +42,23 @@ test('E2E: Blocked Tools', async (t) => {
       });
 
       const variantDir = path.join(rootDir, 'test-zai-blocked');
-      const configPath = path.join(variantDir, 'tweakcc', 'config.json');
+      const settingsPath = path.join(variantDir, 'config', 'settings.json');
 
-      assert.ok(fs.existsSync(configPath), 'tweakcc config should exist');
+      assert.ok(fs.existsSync(settingsPath), 'settings.json should exist');
 
-      const config = JSON.parse(readFile(configPath));
-      const zaiToolset = config.settings?.toolsets?.find((t: { name: string }) => t.name === 'zai');
+      const settings = JSON.parse(readFile(settingsPath));
+      const deny: unknown = settings.permissions?.deny;
 
-      assert.ok(zaiToolset, 'zai toolset should exist');
-      assert.ok(Array.isArray(zaiToolset.blockedTools), 'blockedTools should be an array');
+      assert.ok(Array.isArray(deny), 'permissions.deny should be an array');
 
       // Verify all expected tools are blocked
-      for (const tool of ZAI_BLOCKED_TOOLS) {
-        assert.ok(zaiToolset.blockedTools.includes(tool), `zai toolset should block ${tool}`);
+      for (const tool of ZAI_DENY_TOOLS) {
+        assert.ok((deny as string[]).includes(tool), `settings.permissions.deny should include ${tool}`);
       }
-
-      // Verify default toolset is zai
-      assert.equal(config.settings.defaultToolset, 'zai', 'default toolset should be zai');
     });
   });
 
-  await t.test('minimax brand has blocked tools configured', () => {
+  await t.test('minimax brand has blocked tools configured in settings.json', () => {
     withFakeNpm(() => {
       const rootDir = makeTempDir();
       const binDir = makeTempDir();
@@ -83,27 +78,23 @@ test('E2E: Blocked Tools', async (t) => {
       });
 
       const variantDir = path.join(rootDir, 'test-minimax-blocked');
-      const configPath = path.join(variantDir, 'tweakcc', 'config.json');
+      const settingsPath = path.join(variantDir, 'config', 'settings.json');
 
-      assert.ok(fs.existsSync(configPath), 'tweakcc config should exist');
+      assert.ok(fs.existsSync(settingsPath), 'settings.json should exist');
 
-      const config = JSON.parse(readFile(configPath));
-      const minimaxToolset = config.settings?.toolsets?.find((t: { name: string }) => t.name === 'minimax');
+      const settings = JSON.parse(readFile(settingsPath));
+      const deny: unknown = settings.permissions?.deny;
 
-      assert.ok(minimaxToolset, 'minimax toolset should exist');
-      assert.ok(Array.isArray(minimaxToolset.blockedTools), 'blockedTools should be an array');
+      assert.ok(Array.isArray(deny), 'permissions.deny should be an array');
 
       // Verify all expected tools are blocked
-      for (const tool of MINIMAX_BLOCKED_TOOLS) {
-        assert.ok(minimaxToolset.blockedTools.includes(tool), `minimax toolset should block ${tool}`);
+      for (const tool of MINIMAX_DENY_TOOLS) {
+        assert.ok((deny as string[]).includes(tool), `settings.permissions.deny should include ${tool}`);
       }
-
-      // Verify default toolset is minimax
-      assert.equal(config.settings.defaultToolset, 'minimax', 'default toolset should be minimax');
     });
   });
 
-  await t.test('team mode merges blocked tools with TodoWrite for zai', () => {
+  await t.test('team mode adds TodoWrite to settings.json permissions.deny for zai', () => {
     withFakeNpm(() => {
       const rootDir = makeTempDir();
       const binDir = makeTempDir();
@@ -123,31 +114,29 @@ test('E2E: Blocked Tools', async (t) => {
       });
 
       const variantDir = path.join(rootDir, 'test-zai-team');
-      const configPath = path.join(variantDir, 'tweakcc', 'config.json');
+      const settingsPath = path.join(variantDir, 'config', 'settings.json');
 
-      const config = JSON.parse(readFile(configPath));
-      const teamToolset = config.settings?.toolsets?.find((t: { name: string }) => t.name === 'team');
+      assert.ok(fs.existsSync(settingsPath), 'settings.json should exist');
 
-      assert.ok(teamToolset, 'team toolset should exist');
-      assert.ok(Array.isArray(teamToolset.blockedTools), 'blockedTools should be an array');
+      const settings = JSON.parse(readFile(settingsPath));
+      const deny: unknown = settings.permissions?.deny;
+
+      assert.ok(Array.isArray(deny), 'permissions.deny should be an array');
 
       // Verify TodoWrite is blocked
-      assert.ok(teamToolset.blockedTools.includes('TodoWrite'), 'team toolset should block TodoWrite');
+      assert.ok((deny as string[]).includes('TodoWrite'), 'settings.permissions.deny should include TodoWrite');
 
       // Verify zai blocked tools are also present (merged)
-      for (const tool of ZAI_BLOCKED_TOOLS) {
+      for (const tool of ZAI_DENY_TOOLS) {
         assert.ok(
-          teamToolset.blockedTools.includes(tool),
-          `team toolset should include inherited blocked tool ${tool}`
+          (deny as string[]).includes(tool),
+          `settings.permissions.deny should include inherited blocked tool ${tool}`
         );
       }
-
-      // Verify default toolset is team
-      assert.equal(config.settings.defaultToolset, 'team', 'default toolset should be team');
     });
   });
 
-  await t.test('team mode merges blocked tools with TodoWrite for minimax', () => {
+  await t.test('team mode adds TodoWrite to settings.json permissions.deny for minimax', () => {
     withFakeNpm(() => {
       const rootDir = makeTempDir();
       const binDir = makeTempDir();
@@ -167,27 +156,25 @@ test('E2E: Blocked Tools', async (t) => {
       });
 
       const variantDir = path.join(rootDir, 'test-minimax-team');
-      const configPath = path.join(variantDir, 'tweakcc', 'config.json');
+      const settingsPath = path.join(variantDir, 'config', 'settings.json');
 
-      const config = JSON.parse(readFile(configPath));
-      const teamToolset = config.settings?.toolsets?.find((t: { name: string }) => t.name === 'team');
+      assert.ok(fs.existsSync(settingsPath), 'settings.json should exist');
 
-      assert.ok(teamToolset, 'team toolset should exist');
-      assert.ok(Array.isArray(teamToolset.blockedTools), 'blockedTools should be an array');
+      const settings = JSON.parse(readFile(settingsPath));
+      const deny: unknown = settings.permissions?.deny;
+
+      assert.ok(Array.isArray(deny), 'permissions.deny should be an array');
 
       // Verify TodoWrite is blocked
-      assert.ok(teamToolset.blockedTools.includes('TodoWrite'), 'team toolset should block TodoWrite');
+      assert.ok((deny as string[]).includes('TodoWrite'), 'settings.permissions.deny should include TodoWrite');
 
       // Verify minimax blocked tools are also present (merged)
-      for (const tool of MINIMAX_BLOCKED_TOOLS) {
+      for (const tool of MINIMAX_DENY_TOOLS) {
         assert.ok(
-          teamToolset.blockedTools.includes(tool),
-          `team toolset should include inherited blocked tool ${tool}`
+          (deny as string[]).includes(tool),
+          `settings.permissions.deny should include inherited blocked tool ${tool}`
         );
       }
-
-      // Verify default toolset is team
-      assert.equal(config.settings.defaultToolset, 'team', 'default toolset should be team');
     });
   });
 });

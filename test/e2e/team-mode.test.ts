@@ -315,28 +315,17 @@ test('E2E: Team Mode', async (t) => {
       });
 
       const variantDir = path.join(rootDir, 'test-team-toolset');
-      const tweakccConfigPath = path.join(variantDir, 'tweakcc', 'config.json'); // tweakcc/config.json
+      const settingsPath = path.join(variantDir, 'config', 'settings.json');
 
-      // Verify tweakcc config exists
-      assert.ok(fs.existsSync(tweakccConfigPath), 'tweakcc config should exist');
+      // Verify settings.json exists
+      assert.ok(fs.existsSync(settingsPath), 'settings.json should exist');
 
-      // Parse and verify toolset configuration
-      const config = JSON.parse(readFile(tweakccConfigPath));
+      // Parse and verify permissions deny configuration
+      const settings = JSON.parse(readFile(settingsPath));
 
-      // Check that settings.toolsets exists and has team toolset
-      assert.ok(config.settings?.toolsets, 'toolsets array should exist');
-      const teamToolset = config.settings.toolsets.find((t: { name: string }) => t.name === 'team');
-      assert.ok(teamToolset, 'team toolset should exist');
-
-      // Verify TodoWrite is blocked
-      assert.ok(
-        Array.isArray(teamToolset.blockedTools) && teamToolset.blockedTools.includes('TodoWrite'),
-        'TodoWrite should be in blockedTools'
-      );
-
-      // Verify default toolset is set to team
-      assert.equal(config.settings.defaultToolset, 'team', 'defaultToolset should be team');
-      assert.equal(config.settings.planModeToolset, 'team', 'planModeToolset should be team');
+      // Check that permissions.deny includes TodoWrite
+      assert.ok(Array.isArray(settings.permissions?.deny), 'permissions.deny should be an array');
+      assert.ok(settings.permissions.deny.includes('TodoWrite'), 'TodoWrite should be in permissions.deny');
     });
   });
 

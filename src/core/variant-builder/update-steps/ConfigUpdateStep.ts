@@ -9,7 +9,9 @@ import {
   ensureOnboardingState,
   ensureSettingsEnvDefaults,
   ensureSettingsEnvOverrides,
-  ensureZaiMcpDeny,
+  ensureSettingsPermissionsDeny,
+  MINIMAX_DENY_TOOLS,
+  ZAI_DENY_TOOLS,
 } from '../../claude-config.js';
 import type { UpdateContext, UpdateStep } from '../types.js';
 
@@ -43,9 +45,17 @@ export class ConfigUpdateStep implements UpdateStep {
 
     // Z.ai MCP deny
     if (meta.provider === 'zai') {
-      const denied = ensureZaiMcpDeny(meta.configDir);
+      const denied = ensureSettingsPermissionsDeny(meta.configDir, ZAI_DENY_TOOLS);
       if (denied) {
         state.notes.push('Blocked Z.ai-injected MCP tools in settings.json.');
+      }
+    }
+
+    // MiniMax MCP deny
+    if (meta.provider === 'minimax') {
+      const denied = ensureSettingsPermissionsDeny(meta.configDir, MINIMAX_DENY_TOOLS);
+      if (denied) {
+        state.notes.push('Blocked MiniMax-injected MCP tools in settings.json.');
       }
     }
 

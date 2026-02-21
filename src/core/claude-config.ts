@@ -61,19 +61,23 @@ const readSettingsApiKey = (configDir: string): string | null => {
   return toStringOrNull(env.ANTHROPIC_API_KEY);
 };
 
-const ZAI_DENY_TOOLS = [
+export const ZAI_DENY_TOOLS = [
   'mcp__4_5v_mcp__analyze_image',
   'mcp__milk_tea_server__claim_milk_tea_coupon',
   'mcp__web_reader__webReader',
+  'WebSearch',
+  'WebFetch',
 ];
 
-export const ensureZaiMcpDeny = (configDir: string): boolean => {
+export const MINIMAX_DENY_TOOLS = ['WebSearch'];
+
+export const ensureSettingsPermissionsDeny = (configDir: string, tools: string[]): boolean => {
   const settingsPath = path.join(configDir, SETTINGS_FILE);
   const existing = readJson<SettingsFile>(settingsPath) || {};
   const permissions = existing.permissions || {};
   const deny = Array.isArray(permissions.deny) ? [...permissions.deny] : [];
   let changed = false;
-  for (const tool of ZAI_DENY_TOOLS) {
+  for (const tool of tools) {
     if (!deny.includes(tool)) {
       deny.push(tool);
       changed = true;

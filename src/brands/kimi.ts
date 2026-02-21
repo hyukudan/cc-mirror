@@ -48,7 +48,7 @@ const makeTheme = (): Theme => {
   const tint = (hex: string, weight: number) => mix(palette.base, hex, weight);
   return {
     name: 'Kimi Lunar',
-    id: 'kimi-lunar',
+    id: 'dark',
     colors: {
       autoAccept: rgb(palette.green),
       bashBorder: rgb(palette.core),
@@ -173,14 +173,5 @@ export const buildKimiTweakccConfig = (): TweakccConfig => ({
       hideStartupClawd: true,
       increaseFileReadLimit: true,
     },
-    toolsets: [
-      {
-        name: 'kimi',
-        allowedTools: '*',
-        blockedTools: [],
-      },
-    ],
-    defaultToolset: 'kimi',
-    planModeToolset: 'kimi',
   },
 });

@@ -56,6 +56,19 @@ export const ensureTweakccConfig = (tweakDir: string, brandKey?: string | null):
         didUpdate = true;
       }
 
+      // Migrate legacy toolset config (causes Plan Mode crash with tweakcc 4.0.1+)
+      const hadLegacyToolsets =
+        'toolsets' in (existing.settings ?? {}) ||
+        'defaultToolset' in (existing.settings ?? {}) ||
+        'planModeToolset' in (existing.settings ?? {});
+
+      if (hadLegacyToolsets) {
+        delete (existing.settings as Record<string, unknown>)['toolsets'];
+        delete (existing.settings as Record<string, unknown>)['defaultToolset'];
+        delete (existing.settings as Record<string, unknown>)['planModeToolset'];
+        didUpdate = true;
+      }
+
       const existingDisplay = existing.settings?.userMessageDisplay;
       const desiredMisc = brandConfig.settings.misc;
       if (desiredDisplay) {

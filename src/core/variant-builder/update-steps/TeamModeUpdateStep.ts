@@ -20,7 +20,7 @@ import {
   installTaskManagerSkill,
   removeTaskManagerSkill,
 } from '../../skills.js';
-import { copyTeamPackPrompts, configureTeamToolset } from '../../../team-pack/index.js';
+import { copyTeamPackPrompts, configureTeamToolset, removeTeamToolset } from '../../../team-pack/index.js';
 import type { UpdateContext, UpdateStep } from '../types.js';
 
 // The minified function that controls team mode (only present in <=2.0.x)
@@ -78,6 +78,11 @@ export class TeamModeUpdateStep implements UpdateStep {
       }
     }
 
+    // Remove TodoWrite from settings.json permissions.deny
+    if (removeTeamToolset(meta.configDir)) {
+      state.notes.push('TodoWrite unblocked (team toolset removed)');
+    }
+
     meta.teamModeEnabled = false;
     state.notes.push('Team mode disabled');
 
@@ -133,9 +138,8 @@ export class TeamModeUpdateStep implements UpdateStep {
       state.notes.push(`Team pack prompts installed (${copiedFiles.join(', ')})`);
     }
 
-    // --- 5. Configure toolset (block TodoWrite) ---
-    const tweakccConfigPath = path.join(meta.tweakDir, 'config.json');
-    if (configureTeamToolset(tweakccConfigPath)) {
+    // --- 5. Block TodoWrite via settings.json permissions.deny ---
+    if (configureTeamToolset(meta.configDir)) {
       state.notes.push('Team toolset configured (TodoWrite blocked)');
     }
 

@@ -42,7 +42,7 @@ test('ensureTweakccConfig creates config file when it does not exist', () => {
     const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
     assert.ok(config.settings);
     assert.ok(config.settings.themes);
-    assert.equal(config.settings.themes[0]?.id, 'zai-carbon');
+    assert.equal(config.settings.themes[0]?.id, 'dark');
   } finally {
     cleanup(tweakDir);
   }
@@ -57,7 +57,7 @@ test('ensureTweakccConfig creates minimax config', () => {
 
     assert.equal(result, true);
     const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
-    assert.equal(config.settings.themes[0]?.id, 'minimax-pulse');
+    assert.equal(config.settings.themes[0]?.id, 'dark');
   } finally {
     cleanup(tweakDir);
   }
@@ -72,7 +72,7 @@ test('ensureTweakccConfig creates openrouter config', () => {
 
     assert.equal(result, true);
     const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
-    assert.equal(config.settings.themes[0]?.id, 'openrouter-teal');
+    assert.equal(config.settings.themes[0]?.id, 'dark');
   } finally {
     cleanup(tweakDir);
   }
@@ -87,7 +87,7 @@ test('ensureTweakccConfig creates ccrouter config', () => {
 
     assert.equal(result, true);
     const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
-    assert.equal(config.settings.themes[0]?.id, 'ccrouter-sky');
+    assert.equal(config.settings.themes[0]?.id, 'dark');
   } finally {
     cleanup(tweakDir);
   }
@@ -129,7 +129,7 @@ test('ensureTweakccConfig updates config when themes differ', () => {
     assert.equal(result, true);
     const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
     // Brand theme should be first
-    assert.equal(config.settings.themes[0]?.id, 'zai-carbon');
+    assert.equal(config.settings.themes[0]?.id, 'dark');
     // Custom theme should still be present
     assert.ok(config.settings.themes.some((t: { id?: string }) => t.id === 'custom-theme'));
   } finally {
@@ -164,7 +164,7 @@ test('ensureTweakccConfig removes legacy minimax themes', () => {
       JSON.stringify({
         settings: {
           themes: [
-            { id: 'minimax-pulse', name: 'MiniMax Pulse' },
+            { id: 'dark', name: 'MiniMax Pulse' },
             { id: 'minimax-ember', name: 'MiniMax Ember' },
             { id: 'minimax-glass', name: 'MiniMax Glass' },
             { id: 'minimax-blade', name: 'MiniMax Blade' },
@@ -182,7 +182,7 @@ test('ensureTweakccConfig removes legacy minimax themes', () => {
     assert.ok(!config.settings.themes.some((t: { id?: string }) => t.id === 'minimax-glass'));
     assert.ok(!config.settings.themes.some((t: { id?: string }) => t.id === 'minimax-blade'));
     // Primary theme should still be present
-    assert.ok(config.settings.themes.some((t: { id?: string }) => t.id === 'minimax-pulse'));
+    assert.ok(config.settings.themes.some((t: { id?: string }) => t.id === 'dark'));
   } finally {
     cleanup(tweakDir);
   }
@@ -198,7 +198,7 @@ test('ensureTweakccConfig updates userMessageDisplay when not set', () => {
       configPath,
       JSON.stringify({
         settings: {
-          themes: [{ id: 'zai-carbon' }],
+          themes: [{ id: 'dark' }],
         },
       })
     );

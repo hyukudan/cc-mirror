@@ -48,7 +48,7 @@ const makeTheme = (): Theme => {
   const tint = (hex: string, weight: number) => mix(palette.base, hex, weight);
   return {
     name: 'Foundry Azure',
-    id: 'foundry-azure',
+    id: 'dark',
     colors: {
       autoAccept: rgb(palette.green),
       bashBorder: rgb(palette.core),
@@ -173,14 +173,5 @@ export const buildFoundryTweakccConfig = (): TweakccConfig => ({
       hideStartupClawd: true,
       increaseFileReadLimit: true,
     },
-    toolsets: [
-      {
-        name: 'foundry',
-        allowedTools: '*',
-        blockedTools: [],
-      },
-    ],
-    defaultToolset: 'foundry',
-    planModeToolset: 'foundry',
   },
 });

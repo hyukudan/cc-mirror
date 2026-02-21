@@ -3,7 +3,13 @@
  */
 
 import { getBrandThemeId, resolveBrandKey } from '../../../brands/index.js';
-import { ensureMinimaxMcpServer, ensureOnboardingState, ensureZaiMcpDeny } from '../../claude-config.js';
+import {
+  ensureMinimaxMcpServer,
+  ensureOnboardingState,
+  ensureSettingsPermissionsDeny,
+  MINIMAX_DENY_TOOLS,
+  ZAI_DENY_TOOLS,
+} from '../../claude-config.js';
 import { ensureTweakccConfig } from '../../tweakcc.js';
 import type { BuildContext, BuildStep } from '../types.js';
 
@@ -58,9 +64,16 @@ export class BrandThemeStep implements BuildStep {
     }
 
     if (params.providerKey === 'zai') {
-      const blockedZaiTools = ensureZaiMcpDeny(paths.configDir);
+      const blockedZaiTools = ensureSettingsPermissionsDeny(paths.configDir, ZAI_DENY_TOOLS);
       if (blockedZaiTools) {
         state.notes.push('Blocked Z.ai-injected MCP tools in settings.json.');
+      }
+    }
+
+    if (params.providerKey === 'minimax') {
+      const blockedMinimaxTools = ensureSettingsPermissionsDeny(paths.configDir, MINIMAX_DENY_TOOLS);
+      if (blockedMinimaxTools) {
+        state.notes.push('Blocked MiniMax-injected MCP tools in settings.json.');
       }
     }
 

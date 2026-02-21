@@ -85,7 +85,7 @@ test('zai brand preset writes tweakcc config', () => {
     const tweakConfigPath = path.join(rootDir, 'zai', 'tweakcc', 'config.json');
     assert.ok(fs.existsSync(tweakConfigPath));
     const tweakConfig = JSON.parse(readFile(tweakConfigPath)) as { settings?: { themes?: { id?: string }[] } };
-    assert.equal(tweakConfig.settings?.themes?.[0]?.id, 'zai-carbon');
+    assert.equal(tweakConfig.settings?.themes?.[0]?.id, 'dark');
 
     cleanup(rootDir);
     cleanup(binDir);
@@ -114,7 +114,7 @@ test('minimax brand preset writes tweakcc config', () => {
     assert.ok(fs.existsSync(tweakConfigPath));
     const tweakConfig = JSON.parse(readFile(tweakConfigPath)) as { settings?: { themes?: { id?: string }[] } };
     const themeIds = tweakConfig.settings?.themes?.map((theme) => theme?.id) ?? [];
-    assert.equal(themeIds[0], 'minimax-pulse');
+    assert.equal(themeIds[0], 'dark');
     assert.equal(themeIds.includes('minimax-glass'), false);
     assert.equal(themeIds.includes('minimax-blade'), false);
     assert.equal(themeIds.includes('minimax-ember'), false);
@@ -155,7 +155,7 @@ test('openrouter brand preset writes tweakcc config', () => {
     const tweakConfigPath = path.join(rootDir, 'openrouter', 'tweakcc', 'config.json');
     assert.ok(fs.existsSync(tweakConfigPath));
     const tweakConfig = JSON.parse(readFile(tweakConfigPath)) as { settings?: { themes?: { id?: string }[] } };
-    assert.equal(tweakConfig.settings?.themes?.[0]?.id, 'openrouter-teal');
+    assert.equal(tweakConfig.settings?.themes?.[0]?.id, 'dark');
 
     cleanup(rootDir);
     cleanup(binDir);
@@ -184,7 +184,7 @@ test('gatewayz brand preset writes tweakcc config', () => {
     const tweakConfigPath = path.join(rootDir, 'gatewayz', 'tweakcc', 'config.json');
     assert.ok(fs.existsSync(tweakConfigPath));
     const tweakConfig = JSON.parse(readFile(tweakConfigPath)) as { settings?: { themes?: { id?: string }[] } };
-    assert.equal(tweakConfig.settings?.themes?.[0]?.id, 'gatewayz-portal');
+    assert.equal(tweakConfig.settings?.themes?.[0]?.id, 'dark');
 
     const configPath = path.join(rootDir, 'gatewayz', 'config', 'settings.json');
     const configJson = JSON.parse(readFile(configPath)) as { env: Record<string, string> };
@@ -219,7 +219,7 @@ test('nanogpt brand preset writes tweakcc config', () => {
     const tweakConfigPath = path.join(rootDir, 'nanogpt', 'tweakcc', 'config.json');
     assert.ok(fs.existsSync(tweakConfigPath));
     const tweakConfig = JSON.parse(readFile(tweakConfigPath)) as { settings?: { themes?: { id?: string }[] } };
-    assert.equal(tweakConfig.settings?.themes?.[0]?.id, 'nanogpt-violet');
+    assert.equal(tweakConfig.settings?.themes?.[0]?.id, 'dark');
 
     const configPath = path.join(rootDir, 'nanogpt', 'config', 'settings.json');
     const configJson = JSON.parse(readFile(configPath)) as { env: Record<string, string> };
@@ -253,7 +253,7 @@ test('ccrouter brand preset writes tweakcc config', () => {
     const tweakConfigPath = path.join(rootDir, 'ccrouter', 'tweakcc', 'config.json');
     assert.ok(fs.existsSync(tweakConfigPath));
     const tweakConfig = JSON.parse(readFile(tweakConfigPath)) as { settings?: { themes?: { id?: string }[] } };
-    assert.equal(tweakConfig.settings?.themes?.[0]?.id, 'ccrouter-sky');
+    assert.equal(tweakConfig.settings?.themes?.[0]?.id, 'dark');
 
     cleanup(rootDir);
     cleanup(binDir);
@@ -280,7 +280,7 @@ test('mirror brand preset writes tweakcc config and enables team mode', () => {
     const tweakConfigPath = path.join(rootDir, 'mirror-test', 'tweakcc', 'config.json');
     assert.ok(fs.existsSync(tweakConfigPath));
     const tweakConfig = JSON.parse(readFile(tweakConfigPath)) as { settings?: { themes?: { id?: string }[] } };
-    assert.equal(tweakConfig.settings?.themes?.[0]?.id, 'mirror-claude');
+    assert.equal(tweakConfig.settings?.themes?.[0]?.id, 'dark');
 
     // Verify variant.json has team mode enabled (mirror provider auto-enables)
     const variantPath = path.join(rootDir, 'mirror-test', 'variant.json');

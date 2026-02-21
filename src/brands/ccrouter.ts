@@ -61,7 +61,7 @@ const palette = {
 
 const theme: Theme = {
   name: 'CCRouter Sky',
-  id: 'ccrouter-sky',
+  id: 'dark',
   colors: {
     autoAccept: rgb(palette.green),
     bashBorder: rgb(palette.sky),
@@ -183,13 +183,5 @@ export const buildCCRouterTweakccConfig = (): TweakccConfig => ({
       hideStartupClawd: true,
       increaseFileReadLimit: true,
     },
-    toolsets: [
-      {
-        name: 'ccrouter',
-        allowedTools: '*',
-      },
-    ],
-    defaultToolset: 'ccrouter',
-    planModeToolset: 'ccrouter',
   },
 });

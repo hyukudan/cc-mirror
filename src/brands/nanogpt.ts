@@ -64,7 +64,7 @@ const palette = {
 
 const theme: Theme = {
   name: 'NanoGPT Violet',
-  id: 'nanogpt-violet',
+  id: 'dark',
   colors: {
     autoAccept: rgb(palette.green),
     bashBorder: rgb(palette.violet),
@@ -186,13 +186,5 @@ export const buildNanoGPTTweakccConfig = (): TweakccConfig => ({
       hideStartupClawd: true,
       increaseFileReadLimit: true,
     },
-    toolsets: [
-      {
-        name: 'nanogpt',
-        allowedTools: '*',
-      },
-    ],
-    defaultToolset: 'nanogpt',
-    planModeToolset: 'nanogpt',
   },
 });

@@ -2,20 +2,6 @@ import type { TweakccConfig, Theme } from './types.js';
 import { DEFAULT_THEMES } from './defaultThemes.js';
 import { formatUserMessage, getUserLabel } from './userLabel.js';
 
-/**
- * Z.ai blocked tools - server-injected MCP tools and unavailable builtins
- * These are blocked via toolset to enforce what prompt pack instructs
- */
-export const ZAI_BLOCKED_TOOLS = [
-  // Server-injected MCP tools (Z.ai injects these, we block them)
-  'mcp__4_5v_mcp__analyze_image',
-  'mcp__milk_tea_server__claim_milk_tea_coupon',
-  'mcp__web_reader__webReader',
-  // Builtin tools that should use zai-cli instead
-  'WebSearch',
-  'WebFetch',
-];
-
 type Rgb = { r: number; g: number; b: number };
 
 const clamp = (value: number) => Math.max(0, Math.min(255, Math.round(value)));
@@ -77,7 +63,7 @@ const palette = {
 
 const theme: Theme = {
   name: 'Z.ai Carbon',
-  id: 'zai-carbon',
+  id: 'dark',
   colors: {
     autoAccept: rgb(palette.green),
     bashBorder: rgb(palette.gold),
@@ -203,14 +189,5 @@ export const buildZaiTweakccConfig = (): TweakccConfig => ({
       hideStartupClawd: true,
       increaseFileReadLimit: true,
     },
-    toolsets: [
-      {
-        name: 'zai',
-        allowedTools: '*',
-        blockedTools: ZAI_BLOCKED_TOOLS,
-      },
-    ],
-    defaultToolset: 'zai',
-    planModeToolset: 'zai',
   },
 });

@@ -65,7 +65,7 @@ const palette = {
 
 const theme: Theme = {
   name: 'GatewayZ Portal',
-  id: 'gatewayz-portal',
+  id: 'dark',
   colors: {
     autoAccept: rgb(palette.green),
     bashBorder: rgb(palette.violet),
@@ -187,13 +187,5 @@ export const buildGatewayZTweakccConfig = (): TweakccConfig => ({
       hideStartupClawd: true,
       increaseFileReadLimit: true,
     },
-    toolsets: [
-      {
-        name: 'gatewayz',
-        allowedTools: '*',
-      },
-    ],
-    defaultToolset: 'gatewayz',
-    planModeToolset: 'gatewayz',
   },
 });

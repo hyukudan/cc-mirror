@@ -82,7 +82,7 @@ const palette = {
 
 const theme: Theme = {
   name: 'Mirror Claude',
-  id: 'mirror-claude',
+  id: 'dark',
   colors: {
     autoAccept: rgb(palette.green),
     bashBorder: rgb(palette.electric),
@@ -204,13 +204,5 @@ export const buildMirrorTweakccConfig = (): TweakccConfig => ({
       hideStartupClawd: true,
       increaseFileReadLimit: true,
     },
-    toolsets: [
-      {
-        name: 'mirror',
-        allowedTools: '*',
-      },
-    ],
-    defaultToolset: 'mirror',
-    planModeToolset: 'mirror',
   },
 });

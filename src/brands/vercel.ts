@@ -48,7 +48,7 @@ const makeTheme = (): Theme => {
   const tint = (hex: string, weight: number) => mix(palette.base, hex, weight);
   return {
     name: 'Vercel Edge',
-    id: 'vercel-edge',
+    id: 'dark',
     colors: {
       autoAccept: rgb(palette.green),
       bashBorder: rgb(palette.border),
@@ -173,14 +173,5 @@ export const buildVercelTweakccConfig = (): TweakccConfig => ({
       hideStartupClawd: true,
       increaseFileReadLimit: true,
     },
-    toolsets: [
-      {
-        name: 'vercel',
-        allowedTools: '*',
-        blockedTools: [],
-      },
-    ],
-    defaultToolset: 'vercel',
-    planModeToolset: 'vercel',
   },
 });

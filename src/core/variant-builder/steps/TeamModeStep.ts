@@ -72,9 +72,8 @@ export class TeamModeStep implements BuildStep {
       state.notes.push(`Team pack prompts installed (${copiedFiles.join(', ')})`);
     }
 
-    // --- 5. Configure toolset (block TodoWrite) ---
-    const tweakccConfigPath = path.join(paths.tweakDir, 'config.json');
-    if (configureTeamToolset(tweakccConfigPath)) {
+    // --- 5. Block TodoWrite via settings.json permissions.deny ---
+    if (configureTeamToolset(paths.configDir)) {
       state.notes.push('Team toolset configured (TodoWrite blocked)');
     }
 

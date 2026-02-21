@@ -63,7 +63,7 @@ const palette = {
 
 const theme: Theme = {
   name: 'OpenRouter Teal',
-  id: 'openrouter-teal',
+  id: 'dark',
   colors: {
     autoAccept: rgb(palette.green),
     bashBorder: rgb(palette.teal),
@@ -185,13 +185,5 @@ export const buildOpenRouterTweakccConfig = (): TweakccConfig => ({
       hideStartupClawd: true,
       increaseFileReadLimit: true,
     },
-    toolsets: [
-      {
-        name: 'openrouter',
-        allowedTools: '*',
-      },
-    ],
-    defaultToolset: 'openrouter',
-    planModeToolset: 'openrouter',
   },
 });

@@ -7,7 +7,7 @@ export const PROVIDERS = [
     key: 'zai',
     name: 'Zai Cloud',
     apiKey: 'test-zai-key',
-    expectedThemeId: 'zai-carbon',
+    expectedThemeId: 'dark',
     expectedSplashStyle: 'zai',
     colorCode: '\\x1b[38;5;220m', // Gold
   },
@@ -15,7 +15,7 @@ export const PROVIDERS = [
     key: 'minimax',
     name: 'MiniMax Cloud',
     apiKey: 'test-minimax-key',
-    expectedThemeId: 'minimax-pulse',
+    expectedThemeId: 'dark',
     expectedSplashStyle: 'minimax',
     colorCode: '\\x1b[38;5;203m', // Coral/salmon red
   },
@@ -23,7 +23,7 @@ export const PROVIDERS = [
     key: 'gatewayz',
     name: 'GatewayZ',
     apiKey: 'test-gatewayz-key',
-    expectedThemeId: 'gatewayz-portal',
+    expectedThemeId: 'dark',
     expectedSplashStyle: 'gatewayz',
     colorCode: '\\x1b[38;5;135m', // Violet
   },
@@ -31,7 +31,7 @@ export const PROVIDERS = [
     key: 'openrouter',
     name: 'OpenRouter',
     apiKey: 'test-openrouter-key',
-    expectedThemeId: 'openrouter-teal',
+    expectedThemeId: 'dark',
     expectedSplashStyle: 'openrouter',
     colorCode: '\\x1b[38;5;43m', // Teal
   },
@@ -39,7 +39,7 @@ export const PROVIDERS = [
     key: 'nanogpt',
     name: 'NanoGPT',
     apiKey: 'test-nanogpt-key',
-    expectedThemeId: 'nanogpt-violet',
+    expectedThemeId: 'dark',
     expectedSplashStyle: 'nanogpt',
     colorCode: '\\x1b[38;5;135m', // Violet
   },
@@ -47,7 +47,7 @@ export const PROVIDERS = [
     key: 'ccrouter',
     name: 'Claude Code Router',
     apiKey: '', // Optional for ccrouter
-    expectedThemeId: 'ccrouter-sky',
+    expectedThemeId: 'dark',
     expectedSplashStyle: 'ccrouter',
     colorCode: '\\x1b[38;5;39m', // Sky blue
   },
@@ -55,7 +55,7 @@ export const PROVIDERS = [
     key: 'ollama',
     name: 'Ollama',
     apiKey: 'ollama',
-    expectedThemeId: 'ollama-sandstone',
+    expectedThemeId: 'dark',
     expectedSplashStyle: 'ollama',
     colorCode: '\\x1b[38;5;180m', // Warm sandstone
   },
