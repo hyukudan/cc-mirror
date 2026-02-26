@@ -43,7 +43,7 @@ import type {
   OpenAIErrorResponse,
 } from './types.js';
 
-const DEFAULT_TIMEOUT = 300000; // 5 minutes
+const DEFAULT_TIMEOUT = 120000; // 2 minutes
 const MAX_BODY_SIZE = 50 * 1024 * 1024; // 50 MB limit for request/response bodies
 
 /**
@@ -60,7 +60,7 @@ export async function startTranslatorProxy(config: TranslatorProxyConfig): Promi
     // CORS preflight
     if (req.method === 'OPTIONS') {
       res.writeHead(204, {
-        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Origin': 'http://127.0.0.1',
         'Access-Control-Allow-Methods': 'POST, OPTIONS',
         'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Api-Key, anthropic-version',
       });
@@ -134,7 +134,7 @@ export async function startTranslatorProxy(config: TranslatorProxyConfig): Promi
             'Content-Type': 'text/event-stream',
             'Cache-Control': 'no-cache',
             Connection: 'keep-alive',
-            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Origin': 'http://127.0.0.1',
           });
 
           const translator = createStreamingTranslator({
@@ -163,7 +163,7 @@ export async function startTranslatorProxy(config: TranslatorProxyConfig): Promi
 
                 res.writeHead(200, {
                   'Content-Type': 'application/json',
-                  'Access-Control-Allow-Origin': '*',
+                  'Access-Control-Allow-Origin': 'http://127.0.0.1',
                 });
                 res.end(JSON.stringify(anthropicResponse));
               } catch (parseErr) {
