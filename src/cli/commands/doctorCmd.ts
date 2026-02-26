@@ -37,7 +37,8 @@ function getLatestNpmVersion(): string | undefined {
 export function runDoctorCommand({ opts }: DoctorCommandOptions): void {
   const rootDir = (opts.root as string) || core.DEFAULT_ROOT;
   const binDir = (opts['bin-dir'] as string) || core.DEFAULT_BIN_DIR;
-  const isStrict = Boolean(opts.strict);
+  const isStrict = Boolean(opts.strict || opts.fix);
+  const isFix = Boolean(opts.fix);
   const checkMcp = Boolean(opts['check-mcp']);
   const verbose = Boolean(opts.verbose || opts.v);
 
@@ -51,6 +52,7 @@ export function runDoctorCommand({ opts }: DoctorCommandOptions): void {
     strict: isStrict,
     checkMcp,
     latestVersion,
+    fix: isFix,
   });
 
   if (opts.json === true) {

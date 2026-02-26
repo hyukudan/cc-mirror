@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { assertValidTeamName, assertValidVariantName } from '../src/core/validation.js';
+import { assertValidTeamName, assertValidVariantName, assertValidBaseUrl } from '../src/core/validation.js';
 
 test('validation', async (t) => {
   await t.test('assertValidVariantName accepts valid names', () => {
@@ -25,5 +25,18 @@ test('validation', async (t) => {
     for (const name of invalid) {
       assert.throws(() => assertValidTeamName(name));
     }
+  });
+
+  await t.test('assertValidBaseUrl accepts valid URLs', () => {
+    assert.equal(assertValidBaseUrl('https://api.example.com/v1'), 'https://api.example.com/v1');
+    assert.equal(assertValidBaseUrl('http://localhost:8080'), 'http://localhost:8080');
+    assert.equal(assertValidBaseUrl('https://z.ai/api'), 'https://z.ai/api');
+  });
+
+  await t.test('assertValidBaseUrl rejects invalid URLs', () => {
+    assert.throws(() => assertValidBaseUrl(''), /required/);
+    assert.throws(() => assertValidBaseUrl('not-a-url'), /Invalid base URL/);
+    assert.throws(() => assertValidBaseUrl('ftp://example.com'), /protocol/);
+    assert.throws(() => assertValidBaseUrl('file:///etc/passwd'), /protocol/);
   });
 });

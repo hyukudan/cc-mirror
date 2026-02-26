@@ -85,6 +85,7 @@ OPTIONS (path)
 
 OPTIONS (doctor)
   --strict                     Run extra validation checks + version comparison
+  --fix                        Auto-repair fixable issues (permissions, env keys, patches)
   --check-mcp                  Verify MCP server commands exist
   --verbose, -v                Show detailed MCP server info
   --json                       Output doctor report as JSON

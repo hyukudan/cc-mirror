@@ -115,6 +115,7 @@ export interface DoctorReportItem {
   wrapperPath: string;
   issues?: string[];
   warnings?: string[];
+  fixes?: string[];
   // Extended info (when strict mode)
   claudeCodeVersion?: string;
   claudeCodeLatest?: string;
@@ -125,6 +126,7 @@ export interface DoctorOptions {
   strict?: boolean;
   checkMcp?: boolean; // Check MCP server connectivity
   latestVersion?: string; // Pre-fetched latest version (to avoid multiple npm calls)
+  fix?: boolean; // Auto-fix repairable issues (implies strict)
 }
 
 export interface CreateVariantResult {

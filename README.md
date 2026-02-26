@@ -15,7 +15,7 @@
 </p>
 
 <p align="center">
-  <code>16 providers</code> · <code>35+ CLI commands</code> · <code>Team mode</code> · <code>MCP registry</code> · <code>API translator</code>
+  <code>15 providers</code> · <code>25+ CLI commands</code> · <code>Team mode</code> · <code>MCP registry</code> · <code>API translator</code>
 </p>
 
 ---
@@ -505,6 +505,7 @@ npx cc-mirror tasks clean --resolved --older-than 7 --variant team
 | Command                            | Description                                       |
 | ---------------------------------- | ------------------------------------------------- |
 | `npx cc-mirror doctor --strict`    | Enhanced health check with version comparison     |
+| `npx cc-mirror doctor --fix`       | Auto-repair fixable issues (permissions, env, patches) |
 | `npx cc-mirror doctor --check-mcp` | Verify MCP server connectivity                    |
 | `npx cc-mirror mcp <name> check`   | Health check all MCP servers in variant           |
 | `npx cc-mirror backup`             | Create full backup of ~/.cc-mirror                |
@@ -890,8 +891,11 @@ Run health check:
 ```bash
 npx cc-mirror doctor <variant>
 
-# Or with verbose output
+# Extended checks
 npx cc-mirror doctor <variant> --strict
+
+# Auto-fix common issues (permissions, env keys, patches)
+npx cc-mirror doctor --fix
 ```
 
 #### How to completely reset a variant

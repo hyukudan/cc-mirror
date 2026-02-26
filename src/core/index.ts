@@ -21,7 +21,6 @@ import type {
   UpdateVariantOptions,
   UpdateVariantResult,
   VariantEntry,
-  VariantConfig,
 } from './types.js';
 
 /**
@@ -163,6 +162,9 @@ export const doctor = (rootDir: string, binDir: string, opts: DoctorOptions = {}
   const resolvedRoot = expandTilde(rootDir || DEFAULT_ROOT) ?? rootDir;
   const resolvedBin = expandTilde(binDir || DEFAULT_BIN_DIR) ?? binDir;
   const variants = listVariantsImpl(resolvedRoot);
+  // --fix implies --strict (need full checks to know what to fix)
+  const isStrict = opts.strict || opts.fix;
+  const isFix = opts.fix;
   return variants.map(({ name, meta }) => {
     const wrapperPath = getWrapperPath(resolvedBin, name);
     const ok = Boolean(meta && fs.existsSync(meta.binaryPath) && fs.existsSync(wrapperPath));
@@ -172,10 +174,11 @@ export const doctor = (rootDir: string, binDir: string, opts: DoctorOptions = {}
       binaryPath: meta?.binaryPath,
       wrapperPath,
     };
-    if (!opts.strict) return report;
+    if (!isStrict) return report;
 
     const issues: string[] = [];
     const warnings: string[] = [];
+    const fixes: string[] = [];
     try {
       assertValidVariantName(name);
     } catch (error) {
@@ -185,7 +188,16 @@ export const doctor = (rootDir: string, binDir: string, opts: DoctorOptions = {}
     // Check wrapper permissions
     const wrapperCheck = checkWrapperPermissions(wrapperPath);
     if (!wrapperCheck.executable && wrapperCheck.error) {
-      issues.push(wrapperCheck.error);
+      if (isFix && wrapperCheck.error === 'Wrapper not executable') {
+        try {
+          fs.chmodSync(wrapperPath, 0o755);
+          fixes.push('Fixed wrapper permissions (chmod +x)');
+        } catch {
+          issues.push(wrapperCheck.error);
+        }
+      } else {
+        issues.push(wrapperCheck.error);
+      }
     }
 
     if (!meta) {
@@ -227,17 +239,31 @@ export const doctor = (rootDir: string, binDir: string, opts: DoctorOptions = {}
       if (!fs.existsSync(settingsPath)) {
         issues.push('settings.json missing');
       } else {
-        const settings = readJson<VariantConfig>(settingsPath);
+        const settings = readJson<Record<string, unknown>>(settingsPath);
         if (!settings) {
           issues.push('settings.json invalid JSON');
         } else {
-          const env = settings.env || {};
+          const env = (settings.env as Record<string, string>) || {};
           const invalidKeys = Object.keys(env).filter((key) => !isValidEnvKey(key));
           if (invalidKeys.length > 0) {
-            issues.push(`settings.json has invalid env keys: ${invalidKeys.join(', ')}`);
+            if (isFix) {
+              for (const key of invalidKeys) delete env[key];
+              settings.env = env;
+              fs.writeFileSync(settingsPath, JSON.stringify(settings, null, 2));
+              fixes.push(`Removed invalid env keys: ${invalidKeys.join(', ')}`);
+            } else {
+              issues.push(`settings.json has invalid env keys: ${invalidKeys.join(', ')}`);
+            }
           }
           if (Object.hasOwn(env, 'CLAUDE_CODE_TEAM_NAME')) {
-            issues.push('settings.json sets CLAUDE_CODE_TEAM_NAME; remove it to allow dynamic team naming');
+            if (isFix) {
+              delete env.CLAUDE_CODE_TEAM_NAME;
+              settings.env = env;
+              fs.writeFileSync(settingsPath, JSON.stringify(settings, null, 2));
+              fixes.push('Removed CLAUDE_CODE_TEAM_NAME from settings.json');
+            } else {
+              issues.push('settings.json sets CLAUDE_CODE_TEAM_NAME; remove it to allow dynamic team naming');
+            }
           }
         }
       }
@@ -288,7 +314,13 @@ export const doctor = (rootDir: string, binDir: string, opts: DoctorOptions = {}
           if (needsPatch) {
             const cliContent = fs.readFileSync(cliPath, 'utf8');
             if (!cliContent.includes('function sU(){return!0}')) {
-              issues.push('team mode enabled but cli.js patch missing');
+              if (isFix && cliContent.includes('function sU(){return!1}')) {
+                const patched = cliContent.replace('function sU(){return!1}', 'function sU(){return!0}');
+                fs.writeFileSync(cliPath, patched);
+                fixes.push('Re-applied team mode cli.js patch');
+              } else {
+                issues.push('team mode enabled but cli.js patch missing');
+              }
             }
           }
         }
@@ -297,6 +329,7 @@ export const doctor = (rootDir: string, binDir: string, opts: DoctorOptions = {}
 
     report.issues = issues.length > 0 ? issues : undefined;
     report.warnings = warnings.length > 0 ? warnings : undefined;
+    report.fixes = fixes.length > 0 ? fixes : undefined;
     report.ok = report.ok && issues.length === 0;
     return report;
   });

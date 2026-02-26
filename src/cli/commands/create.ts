@@ -5,7 +5,7 @@
 import { listProviders, getProvider, type ProviderTemplate } from '../../providers/index.js';
 import { listBrandPresets } from '../../brands/index.js';
 import * as core from '../../core/index.js';
-import { assertValidVariantName } from '../../core/validation.js';
+import { assertValidVariantName, assertValidBaseUrl } from '../../core/validation.js';
 import type { ParsedArgs } from '../args.js';
 import { prompt } from '../prompt.js';
 import {
@@ -108,6 +108,7 @@ async function prepareCreateParams(opts: ParsedArgs): Promise<CreateParams & { t
   const name = (opts.name as string) || buildDefaultName(providerKey, prefix);
   const envZaiBaseUrl = providerKey === 'zai' ? process.env.Z_AI_BASE_URL?.trim() : undefined;
   const baseUrl = (opts['base-url'] as string) || envZaiBaseUrl || provider.baseUrl;
+  if (opts['base-url']) assertValidBaseUrl(baseUrl);
   const envZaiKey = providerKey === 'zai' ? process.env.Z_AI_API_KEY : undefined;
   const envAnthropicKey = providerKey === 'zai' ? process.env.ANTHROPIC_API_KEY : undefined;
   const hasApiKeyFlag = Boolean(opts['api-key']);

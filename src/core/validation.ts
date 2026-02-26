@@ -65,3 +65,22 @@ const assertValidName = (name: string, type: NameType): string => {
 export const assertValidVariantName = (name: string): string => assertValidName(name, 'Variant');
 
 export const assertValidTeamName = (name: string): string => assertValidName(name, 'Team');
+
+/**
+ * Validate a base URL for API endpoints. Returns the URL string on success, throws on failure.
+ */
+export const assertValidBaseUrl = (url: string): string => {
+  if (!url || !url.trim()) {
+    throw new Error('Base URL is required.');
+  }
+  let parsed: URL;
+  try {
+    parsed = new URL(url);
+  } catch {
+    throw new Error(`Invalid base URL: "${url}". Must be a valid URL (e.g. https://api.example.com/v1).`);
+  }
+  if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+    throw new Error(`Invalid base URL protocol: "${parsed.protocol}". Must be http: or https:.`);
+  }
+  return url;
+};

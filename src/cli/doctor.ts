@@ -14,6 +14,12 @@ export const printDoctor = (report: DoctorReportItem[], opts: { verbose?: boolea
       console.log(`  wrapper: ${item.wrapperPath}`);
     }
 
+    if (item.fixes?.length) {
+      for (const fix of item.fixes) {
+        console.log(`  fixed: ${fix}`);
+      }
+    }
+
     if (item.issues?.length) {
       for (const issue of item.issues) {
         console.log(`  issue: ${issue}`);
@@ -48,8 +54,13 @@ export const printDoctor = (report: DoctorReportItem[], opts: { verbose?: boolea
   ).length;
   const mcpErrors = report.reduce((sum, r) => sum + (r.mcpServers?.filter((m) => m.status === 'error').length ?? 0), 0);
 
+  const totalFixes = report.reduce((sum, r) => sum + (r.fixes?.length ?? 0), 0);
+
   console.log('');
   console.log(`Summary: ${healthy}/${total} healthy`);
+  if (totalFixes > 0) {
+    console.log(`  ${totalFixes} issue(s) auto-fixed`);
+  }
   if (outdated > 0) {
     console.log(`  ${outdated} variant(s) have updates available`);
   }
