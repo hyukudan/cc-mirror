@@ -46,6 +46,8 @@ export function createStreamingTranslator(
     toolCallAccumulators: new Map(),
     inputTokens: options.inputTokens ?? 0,
     outputTokens: 0,
+    insideThink: false,
+    finished: false,
   };
 
   let buffer = '';
@@ -76,22 +78,25 @@ export function createStreamingTranslator(
 
         // Handle stream end
         if (data === '[DONE]') {
-          // Close any open content block
-          if (state.currentBlockIndex >= 0) {
-            this.push(formatSSE({ type: 'content_block_stop', index: state.currentBlockIndex }));
+          if (!state.finished) {
+            // Close any open content block
+            if (state.currentBlockIndex >= 0) {
+              this.push(formatSSE({ type: 'content_block_stop', index: state.currentBlockIndex }));
+            }
+
+            // Send message_delta with final stop reason
+            this.push(
+              formatSSE({
+                type: 'message_delta',
+                delta: { stop_reason: 'end_turn' },
+                usage: { output_tokens: state.outputTokens },
+              })
+            );
+
+            // Send message_stop
+            this.push(formatSSE({ type: 'message_stop' }));
+            state.finished = true;
           }
-
-          // Send message_delta with final stop reason
-          this.push(
-            formatSSE({
-              type: 'message_delta',
-              delta: { stop_reason: 'end_turn' },
-              usage: { output_tokens: state.outputTokens },
-            })
-          );
-
-          // Send message_stop
-          this.push(formatSSE({ type: 'message_stop' }));
           continue;
         }
 
@@ -129,7 +134,7 @@ export function createStreamingTranslator(
       }
 
       // Ensure stream is properly closed
-      if (state.sentMessageStart && state.currentBlockIndex >= 0) {
+      if (state.sentMessageStart && state.currentBlockIndex >= 0 && !state.finished) {
         this.push(formatSSE({ type: 'content_block_stop', index: state.currentBlockIndex }));
         this.push(
           formatSSE({
@@ -154,6 +159,19 @@ function translateChunk(chunk: OpenAIStreamChunk, state: StreamingState): Anthro
   const choice = chunk.choices[0];
 
   if (!choice) {
+    // Handle error chunks from upstream (e.g., LM Studio)
+    if (chunk.error) {
+      const errorMsg = typeof chunk.error === 'string' ? chunk.error : chunk.error?.message || 'Unknown upstream error';
+      return [
+        {
+          type: 'error',
+          error: {
+            type: 'invalid_request_error',
+            message: errorMsg,
+          },
+        },
+      ];
+    }
     return events;
   }
 
@@ -180,31 +198,38 @@ function translateChunk(chunk: OpenAIStreamChunk, state: StreamingState): Anthro
     state.sentMessageStart = true;
   }
 
-  // Handle text content
+  // Handle text content (with <think>...</think> stripping for thinking models)
   if (delta.content !== undefined && delta.content !== null) {
-    // Start a new text block if needed
-    if (state.currentBlockType !== 'text') {
-      // Close previous block if any
-      if (state.currentBlockIndex >= 0 && state.currentBlockType !== null) {
-        events.push({ type: 'content_block_stop', index: state.currentBlockIndex });
-      }
-
-      state.currentBlockIndex++;
-      state.currentBlockType = 'text';
-
-      events.push({
-        type: 'content_block_start',
-        index: state.currentBlockIndex,
-        content_block: { type: 'text', text: '' },
-      });
+    // Strip <think>...</think> blocks that may span multiple chunks
+    let text = delta.content;
+    if (text) {
+      text = stripThinkContent(text, state);
     }
 
-    // Emit text delta
-    if (delta.content) {
+    // Only proceed if there is visible text after stripping
+    if (text) {
+      // Start a new text block if needed
+      if (state.currentBlockType !== 'text') {
+        // Close previous block if any
+        if (state.currentBlockIndex >= 0 && state.currentBlockType !== null) {
+          events.push({ type: 'content_block_stop', index: state.currentBlockIndex });
+        }
+
+        state.currentBlockIndex++;
+        state.currentBlockType = 'text';
+
+        events.push({
+          type: 'content_block_start',
+          index: state.currentBlockIndex,
+          content_block: { type: 'text', text: '' },
+        });
+      }
+
+      // Emit text delta
       events.push({
         type: 'content_block_delta',
         index: state.currentBlockIndex,
-        delta: { type: 'text_delta', text: delta.content },
+        delta: { type: 'text_delta', text },
       });
       state.outputTokens++;
     }
@@ -293,7 +318,48 @@ function translateChunk(chunk: OpenAIStreamChunk, state: StreamingState): Anthro
     });
 
     events.push({ type: 'message_stop' });
+    state.finished = true;
   }
 
   return events;
+}
+
+/**
+ * Strip <think>...</think> content from a streaming text chunk.
+ * Handles blocks that span multiple chunks by tracking state.insideThink.
+ *
+ * Returns the visible text (outside think blocks), or empty string if
+ * all content was inside a think block.
+ */
+function stripThinkContent(text: string, state: StreamingState): string {
+  let result = '';
+  let remaining = text;
+
+  while (remaining.length > 0) {
+    if (state.insideThink) {
+      // Look for closing tag
+      const closeIdx = remaining.indexOf('</think>');
+      if (closeIdx === -1) {
+        // Entire chunk is inside think block, suppress all
+        break;
+      }
+      // Skip past the closing tag
+      remaining = remaining.slice(closeIdx + '</think>'.length);
+      state.insideThink = false;
+    } else {
+      // Look for opening tag
+      const openIdx = remaining.indexOf('<think>');
+      if (openIdx === -1) {
+        // No think tag, keep all remaining text
+        result += remaining;
+        break;
+      }
+      // Keep text before the opening tag
+      result += remaining.slice(0, openIdx);
+      remaining = remaining.slice(openIdx + '<think>'.length);
+      state.insideThink = true;
+    }
+  }
+
+  return result;
 }

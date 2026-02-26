@@ -266,7 +266,9 @@ function handleErrorResponse(proxyRes: http.IncomingMessage, res: http.ServerRes
           type: 'error',
           error: {
             type: mapStatusToErrorType(statusCode),
-            message: errorData.error?.message || `Upstream error: ${statusCode}`,
+            message:
+              (typeof errorData.error === 'string' ? errorData.error : errorData.error?.message) ||
+              `Upstream error: ${statusCode}`,
           },
         };
         res.writeHead(statusCode, { 'Content-Type': 'application/json' });

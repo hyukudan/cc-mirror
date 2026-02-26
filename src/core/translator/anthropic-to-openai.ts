@@ -44,9 +44,8 @@ export function translateRequest(anthropic: AnthropicRequest, modelMap?: Record<
   // 4. Handle streaming
   if (anthropic.stream !== undefined) {
     request.stream = anthropic.stream;
-    if (anthropic.stream) {
-      request.stream_options = { include_usage: true };
-    }
+    // Note: stream_options { include_usage: true } intentionally omitted.
+    // LM Studio and many local inference servers return 400 on this parameter.
   }
 
   // 5. Optional parameters
@@ -238,7 +237,8 @@ function translateToolChoice(choice: AnthropicToolChoice): OpenAIRequest['tool_c
     case 'auto':
       return 'auto';
     case 'any':
-      return 'required';
+      // 'required' is not supported by LM Studio and many local inference servers; use 'auto' instead.
+      return 'auto';
     case 'tool':
       if (choice.name) {
         return { type: 'function', function: { name: choice.name } };

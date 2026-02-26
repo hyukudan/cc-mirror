@@ -21,12 +21,15 @@ export function translateResponse(openai: OpenAIResponse, requestModel: string):
 
   const content: AnthropicContentBlock[] = [];
 
-  // 1. Add text content
+  // 1. Add text content (strip <think>...</think> blocks from thinking models like GLM-4.7-Flash)
   if (choice.message.content) {
-    content.push({
-      type: 'text',
-      text: choice.message.content,
-    });
+    const stripped = choice.message.content.replace(/<think>[\s\S]*?<\/think>/g, '').trim();
+    if (stripped) {
+      content.push({
+        type: 'text',
+        text: stripped,
+      });
+    }
   }
 
   // 2. Add tool use blocks
@@ -99,13 +102,16 @@ export function translateFinishReason(
  * Translate OpenAI error response to Anthropic error format
  */
 export function translateErrorResponse(openaiError: OpenAIErrorResponse): AnthropicErrorResponse {
-  const errorType = mapErrorType(openaiError.error.type, openaiError.error.code);
-
+  const err = openaiError.error;
+  if (typeof err === 'string') {
+    return { type: 'error', error: { type: 'api_error', message: err } };
+  }
+  const errorType = mapErrorType(err.type, err.code);
   return {
     type: 'error',
     error: {
       type: errorType,
-      message: openaiError.error.message,
+      message: err.message,
     },
   };
 }

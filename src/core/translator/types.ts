@@ -142,12 +142,14 @@ export interface OpenAIResponse {
 }
 
 export interface OpenAIErrorResponse {
-  error: {
-    message: string;
-    type: string;
-    param?: string;
-    code?: string;
-  };
+  error:
+    | string
+    | {
+        message: string;
+        type: string;
+        param?: string;
+        code?: string;
+      };
 }
 
 // ============================================================================
@@ -181,6 +183,8 @@ export interface OpenAIStreamChunk {
     completion_tokens: number;
     total_tokens: number;
   };
+  /** Error field present in upstream error chunks (e.g., LM Studio) */
+  error?: string | { message?: string; type?: string; code?: string };
 }
 
 export type AnthropicStreamEventType =
@@ -257,4 +261,8 @@ export interface StreamingState {
   toolCallAccumulators: Map<number, ToolCallAccumulator>;
   inputTokens: number;
   outputTokens: number;
+  /** True while inside a <think>...</think> block from thinking models (e.g. GLM-4.7-Flash) */
+  insideThink: boolean;
+  /** True once the terminal sequence (content_block_stop + message_delta + message_stop) has been emitted */
+  finished: boolean;
 }
