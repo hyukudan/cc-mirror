@@ -79,9 +79,25 @@ export interface AnthropicErrorResponse {
 // OpenAI API Types (What the provider expects)
 // ============================================================================
 
+/** A text content part inside a multimodal OpenAI message */
+export interface OpenAITextContentPart {
+  type: 'text';
+  text: string;
+}
+
+/** An image_url content part inside a multimodal OpenAI message */
+export interface OpenAIImageContentPart {
+  type: 'image_url';
+  image_url: {
+    url: string;
+  };
+}
+
+export type OpenAIContentPart = OpenAITextContentPart | OpenAIImageContentPart;
+
 export interface OpenAIMessage {
   role: 'system' | 'user' | 'assistant' | 'tool';
-  content: string | null;
+  content: string | OpenAIContentPart[] | null;
   name?: string;
   tool_calls?: OpenAIToolCall[];
   tool_call_id?: string;

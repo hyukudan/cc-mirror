@@ -4,7 +4,7 @@
 
 import { Transform, type TransformCallback } from 'node:stream';
 import type { OpenAIStreamChunk, AnthropicStreamEvent, AnthropicResponse, StreamingState } from './types.js';
-import { translateFinishReason } from './openai-to-anthropic.js';
+import { translateFinishReason, isContentFiltered, CONTENT_FILTER_NOTICE } from './openai-to-anthropic.js';
 
 /**
  * Format an Anthropic streaming event as SSE
@@ -297,6 +297,25 @@ function translateChunk(chunk: OpenAIStreamChunk, state: StreamingState): Anthro
   if (choice.finish_reason) {
     // Close current block
     if (state.currentBlockIndex >= 0 && state.currentBlockType !== null) {
+      events.push({ type: 'content_block_stop', index: state.currentBlockIndex });
+      state.currentBlockType = null;
+    }
+
+    // When the provider triggers a content filter, inject a visible notice text
+    // block so the user knows the response was blocked rather than empty.
+    if (isContentFiltered(choice.finish_reason)) {
+      state.currentBlockIndex++;
+      state.currentBlockType = 'text';
+      events.push({
+        type: 'content_block_start',
+        index: state.currentBlockIndex,
+        content_block: { type: 'text', text: '' },
+      });
+      events.push({
+        type: 'content_block_delta',
+        index: state.currentBlockIndex,
+        delta: { type: 'text_delta', text: CONTENT_FILTER_NOTICE },
+      });
       events.push({ type: 'content_block_stop', index: state.currentBlockIndex });
       state.currentBlockType = null;
     }

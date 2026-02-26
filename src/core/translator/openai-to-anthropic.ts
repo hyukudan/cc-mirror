@@ -10,6 +10,9 @@ import type {
   AnthropicErrorResponse,
 } from './types.js';
 
+/** Text inserted into the response when the upstream provider triggers a content filter. */
+export const CONTENT_FILTER_NOTICE = '[Response blocked by provider content filter]';
+
 /**
  * Convert OpenAI API response to Anthropic API format
  */
@@ -52,7 +55,16 @@ export function translateResponse(openai: OpenAIResponse, requestModel: string):
     }
   }
 
-  // 3. Ensure there's at least one content block
+  // 3. If the provider triggered a content filter, inject a visible notice so
+  //    the user knows why the response is empty / truncated.
+  if (isContentFiltered(choice.finish_reason)) {
+    content.push({
+      type: 'text',
+      text: CONTENT_FILTER_NOTICE,
+    });
+  }
+
+  // 4. Ensure there's at least one content block
   if (content.length === 0) {
     content.push({
       type: 'text',
@@ -60,7 +72,7 @@ export function translateResponse(openai: OpenAIResponse, requestModel: string):
     });
   }
 
-  // 4. Translate finish reason
+  // 5. Translate finish reason
   const stopReason = translateFinishReason(choice.finish_reason);
 
   return {
@@ -92,10 +104,20 @@ export function translateFinishReason(
     case 'tool_calls':
       return 'tool_use';
     case 'content_filter':
+      // Anthropic has no content_filter stop_reason; use end_turn.
+      // Callers that need to distinguish content_filter should check
+      // isContentFiltered() separately and inject a notice text block.
       return 'end_turn';
     default:
       return null;
   }
+}
+
+/**
+ * Returns true when the OpenAI finish_reason indicates a content filter hit.
+ */
+export function isContentFiltered(reason: string | null | undefined): boolean {
+  return reason === 'content_filter';
 }
 
 /**
@@ -155,16 +177,38 @@ function mapErrorType(type?: string, code?: string): string {
 }
 
 /**
- * Create an Anthropic error response from a generic error
+ * Maps internal proxy phase identifiers to human-readable descriptions.
+ */
+function phaseDescription(phase: string): string {
+  switch (phase) {
+    case 'response-parse':
+      return 'Failed to parse upstream response body as JSON';
+    case 'response-read':
+      return 'Failed to read upstream response body';
+    case 'upstream-request':
+      return 'Upstream connection failed';
+    case 'timeout':
+      return 'Upstream request timed out';
+    case 'request-handler':
+      return 'Failed to handle incoming request';
+    default:
+      return `Proxy error in phase "${phase}"`;
+  }
+}
+
+/**
+ * Create an Anthropic error response from a generic error.
+ * Uses phase-specific descriptions to make the error actionable.
  */
 export function createErrorResponse(error: unknown, phase: string): AnthropicErrorResponse {
-  const message = error instanceof Error ? error.message : String(error);
+  const cause = error instanceof Error ? error.message : String(error);
+  const description = phaseDescription(phase);
 
   return {
     type: 'error',
     error: {
       type: 'api_error',
-      message: `Translation proxy error (${phase}): ${message}`,
+      message: `${description}: ${cause}`,
     },
   };
 }

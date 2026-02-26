@@ -12,6 +12,7 @@ import type {
   OpenAIMessage,
   OpenAITool,
   OpenAIToolCall,
+  OpenAIContentPart,
 } from './types.js';
 
 /**
@@ -104,6 +105,7 @@ function translateMessage(msg: AnthropicMessage): OpenAIMessage[] {
 
   // Handle content blocks
   const textParts: string[] = [];
+  const imageParts: OpenAIContentPart[] = [];
   const toolCalls: OpenAIToolCall[] = [];
   const toolResults: OpenAIMessage[] = [];
 
@@ -139,11 +141,18 @@ function translateMessage(msg: AnthropicMessage): OpenAIMessage[] {
         }
         break;
 
-      case 'image':
-        // Images in user messages - convert to text placeholder
-        // OpenAI vision API has different format, skip for now
-        textParts.push('[Image content not supported in translation]');
+      case 'image': {
+        const source = block.source;
+        if (source?.type === 'base64' && source.media_type && source.data) {
+          imageParts.push({
+            type: 'image_url',
+            image_url: {
+              url: `data:${source.media_type};base64,${source.data}`,
+            },
+          });
+        }
         break;
+      }
     }
   }
 
@@ -157,8 +166,19 @@ function translateMessage(msg: AnthropicMessage): OpenAIMessage[] {
       assistantMessage.tool_calls = toolCalls;
     }
     result.push(assistantMessage);
+  } else if (imageParts.length > 0) {
+    // Multimodal user message: use OpenAI content array format
+    const contentParts: OpenAIContentPart[] = [];
+    if (textParts.length > 0) {
+      contentParts.push({ type: 'text', text: textParts.join('') });
+    }
+    contentParts.push(...imageParts);
+    result.push({
+      role: 'user',
+      content: contentParts,
+    });
   } else {
-    // User message
+    // Text-only user message
     result.push({
       role: 'user',
       content: textParts.join('') || '',
@@ -202,15 +222,37 @@ function translateTool(tool: AnthropicTool): OpenAITool {
 }
 
 /**
- * Sanitize JSON schema for OpenAI compatibility
- * Removes unsupported format directives like "format": "uri"
+ * JSON Schema `format` values that local inference servers (LM Studio, Ollama, etc.)
+ * commonly reject. Rather than maintaining an allowlist, we strip the `format` property
+ * entirely — local servers do not perform format validation and its presence only causes
+ * compatibility errors.
+ *
+ * Examples of rejected values: "uri", "uri-reference", "uri-template", "date-time",
+ * "date", "time", "email", "hostname", "ipv4", "ipv6", "regex".
+ */
+const STRIP_SCHEMA_KEYS = new Set(['format', '$schema']);
+
+/**
+ * Sanitize JSON schema for local-server compatibility.
+ *
+ * Strips:
+ *   - `format`  — local servers reject many format values and ignore the rest
+ *   - `$schema` — meta-schema declarations are not understood by most local runtimes
+ *
+ * Recurses into nested objects and array items so that sub-schemas inside
+ * `properties`, `items`, `anyOf`, `oneOf`, `allOf`, and `$defs`/`definitions`
+ * are also cleaned.
+ *
+ * Note: `anyOf`/`oneOf`/`allOf`/`$defs`/`definitions` constructs are left in
+ * place; some local servers handle them correctly, and stripping them would
+ * alter tool semantics.
  */
 function sanitizeSchema(schema: Record<string, unknown>): Record<string, unknown> {
   const result: Record<string, unknown> = {};
 
   for (const [key, value] of Object.entries(schema)) {
-    // Remove uri format (not supported by some providers)
-    if (key === 'format' && value === 'uri') {
+    // Drop keys that cause local-server rejections
+    if (STRIP_SCHEMA_KEYS.has(key)) {
       continue;
     }
 
