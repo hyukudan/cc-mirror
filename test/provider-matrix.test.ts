@@ -59,11 +59,12 @@ test('Provider Feature Matrix', async (t) => {
     assert.equal(nanogpt.authMode, 'authToken', 'nanogpt should use authToken mode');
   });
 
-  await t.test('ollama provider uses authToken with API key preserved', () => {
+  await t.test('ollama provider uses authToken with translation API key', () => {
     const ollama = getProvider('ollama');
     assert.ok(ollama, 'ollama provider should exist');
     assert.equal(ollama.authMode, 'authToken', 'ollama should use authToken mode');
-    assert.ok(ollama.authTokenAlsoSetsApiKey, 'ollama should have authTokenAlsoSetsApiKey: true');
+    assert.ok(!ollama.authTokenAlsoSetsApiKey, 'ollama should not set authTokenAlsoSetsApiKey');
+    assert.equal(ollama.env.CC_MIRROR_TRANSLATION_API_KEY, 'ollama', 'ollama should use translation API key');
     assert.ok(ollama.credentialOptional, 'ollama should have credentialOptional: true');
     assert.ok(ollama.requiresTranslation, 'ollama should require translation');
     assert.equal(ollama.env.CC_MIRROR_SPLASH_STYLE, 'ollama', 'ollama should have ollama splash style');
