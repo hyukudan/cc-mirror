@@ -64,7 +64,8 @@ test('Provider Feature Matrix', async (t) => {
     assert.ok(ollama, 'ollama provider should exist');
     assert.equal(ollama.authMode, 'authToken', 'ollama should use authToken mode');
     assert.ok(ollama.authTokenAlsoSetsApiKey, 'ollama should have authTokenAlsoSetsApiKey: true');
-    assert.ok(ollama.requiresModelMapping, 'ollama should require model mapping');
+    assert.ok(ollama.credentialOptional, 'ollama should have credentialOptional: true');
+    assert.ok(ollama.requiresTranslation, 'ollama should require translation');
     assert.equal(ollama.env.CC_MIRROR_SPLASH_STYLE, 'ollama', 'ollama should have ollama splash style');
   });
 

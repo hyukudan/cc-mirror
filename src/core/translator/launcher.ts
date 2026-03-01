@@ -54,6 +54,46 @@ function readSettings(configDir: string): {
 }
 
 /**
+ * Auto-detect available models from the target OpenAI-compatible API.
+ * Returns a model map that routes all Anthropic model names to the first available model.
+ */
+async function autoDetectModels(
+  targetUrl: string,
+  apiKey: string,
+  log: (...args: unknown[]) => void
+): Promise<Record<string, string> | undefined> {
+  try {
+    const url = `${targetUrl.replace(/\/+$/, '')}/v1/models`;
+    log(`Auto-detecting models from ${url}...`);
+    const res = await fetch(url, {
+      headers: { Authorization: `Bearer ${apiKey}` },
+      signal: AbortSignal.timeout(5000),
+    });
+    if (!res.ok) return undefined;
+    const body = (await res.json()) as { data?: Array<{ id: string }> };
+    const models = body.data?.map((m) => m.id).filter(Boolean);
+    const model = models?.[0];
+    if (!model) return undefined;
+    log(`Auto-detected model: ${model} (from ${models.length} available)`);
+    // Map all Anthropic model names to the detected model
+    const map: Record<string, string> = {};
+    for (const alias of [
+      'claude-sonnet-4-6',
+      'claude-opus-4-6',
+      'claude-haiku-4-5-20251001',
+      'claude-sonnet-4-5-20250514',
+      'claude-3-5-sonnet-20241022',
+    ]) {
+      map[alias] = model;
+    }
+    return map;
+  } catch {
+    log('Model auto-detection failed, proceeding without model map');
+    return undefined;
+  }
+}
+
+/**
  * Launch Claude Code with the translation proxy
  */
 async function launchWithProxy(config: LauncherConfig): Promise<number> {
@@ -81,12 +121,15 @@ async function launchWithProxy(config: LauncherConfig): Promise<number> {
   }
 
   try {
+    // Auto-detect models if no model map is configured
+    const modelMap = config.modelMap ?? (await autoDetectModels(config.targetUrl, config.apiKey, log));
+
     // Start the translation proxy
     log(`Starting translation proxy for ${config.targetUrl}...`);
     proxy = await startTranslatorProxy({
       targetBaseUrl: config.targetUrl,
       apiKey: config.apiKey,
-      modelMap: config.modelMap,
+      modelMap,
       debug: config.debug,
     });
 

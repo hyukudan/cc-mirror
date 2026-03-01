@@ -273,7 +273,7 @@ const PROVIDERS: Record<string, ProviderTemplate> = {
   ollama: {
     key: 'ollama',
     label: 'Ollama',
-    description: 'Local + cloud models via Ollama',
+    description: 'Local models via Ollama / LM Studio',
     baseUrl: 'http://localhost:11434',
     env: {
       API_TIMEOUT_MS: DEFAULT_TIMEOUT_MS,
@@ -283,10 +283,10 @@ const PROVIDERS: Record<string, ProviderTemplate> = {
       CC_MIRROR_PROVIDER_LABEL: 'Ollama',
       CC_MIRROR_SPLASH_STYLE: 'ollama',
     },
-    apiKeyLabel: 'Ollama API key (use "ollama" for local)',
+    apiKeyLabel: 'API key (use "ollama" for local)',
     authMode: 'authToken',
     authTokenAlsoSetsApiKey: true,
-    requiresModelMapping: true,
+    credentialOptional: true,
     requiresTranslation: true,
   },
   custom: {
@@ -328,6 +328,13 @@ const normalizeModelValue = (value?: string) => (value ?? '').trim();
 
 const applyModelOverrides = (env: ProviderEnv, overrides?: ModelOverrides) => {
   if (!overrides) return;
+  // If only sonnet is set, use it for all model slots
+  const sonnet = normalizeModelValue(overrides.sonnet);
+  if (sonnet && !normalizeModelValue(overrides.opus) && !normalizeModelValue(overrides.haiku)) {
+    overrides.opus = sonnet;
+    overrides.haiku = sonnet;
+    if (!normalizeModelValue(overrides.smallFast)) overrides.smallFast = sonnet;
+  }
   const entries: Array<[string, string | undefined]> = [
     ['ANTHROPIC_DEFAULT_SONNET_MODEL', overrides.sonnet],
     ['ANTHROPIC_DEFAULT_OPUS_MODEL', overrides.opus],
