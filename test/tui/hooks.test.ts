@@ -12,7 +12,7 @@ test('buildCreateSummary includes all expected fields', () => {
   const summary = buildCreateSummary({
     providerLabel: 'Zai Cloud',
     npmPackage: '@anthropic-ai/claude-code',
-    npmVersion: '2.1.32',
+    npmVersion: '2.1.63',
     usePromptPack: true,
     installSkill: true,
     enableTeamMode: true,
@@ -37,7 +37,7 @@ test('buildCreateSummary omits models when not set', () => {
   const summary = buildCreateSummary({
     providerLabel: 'OpenRouter',
     npmPackage: '@anthropic-ai/claude-code',
-    npmVersion: '2.1.32',
+    npmVersion: '2.1.63',
     usePromptPack: false,
     installSkill: false,
     enableTeamMode: false,
@@ -55,7 +55,7 @@ test('buildCreateSummary shows prompt pack off when disabled', () => {
   const summary = buildCreateSummary({
     providerLabel: 'Custom',
     npmPackage: '@anthropic-ai/claude-code',
-    npmVersion: '2.1.32',
+    npmVersion: '2.1.63',
     usePromptPack: false,
     installSkill: false,
     enableTeamMode: false,
@@ -72,7 +72,7 @@ test('buildCreateSummary shows provider-specific prompt pack routing', () => {
   const minimaxSummary = buildCreateSummary({
     providerLabel: 'MiniMax',
     npmPackage: '@anthropic-ai/claude-code',
-    npmVersion: '2.1.32',
+    npmVersion: '2.1.63',
     usePromptPack: true,
     installSkill: false,
     enableTeamMode: false,
