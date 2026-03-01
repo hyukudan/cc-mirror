@@ -287,6 +287,7 @@ const PROVIDERS: Record<string, ProviderTemplate> = {
     authMode: 'authToken',
     authTokenAlsoSetsApiKey: true,
     requiresModelMapping: true,
+    requiresTranslation: true,
   },
   custom: {
     key: 'custom',
@@ -426,10 +427,13 @@ export const buildEnv = ({ providerKey, baseUrl, apiKey, extraEnv, modelOverride
 
   // For translation providers, add the target URL
   // The launcher will read this to configure the proxy
-  if (provider.requiresTranslation && provider.translationTargetUrl) {
-    env.CC_MIRROR_TRANSLATION_TARGET_URL = provider.translationTargetUrl;
-    // Remove ANTHROPIC_BASE_URL as the proxy will set this dynamically
-    delete env.ANTHROPIC_BASE_URL;
+  if (provider.requiresTranslation) {
+    const targetUrl = provider.translationTargetUrl || env.ANTHROPIC_BASE_URL || provider.baseUrl;
+    if (targetUrl) {
+      env.CC_MIRROR_TRANSLATION_TARGET_URL = targetUrl;
+      // Remove ANTHROPIC_BASE_URL as the proxy will set this dynamically
+      delete env.ANTHROPIC_BASE_URL;
+    }
   }
 
   return env;
