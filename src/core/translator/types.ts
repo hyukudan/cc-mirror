@@ -155,6 +155,8 @@ export interface OpenAIResponse {
     completion_tokens: number;
     total_tokens: number;
   };
+  /** Error field present in upstream error responses with HTTP 200 (e.g., LM Studio quirk) */
+  error?: string | { message?: string; type?: string; code?: string };
 }
 
 export interface OpenAIErrorResponse {

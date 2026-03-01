@@ -8,10 +8,18 @@ import { SPLASH_COLORS } from './constants.js';
 // In production: dist/translator-launcher.mjs (bundled)
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const DEV_LAUNCHER_PATH = path.join(__dirname, 'translator', 'launcher.ts');
-const DIST_LAUNCHER_PATH = path.join(__dirname, '..', '..', 'dist', 'translator-launcher.mjs');
+
+// From source: __dirname = src/core → go up 2 levels to project root
+// From bundle: __dirname = dist → launcher is in the same directory
+const DIST_LAUNCHER_FROM_SRC = path.join(__dirname, '..', '..', 'dist', 'translator-launcher.mjs');
+const DIST_LAUNCHER_FROM_BUNDLE = path.join(__dirname, 'translator-launcher.mjs');
 
 // Check if running from bundled distribution or source
-const LAUNCHER_PATH = fs.existsSync(DIST_LAUNCHER_PATH) ? DIST_LAUNCHER_PATH : DEV_LAUNCHER_PATH;
+const LAUNCHER_PATH = fs.existsSync(DIST_LAUNCHER_FROM_BUNDLE)
+  ? DIST_LAUNCHER_FROM_BUNDLE
+  : fs.existsSync(DIST_LAUNCHER_FROM_SRC)
+    ? DIST_LAUNCHER_FROM_SRC
+    : DEV_LAUNCHER_PATH;
 const LAUNCHER_NEEDS_TSX = LAUNCHER_PATH.endsWith('.ts');
 
 export type WrapperRuntime = 'native' | 'node';

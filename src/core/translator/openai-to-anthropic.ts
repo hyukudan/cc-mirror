@@ -17,7 +17,7 @@ export const CONTENT_FILTER_NOTICE = '[Response blocked by provider content filt
  * Convert OpenAI API response to Anthropic API format
  */
 export function translateResponse(openai: OpenAIResponse, requestModel: string): AnthropicResponse {
-  const choice = openai.choices[0];
+  const choice = openai.choices?.[0];
   if (!choice) {
     throw new Error('OpenAI response has no choices');
   }
@@ -187,6 +187,8 @@ function phaseDescription(phase: string): string {
       return 'Failed to read upstream response body';
     case 'upstream-request':
       return 'Upstream connection failed';
+    case 'upstream':
+      return 'Upstream API returned an error';
     case 'timeout':
       return 'Upstream request timed out';
     case 'request-handler':

@@ -96,7 +96,9 @@ export async function startTranslatorProxy(config: TranslatorProxyConfig): Promi
       // Most OpenAI-compatible APIs use /v1/chat/completions
       let targetPath = targetUrl.pathname;
       if (!targetPath.includes('/chat/completions')) {
-        targetPath = `${targetPath}/chat/completions`.replace(/\/+/g, '/');
+        // Default to /v1/chat/completions (LM Studio, Ollama, etc.)
+        const base = targetPath.includes('/v1') ? targetPath : `${targetPath}/v1`;
+        targetPath = `${base}/chat/completions`.replace(/\/+/g, '/');
       }
 
       // 4. Build request options
@@ -157,8 +159,31 @@ export async function startTranslatorProxy(config: TranslatorProxyConfig): Promi
           // Non-streaming response
           readBody(proxyRes)
             .then((responseBody) => {
+              let openaiResponse: OpenAIResponse;
               try {
-                const openaiResponse = JSON.parse(responseBody) as OpenAIResponse;
+                openaiResponse = JSON.parse(responseBody) as OpenAIResponse;
+              } catch (parseErr) {
+                log(`Parse error: ${parseErr}`);
+                const errorResponse = createErrorResponse(parseErr, 'response-parse');
+                res.writeHead(500, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify(errorResponse));
+                return;
+              }
+
+              // Check for error responses that come with 200 status (LM Studio quirk)
+              if (openaiResponse.error) {
+                const errMsg =
+                  typeof openaiResponse.error === 'object'
+                    ? openaiResponse.error.message || JSON.stringify(openaiResponse.error)
+                    : String(openaiResponse.error);
+                log(`Upstream error (200): ${errMsg}`);
+                const errorResponse = createErrorResponse(new Error(errMsg), 'upstream');
+                res.writeHead(502, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify(errorResponse));
+                return;
+              }
+
+              try {
                 const anthropicResponse = translateResponse(openaiResponse, anthropicRequest.model);
 
                 res.writeHead(200, {
@@ -166,9 +191,9 @@ export async function startTranslatorProxy(config: TranslatorProxyConfig): Promi
                   'Access-Control-Allow-Origin': 'http://127.0.0.1',
                 });
                 res.end(JSON.stringify(anthropicResponse));
-              } catch (parseErr) {
-                log(`Parse error: ${parseErr}`);
-                const errorResponse = createErrorResponse(parseErr, 'response-parse');
+              } catch (translateErr) {
+                log(`Translate error: ${translateErr}`);
+                const errorResponse = createErrorResponse(translateErr, 'response-parse');
                 res.writeHead(500, { 'Content-Type': 'application/json' });
                 res.end(JSON.stringify(errorResponse));
               }
