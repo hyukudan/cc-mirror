@@ -270,6 +270,26 @@ const PROVIDERS: Record<string, ProviderTemplate> = {
     authMode: 'none',
     noPromptPack: true, // Pure Claude experience
   },
+  alibaba: {
+    key: 'alibaba',
+    label: 'Alibaba Cloud',
+    description: 'Qwen/Kimi Coding Plan via Anthropic-compatible DashScope',
+    baseUrl: 'https://coding-intl.dashscope.aliyuncs.com/apps/anthropic',
+    env: {
+      API_TIMEOUT_MS: DEFAULT_TIMEOUT_MS,
+      CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC: 1,
+      ANTHROPIC_MODEL: 'qwen3.5-plus',
+      ANTHROPIC_SMALL_FAST_MODEL: 'qwen3.5-plus',
+      ANTHROPIC_DEFAULT_SONNET_MODEL: 'qwen3.5-plus',
+      ANTHROPIC_DEFAULT_OPUS_MODEL: 'kimi-k2.5',
+      ANTHROPIC_DEFAULT_HAIKU_MODEL: 'qwen3.5-plus',
+      CC_MIRROR_SPLASH: 1,
+      CC_MIRROR_PROVIDER_LABEL: 'Alibaba Cloud',
+      CC_MIRROR_SPLASH_STYLE: 'alibaba',
+    },
+    apiKeyLabel: 'DashScope Coding Plan API key (sk-sp-...)',
+    authMode: 'authToken',
+  },
   ollama: {
     key: 'ollama',
     label: 'Ollama',

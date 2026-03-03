@@ -5,7 +5,7 @@
 import path from 'node:path';
 import { buildEnv } from '../../../providers/index.js';
 import { writeJson } from '../../fs.js';
-import { ensureApiKeyApproval } from '../../claude-config.js';
+import { ensureApiKeyApproval, ensureEnabledPlugins } from '../../claude-config.js';
 import type { VariantConfig } from '../../types.js';
 import type { BuildContext, BuildStep } from '../types.js';
 
@@ -50,6 +50,7 @@ export class WriteConfigStep implements BuildStep {
     state.resolvedApiKey = typeof env.ANTHROPIC_API_KEY === 'string' ? env.ANTHROPIC_API_KEY : undefined;
 
     ensureApiKeyApproval(paths.configDir, state.resolvedApiKey);
+    ensureEnabledPlugins(paths.configDir);
 
     // Add notes for auth issues
     if (provider.authMode === 'authToken' && !env.ANTHROPIC_AUTH_TOKEN) {

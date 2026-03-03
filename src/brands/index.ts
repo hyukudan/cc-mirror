@@ -13,6 +13,7 @@ import { buildVertexTweakccConfig } from './vertex.js';
 import { buildBedrockTweakccConfig } from './bedrock.js';
 import { buildFoundryTweakccConfig } from './foundry.js';
 import { buildOllamaTweakccConfig } from './ollama.js';
+import { buildAlibabaTweakccConfig } from './alibaba.js';
 
 export interface BrandPreset {
   key: string;
@@ -105,6 +106,12 @@ const BRAND_PRESETS: Record<string, BrandPreset> = {
     label: 'Ollama Sandstone',
     description: 'Warm sandstone theme for local Ollama models.',
     buildTweakccConfig: buildOllamaTweakccConfig,
+  },
+  alibaba: {
+    key: 'alibaba',
+    label: 'Alibaba Cloud',
+    description: 'Warm orange theme for Alibaba Cloud Coding Plan.',
+    buildTweakccConfig: buildAlibabaTweakccConfig,
   },
 };
 

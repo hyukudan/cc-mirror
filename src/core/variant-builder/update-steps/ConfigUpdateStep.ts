@@ -5,6 +5,7 @@
 import { getBrandThemeId } from '../../../brands/index.js';
 import {
   ensureApiKeyApproval,
+  ensureEnabledPlugins,
   ensureMinimaxMcpServer,
   ensureOnboardingState,
   ensureSettingsEnvDefaults,
@@ -32,6 +33,7 @@ export class ConfigUpdateStep implements UpdateStep {
     const { opts, meta, state } = ctx;
 
     ensureApiKeyApproval(meta.configDir);
+    ensureEnabledPlugins(meta.configDir);
 
     // MiniMax MCP server
     if (meta.provider === 'minimax') {

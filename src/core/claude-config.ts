@@ -252,6 +252,19 @@ export const ensureMinimaxMcpServer = (configDir: string, apiKey?: string | null
   return true;
 };
 
+/**
+ * Ensure enabledPlugins exists in settings.json.
+ * Without this key, Claude Code attempts marketplace plugin discovery on every
+ * session start, which can hang indefinitely on slow/unreliable networks.
+ */
+export const ensureEnabledPlugins = (configDir: string): boolean => {
+  const settingsPath = path.join(configDir, SETTINGS_FILE);
+  const existing = readJson<Record<string, unknown>>(settingsPath) || {};
+  if ('enabledPlugins' in existing) return false;
+  writeJson(settingsPath, { ...existing, enabledPlugins: {} });
+  return true;
+};
+
 export const listMcpServers = (configDir: string): Record<string, McpServerConfig> => {
   const config = loadClaudeConfig(configDir);
   return config.mcpServers ?? {};

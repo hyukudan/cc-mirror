@@ -89,6 +89,11 @@ export const SPLASH_COLORS = {
   ollamaSecondary: '\x1b[38;5;173m',
   ollamaAccent: '\x1b[38;5;137m',
   ollamaDim: '\x1b[38;5;130m',
+  // Alibaba: Orange/Cloud (Alibaba Cloud brand)
+  aliPrimary: '\x1b[38;5;208m',
+  aliSecondary: '\x1b[38;5;214m',
+  aliAccent: '\x1b[38;5;220m',
+  aliDim: '\x1b[38;5;166m',
   // Default: White/Gray
   defPrimary: '\x1b[38;5;255m',
   defDim: '\x1b[38;5;245m',
