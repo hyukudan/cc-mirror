@@ -73,6 +73,8 @@ export class ConfigUpdateStep implements UpdateStep {
       TWEAKCC_CONFIG_DIR: meta.tweakDir,
       DISABLE_AUTOUPDATER: '1',
       CLAUDE_CODE_ENABLE_PROMPT_SUGGESTION: '1',
+      CLAUDE_CODE_CONTEXT_LIMIT: '200000',
+      CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC: '1',
     });
 
     if (Array.isArray(opts.extraEnv) && opts.extraEnv.length > 0) {

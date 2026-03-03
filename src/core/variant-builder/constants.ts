@@ -21,8 +21,12 @@ export const CLAUDE_CODE_CLI_FILENAME = 'cli.js';
  * Environment variable names
  */
 export const ENV_VARS = {
+  /** Native team mode env var for Claude Code 2.1.16+ */
+  AGENT_TEAMS: 'CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS',
+  /** @deprecated Legacy env var, no longer recognized by CLI 2.1.x */
   TEAM_MODE: 'CLAUDE_CODE_TEAM_MODE',
   TEAM_NAME: 'CLAUDE_CODE_TEAM_NAME',
+  /** @deprecated Legacy env var, no longer recognized by CLI 2.1.x */
   AGENT_TYPE: 'CLAUDE_CODE_AGENT_TYPE',
   AGENT_ID: 'CLAUDE_CODE_AGENT_ID',
 } as const;
@@ -43,7 +47,7 @@ export const BLOCKED_TOOLS = {
 } as const;
 
 /**
- * Default agent type for team mode
+ * @deprecated Agent type is no longer used by Claude Code 2.1.x
  */
 export const DEFAULT_AGENT_TYPE = 'team-lead';
 

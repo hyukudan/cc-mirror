@@ -2,13 +2,13 @@
  * Team mode utilities - shared between TeamModeStep and TeamModeUpdateStep
  *
  * Team mode enables:
- * - TaskCreate, TaskGet, TaskUpdate, TaskList tools
+ * - TaskCreate, TaskGet, TaskUpdate, TaskList tools (native in 2.1.16+)
+ * - Teammate tool with spawnTeam (native in 2.1.x, gated by CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS)
  * - Team collaboration via shared task storage
  * - Orchestrator and task-manager skills
  *
- * Claude Code 2.1.16+ has native Task tools — the cli.js patch is only
- * needed for older versions (<=2.0.x) where the feature was gated behind
- * a minified flag. On newer versions the patch is skipped automatically.
+ * Claude Code 2.1.16+ has native Task tools and Teammate tool.
+ * The cli.js patch is only needed for ancient versions (<=2.0.x).
  */
 
 import fs from 'node:fs';
@@ -21,7 +21,6 @@ import {
   ENV_VARS,
   SKILLS,
   BLOCKED_TOOLS,
-  DEFAULT_AGENT_TYPE,
 } from './constants.js';
 
 export interface TeamModePaths {
@@ -105,15 +104,19 @@ export function configureSettings(settingsPath: string, state: TeamModeState, _s
     const settingsData = JSON.parse(content);
 
     settingsData.env = settingsData.env || {};
-    if (!settingsData.env[ENV_VARS.TEAM_MODE]) {
-      settingsData.env[ENV_VARS.TEAM_MODE] = '1';
+
+    // Use native env var for Claude Code 2.1.x+
+    if (!settingsData.env[ENV_VARS.AGENT_TEAMS]) {
+      settingsData.env[ENV_VARS.AGENT_TEAMS] = '1';
     }
+
+    // Clean up legacy env vars that are no longer recognized
+    delete settingsData.env[ENV_VARS.TEAM_MODE];
+    delete settingsData.env[ENV_VARS.AGENT_TYPE];
+
     // Never set CLAUDE_CODE_TEAM_NAME here - wrapper sets it dynamically at runtime
     if (settingsData.env[ENV_VARS.TEAM_NAME]) {
       delete settingsData.env[ENV_VARS.TEAM_NAME];
-    }
-    if (!settingsData.env[ENV_VARS.AGENT_TYPE]) {
-      settingsData.env[ENV_VARS.AGENT_TYPE] = _settings.agentType || DEFAULT_AGENT_TYPE;
     }
 
     settingsData.permissions = settingsData.permissions || {};
@@ -138,7 +141,7 @@ export function configureSettings(settingsPath: string, state: TeamModeState, _s
 }
 
 /**
- * Unset CLAUDE_CODE_TEAM_MODE from settings.json
+ * Unset team mode env vars from settings.json
  */
 export function unsetTeamModeEnv(settingsPath: string): void {
   if (!fs.existsSync(settingsPath)) return;
@@ -146,9 +149,16 @@ export function unsetTeamModeEnv(settingsPath: string): void {
   try {
     const content = fs.readFileSync(settingsPath, 'utf8');
     const settings = JSON.parse(content);
+    let changed = false;
 
-    if (settings.env?.[ENV_VARS.TEAM_MODE]) {
-      delete settings.env[ENV_VARS.TEAM_MODE];
+    for (const key of [ENV_VARS.AGENT_TEAMS, ENV_VARS.TEAM_MODE, ENV_VARS.AGENT_TYPE]) {
+      if (settings.env?.[key]) {
+        delete settings.env[key];
+        changed = true;
+      }
+    }
+
+    if (changed) {
       fs.writeFileSync(settingsPath, JSON.stringify(settings, null, 2));
     }
   } catch {

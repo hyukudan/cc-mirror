@@ -379,6 +379,16 @@ export const buildEnv = ({ providerKey, baseUrl, apiKey, extraEnv, modelOverride
   const env: ProviderEnv = { ...provider.env };
   const authMode = provider.authMode ?? 'apiKey';
 
+  // Universal defaults applied to ALL providers (including authMode=none)
+  // CLAUDE_CODE_CONTEXT_LIMIT: CLI 2.1.x has a bug where undefined results in NaN,
+  // breaking autocompact and causing sessions to grow unbounded until they crash.
+  if (!Object.hasOwn(env, 'CLAUDE_CODE_CONTEXT_LIMIT')) {
+    env.CLAUDE_CODE_CONTEXT_LIMIT = '200000';
+  }
+  if (!Object.hasOwn(env, 'CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC')) {
+    env.CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC = '1';
+  }
+
   // For 'none' authMode, only apply cosmetic env vars - no auth or base URL
   if (authMode === 'none') {
     // Still allow extraEnv for user customization
