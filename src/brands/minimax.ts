@@ -1,44 +1,11 @@
+/**
+ * MiniMax brand theme and blocked tools configuration
+ */
+
 import type { TweakccConfig, Theme } from './types.js';
 import { DEFAULT_THEMES } from './defaultThemes.js';
 import { formatUserMessage, getUserLabel } from './userLabel.js';
-
-type Rgb = { r: number; g: number; b: number };
-
-const clamp = (value: number) => Math.max(0, Math.min(255, Math.round(value)));
-
-const hexToRgb = (hex: string): Rgb => {
-  const normalized = hex.replace('#', '').trim();
-  if (normalized.length === 3) {
-    const [r, g, b] = normalized.split('');
-    return {
-      r: clamp(parseInt(r + r, 16)),
-      g: clamp(parseInt(g + g, 16)),
-      b: clamp(parseInt(b + b, 16)),
-    };
-  }
-  if (normalized.length !== 6) {
-    throw new Error(`Unsupported hex color: ${hex}`);
-  }
-  return {
-    r: clamp(parseInt(normalized.slice(0, 2), 16)),
-    g: clamp(parseInt(normalized.slice(2, 4), 16)),
-    b: clamp(parseInt(normalized.slice(4, 6), 16)),
-  };
-};
-
-const rgb = (hex: string) => {
-  const { r, g, b } = hexToRgb(hex);
-  return `rgb(${r},${g},${b})`;
-};
-
-const mix = (hexA: string, hexB: string, weight: number) => {
-  const a = hexToRgb(hexA);
-  const b = hexToRgb(hexB);
-  const w = Math.max(0, Math.min(1, weight));
-  return `rgb(${clamp(a.r + (b.r - a.r) * w)},${clamp(a.g + (b.g - a.g) * w)},${clamp(a.b + (b.b - a.b) * w)})`;
-};
-
-const lighten = (hex: string, weight: number) => mix(hex, '#ffffff', weight);
+import { mix, rgb, lighten } from './colorUtils.js';
 
 type Palette = {
   base: string;

@@ -2,7 +2,8 @@
  * InstallNpmStep - Installs Claude Code via npm
  */
 
-import { getInstallPreflightNotes, installNpmClaude, installNpmClaudeAsync } from '../../install.js';
+import { ensureDir } from '../../fs.js';
+import { npmInstaller } from '../shared/npm-installer.js';
 import type { BuildContext, BuildStep } from '../types.js';
 
 export class InstallNpmStep implements BuildStep {
@@ -10,33 +11,39 @@ export class InstallNpmStep implements BuildStep {
 
   execute(ctx: BuildContext): void {
     const { prefs, paths, state } = ctx;
-    state.notes.push(...getInstallPreflightNotes());
+
+    state.notes.push(...npmInstaller.getPreflightNotes());
     ctx.report(`Installing ${prefs.resolvedNpmPackage}@${prefs.resolvedNpmVersion}...`);
 
-    const install = installNpmClaude({
-      npmDir: paths.npmDir,
-      npmPackage: prefs.resolvedNpmPackage,
-      npmVersion: prefs.resolvedNpmVersion,
-      stdio: prefs.commandStdio,
-    });
+    ensureDir(paths.npmDir);
 
-    state.binaryPath = install.cliPath;
-    state.claudeBinary = `npm:${prefs.resolvedNpmPackage}@${prefs.resolvedNpmVersion}`;
+    npmInstaller.installSync(
+      {
+        npmDir: paths.npmDir,
+        resolvedNpmPackage: prefs.resolvedNpmPackage,
+        resolvedNpmVersion: prefs.resolvedNpmVersion,
+        commandStdio: prefs.commandStdio,
+      },
+      state
+    );
   }
 
   async executeAsync(ctx: BuildContext): Promise<void> {
     const { prefs, paths, state } = ctx;
-    state.notes.push(...getInstallPreflightNotes());
+
+    state.notes.push(...npmInstaller.getPreflightNotes());
     await ctx.report(`Installing ${prefs.resolvedNpmPackage}@${prefs.resolvedNpmVersion}...`);
 
-    const install = await installNpmClaudeAsync({
-      npmDir: paths.npmDir,
-      npmPackage: prefs.resolvedNpmPackage,
-      npmVersion: prefs.resolvedNpmVersion,
-      stdio: prefs.commandStdio,
-    });
+    ensureDir(paths.npmDir);
 
-    state.binaryPath = install.cliPath;
-    state.claudeBinary = `npm:${prefs.resolvedNpmPackage}@${prefs.resolvedNpmVersion}`;
+    await npmInstaller.installAsync(
+      {
+        npmDir: paths.npmDir,
+        resolvedNpmPackage: prefs.resolvedNpmPackage,
+        resolvedNpmVersion: prefs.resolvedNpmVersion,
+        commandStdio: prefs.commandStdio,
+      },
+      state
+    );
   }
 }

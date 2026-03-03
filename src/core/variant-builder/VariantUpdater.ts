@@ -6,13 +6,20 @@
  */
 
 import path from 'node:path';
-import { getProvider } from '../../providers/index.js';
-import { DEFAULT_NPM_PACKAGE, DEFAULT_NPM_VERSION, DEFAULT_ROOT } from '../constants.js';
+import { DEFAULT_ROOT } from '../constants.js';
 import { expandTilde } from '../paths.js';
 import { loadVariantMeta } from '../variants.js';
 import { assertValidVariantName } from '../validation.js';
 import type { UpdateVariantOptions, UpdateVariantResult } from '../types.js';
 import type { ReportFn, UpdateContext, UpdatePaths, UpdatePreferences, UpdateState, UpdateStep } from './types.js';
+import {
+  normalizeNpmPackage,
+  normalizeNpmVersion,
+  shouldEnablePromptPack,
+  shouldInstallSkills,
+  shouldEnableShellEnv,
+  yieldToEventLoop,
+} from './utils.js';
 
 // Import steps
 import { InstallNpmUpdateStep } from './update-steps/InstallNpmUpdateStep.js';
@@ -26,26 +33,6 @@ import { ShellEnvUpdateStep } from './update-steps/ShellEnvUpdateStep.js';
 import { SkillInstallUpdateStep } from './update-steps/SkillInstallUpdateStep.js';
 import { PluginRepairStep } from './update-steps/PluginRepairStep.js';
 import { FinalizeUpdateStep } from './update-steps/FinalizeUpdateStep.js';
-
-// Helper functions
-const normalizeNpmPackage = (value?: string) => (value && value.trim().length > 0 ? value.trim() : DEFAULT_NPM_PACKAGE);
-
-const normalizeNpmVersion = (value?: string) => (value && value.trim().length > 0 ? value.trim() : DEFAULT_NPM_VERSION);
-
-const shouldEnablePromptPack = (providerKey: string) => {
-  // Check if provider has noPromptPack set (e.g., mirror provider)
-  const provider = getProvider(providerKey);
-  if (provider?.noPromptPack) return false;
-  // Only auto-enable for providers with prompt pack support
-  return providerKey === 'zai' || providerKey === 'minimax';
-};
-
-const shouldInstallSkills = (providerKey: string) => providerKey === 'zai' || providerKey === 'minimax';
-
-const shouldEnableShellEnv = (providerKey: string) => providerKey === 'zai';
-
-// Helper to yield to event loop (for async mode)
-const yieldToEventLoop = () => new Promise<void>((resolve) => setImmediate(resolve));
 
 /**
  * Updates variants using composable steps

@@ -3,7 +3,7 @@
  */
 
 import { ensureDir } from '../../fs.js';
-import { getInstallPreflightNotes, installNpmClaude, installNpmClaudeAsync } from '../../install.js';
+import { npmInstaller } from '../shared/npm-installer.js';
 import type { UpdateContext, UpdateStep } from '../types.js';
 
 export class InstallNpmUpdateStep implements UpdateStep {
@@ -11,37 +11,75 @@ export class InstallNpmUpdateStep implements UpdateStep {
 
   execute(ctx: UpdateContext): void {
     if (ctx.opts.settingsOnly) return;
-    ctx.state.notes.push(...getInstallPreflightNotes());
+
+    ctx.state.notes.push(...npmInstaller.getPreflightNotes());
     ctx.report(`Installing ${ctx.prefs.resolvedNpmPackage}@${ctx.prefs.resolvedNpmVersion}...`);
-    this.install(ctx, false);
+
+    ensureDir(ctx.paths.npmDir);
+
+    const installState = {
+      notes: ctx.state.notes,
+      binaryPath: ctx.meta.binaryPath,
+      claudeBinary: '',
+      npmDir: ctx.meta.npmDir,
+      npmPackage: ctx.meta.npmPackage,
+      npmVersion: ctx.meta.npmVersion,
+      claudeOrig: ctx.meta.claudeOrig,
+    };
+
+    npmInstaller.installSync(
+      {
+        npmDir: ctx.paths.npmDir,
+        resolvedNpmPackage: ctx.prefs.resolvedNpmPackage,
+        resolvedNpmVersion: ctx.prefs.resolvedNpmVersion,
+        commandStdio: ctx.prefs.commandStdio,
+      },
+      installState
+    );
+
+    // Update meta with results
+    ctx.meta.binaryPath = installState.binaryPath;
+    ctx.meta.npmDir = installState.npmDir;
+    ctx.meta.npmPackage = installState.npmPackage;
+    ctx.meta.npmVersion = installState.npmVersion;
+    ctx.meta.claudeOrig = installState.claudeOrig;
+    ctx.meta.installType = 'npm';
   }
 
   async executeAsync(ctx: UpdateContext): Promise<void> {
     if (ctx.opts.settingsOnly) return;
-    ctx.state.notes.push(...getInstallPreflightNotes());
+
+    ctx.state.notes.push(...npmInstaller.getPreflightNotes());
     await ctx.report(`Installing ${ctx.prefs.resolvedNpmPackage}@${ctx.prefs.resolvedNpmVersion}...`);
-    await this.install(ctx, true);
-  }
 
-  private async install(ctx: UpdateContext, isAsync: boolean): Promise<void> {
-    const { meta, paths, prefs } = ctx;
+    ensureDir(ctx.paths.npmDir);
 
-    ensureDir(paths.npmDir);
-
-    const installOpts = {
-      npmDir: paths.npmDir,
-      npmPackage: prefs.resolvedNpmPackage,
-      npmVersion: prefs.resolvedNpmVersion,
-      stdio: prefs.commandStdio,
+    const installState = {
+      notes: ctx.state.notes,
+      binaryPath: ctx.meta.binaryPath,
+      claudeBinary: '',
+      npmDir: ctx.meta.npmDir,
+      npmPackage: ctx.meta.npmPackage,
+      npmVersion: ctx.meta.npmVersion,
+      claudeOrig: ctx.meta.claudeOrig,
     };
 
-    const install = isAsync ? await installNpmClaudeAsync(installOpts) : installNpmClaude(installOpts);
+    await npmInstaller.installAsync(
+      {
+        npmDir: ctx.paths.npmDir,
+        resolvedNpmPackage: ctx.prefs.resolvedNpmPackage,
+        resolvedNpmVersion: ctx.prefs.resolvedNpmVersion,
+        commandStdio: ctx.prefs.commandStdio,
+      },
+      installState
+    );
 
-    meta.binaryPath = install.cliPath;
-    meta.installType = 'npm';
-    meta.npmDir = paths.npmDir;
-    meta.npmPackage = prefs.resolvedNpmPackage;
-    meta.npmVersion = prefs.resolvedNpmVersion;
-    meta.claudeOrig = `npm:${prefs.resolvedNpmPackage}@${prefs.resolvedNpmVersion}`;
+    // Update meta with results
+    ctx.meta.binaryPath = installState.binaryPath;
+    ctx.meta.npmDir = installState.npmDir;
+    ctx.meta.npmPackage = installState.npmPackage;
+    ctx.meta.npmVersion = installState.npmVersion;
+    ctx.meta.claudeOrig = installState.claudeOrig;
+    ctx.meta.installType = 'npm';
   }
 }

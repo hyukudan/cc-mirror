@@ -6,13 +6,21 @@
  */
 
 import path from 'node:path';
-import { getProvider, type ProviderTemplate } from '../../providers/index.js';
-import { DEFAULT_BIN_DIR, DEFAULT_NPM_PACKAGE, DEFAULT_NPM_VERSION, DEFAULT_ROOT } from '../constants.js';
+import { getProvider } from '../../providers/index.js';
+import { DEFAULT_BIN_DIR, DEFAULT_ROOT } from '../constants.js';
 import { getWrapperPath } from '../wrapper.js';
 import { expandTilde, detectCommandCollision } from '../paths.js';
 import { assertValidVariantName } from '../validation.js';
 import type { CreateVariantParams, CreateVariantResult } from '../types.js';
 import type { BuildContext, BuildPaths, BuildPreferences, BuildState, BuildStep, ReportFn } from './types.js';
+import {
+  normalizeNpmPackage,
+  normalizeNpmVersion,
+  shouldEnablePromptPack,
+  shouldInstallSkills,
+  shouldEnableShellEnv,
+  yieldToEventLoop,
+} from './utils.js';
 
 // Import steps (will be created incrementally)
 import { PrepareDirectoriesStep } from './steps/PrepareDirectoriesStep.js';
@@ -26,24 +34,6 @@ import { WrapperStep } from './steps/WrapperStep.js';
 import { ShellEnvStep } from './steps/ShellEnvStep.js';
 import { SkillInstallStep } from './steps/SkillInstallStep.js';
 import { FinalizeStep } from './steps/FinalizeStep.js';
-
-// Helper functions
-const normalizeNpmPackage = (value?: string) => (value && value.trim().length > 0 ? value.trim() : DEFAULT_NPM_PACKAGE);
-
-const normalizeNpmVersion = (value?: string) => (value && value.trim().length > 0 ? value.trim() : DEFAULT_NPM_VERSION);
-
-const shouldEnablePromptPack = (providerKey: string, provider?: ProviderTemplate) => {
-  // Providers with noPromptPack: true skip prompt pack overlays
-  if (provider?.noPromptPack) return false;
-  return providerKey === 'zai' || providerKey === 'minimax';
-};
-
-const shouldInstallSkills = (providerKey: string) => providerKey === 'zai' || providerKey === 'minimax';
-
-const shouldEnableShellEnv = (providerKey: string) => providerKey === 'zai';
-
-// Helper to yield to event loop (for async mode)
-const yieldToEventLoop = () => new Promise<void>((resolve) => setImmediate(resolve));
 
 /**
  * Builds variants using composable steps
