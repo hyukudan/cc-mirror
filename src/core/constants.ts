@@ -6,9 +6,9 @@ export const DEFAULT_BIN_DIR =
   process.platform === 'win32'
     ? path.join(os.homedir(), '.cc-mirror', 'bin')
     : path.join(os.homedir(), '.local', 'bin');
-export const TWEAKCC_VERSION = '4.0.10';
+export const TWEAKCC_VERSION = '4.0.11';
 export const DEFAULT_NPM_PACKAGE = '@anthropic-ai/claude-code';
-export const DEFAULT_NPM_VERSION = '2.1.63';
+export const DEFAULT_NPM_VERSION = '2.1.69';
 
 // ANSI color codes for splash screen ASCII art
 export const SPLASH_COLORS = {

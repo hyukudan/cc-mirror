@@ -83,7 +83,7 @@ export const TEMPLATES: Record<string, Template> = {
     },
     extraEnv: {
       CC_MIRROR_TEMPLATE: 'research',
-      API_TIMEOUT_MS: '5000000',
+      API_TIMEOUT_MS: '900000',
     },
     tags: ['research', 'advanced', 'extended-context'],
   },

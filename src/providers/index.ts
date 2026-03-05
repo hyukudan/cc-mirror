@@ -1,4 +1,4 @@
-export const DEFAULT_TIMEOUT_MS = '3000000';
+export const DEFAULT_TIMEOUT_MS = '300000';
 
 export type ProviderEnv = Record<string, string | number>;
 

@@ -39,7 +39,7 @@ All commands are available through `npx cc-mirror`.
 - `--root <path>` - Variants root (default: `~/.cc-mirror`)
 - `--bin-dir <path>` - Wrapper install dir (default: `~/.local/bin` or `%USERPROFILE%\\.cc-mirror\\bin`)
 - `--npm-package <name>` - Override Claude Code package (default: `@anthropic-ai/claude-code`)
-- `--npm-version <ver>` - Override Claude Code package version (default: `2.1.63`)
+- `--npm-version <ver>` - Override Claude Code package version (default: `2.1.69`)
 - `--no-tweak` - Skip tweakcc theming
 - `--no-prompt-pack` - Skip provider prompt pack
 - `--prompt-pack-mode <mode>` - minimal (maximal deprecated)
