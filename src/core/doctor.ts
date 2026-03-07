@@ -50,6 +50,19 @@ const getInstalledClaudeVersion = (npmDir: string, npmPackage: string): string |
   return pkgJson?.version;
 };
 
+const getNativeClaudeVersion = (binaryPath: string): string | undefined => {
+  if (!binaryPath || !fs.existsSync(binaryPath)) return undefined;
+  const result = spawnSync(binaryPath, ['--version'], {
+    stdio: 'pipe',
+    encoding: 'utf8',
+    timeout: 5000,
+  });
+  if (result.error || result.status !== 0) return undefined;
+  const output = `${result.stdout ?? ''}\n${result.stderr ?? ''}`.trim();
+  const match = output.match(/(\d+\.\d+\.\d+)/);
+  return match?.[1];
+};
+
 /**
  * Check if wrapper has executable permissions
  */
@@ -279,6 +292,7 @@ const checkTeamNames = (ctx: DoctorContext, results: DoctorResults): void => {
  */
 const checkTeamModePatch = (ctx: DoctorContext, results: DoctorResults, installedVersion: string | undefined): void => {
   if (!ctx.meta?.teamModeEnabled) return;
+  if (ctx.meta.installType === 'native') return;
 
   const cliPath = path.join(ctx.npmDir, 'node_modules', CLAUDE_CODE_PACKAGE, CLAUDE_CODE_CLI_FILENAME);
   if (!fs.existsSync(cliPath)) {
@@ -334,7 +348,10 @@ const checkVariant = (
   const configDir = meta?.configDir || path.join(resolvedRoot, name, 'config');
   const npmDir = meta?.npmDir || path.join(path.dirname(configDir), 'npm');
   const npmPackage = meta?.npmPackage || DEFAULT_NPM_PACKAGE;
-  const installedVersion = getInstalledClaudeVersion(npmDir, npmPackage);
+  const installedVersion =
+    meta?.installType === 'native'
+      ? getNativeClaudeVersion(meta.binaryPath)
+      : getInstalledClaudeVersion(npmDir, npmPackage);
 
   const ctx: DoctorContext = {
     name,

@@ -39,7 +39,13 @@ export class WrapperUpdateStep implements UpdateStep {
         requiresTranslation: provider?.requiresTranslation,
       };
 
-      writeWrapperForPlatform(wrapperPath, meta.configDir, meta.binaryPath, 'node', options);
+      writeWrapperForPlatform(
+        wrapperPath,
+        meta.configDir,
+        meta.binaryPath,
+        meta.installType === 'native' ? 'native' : 'node',
+        options
+      );
       if (process.platform === 'win32') {
         const pathResult = ensureWindowsUserPath(resolvedBin);
         if (pathResult.added) {

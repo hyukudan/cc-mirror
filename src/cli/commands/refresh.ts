@@ -195,7 +195,13 @@ function refreshVariant(rootDir: string, name: string, dryRun: boolean): Refresh
         requiresTranslation: provider.requiresTranslation,
       };
       const wrapperPath = getWrapperPath(meta.binDir, name);
-      writeWrapperForPlatform(wrapperPath, configDir, meta.binaryPath, 'node', wrapperOptions);
+      writeWrapperForPlatform(
+        wrapperPath,
+        configDir,
+        meta.binaryPath,
+        meta.installType === 'native' ? 'native' : 'node',
+        wrapperOptions
+      );
     }
   }
 

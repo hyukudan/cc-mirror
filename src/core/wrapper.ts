@@ -21,6 +21,7 @@ const LAUNCHER_PATH = fs.existsSync(DIST_LAUNCHER_FROM_BUNDLE)
     ? DIST_LAUNCHER_FROM_SRC
     : DEV_LAUNCHER_PATH;
 const LAUNCHER_NEEDS_TSX = LAUNCHER_PATH.endsWith('.ts');
+const NODE_BINARY_PATH = process.execPath;
 
 export type WrapperRuntime = 'native' | 'node';
 
@@ -37,22 +38,29 @@ export const writeWrapper = (
   options: WrapperOptions = {}
 ) => {
   const tweakDir = path.join(path.dirname(configDir), 'tweakcc');
+  const quotedNodeBinaryPath = NODE_BINARY_PATH.replaceAll('"', '\\"');
+  const nodeCommand = runtime === 'node' ? `"${quotedNodeBinaryPath}"` : '"${__cc_mirror_node_bin:-node}"';
 
   // For translation providers, use the launcher instead of direct exec
   let execLine: string;
   if (options.requiresTranslation) {
     // Launcher handles proxy lifecycle and spawns Claude Code
     // Use tsx for .ts files (development), node for .mjs (production)
-    const launcherCmd = LAUNCHER_NEEDS_TSX ? 'npx tsx' : 'node';
+    const launcherCmd = LAUNCHER_NEEDS_TSX ? 'npx tsx' : '"${__cc_mirror_node_bin:-node}"';
     execLine = `exec ${launcherCmd} "${LAUNCHER_PATH}" "${binaryPath}" "${configDir}" -- "$@"`;
   } else {
-    execLine = runtime === 'node' ? `exec node "${binaryPath}" "$@"` : `exec "${binaryPath}" "$@"`;
+    execLine = runtime === 'node' ? `exec ${nodeCommand} "${binaryPath}" "$@"` : `exec "${binaryPath}" "$@"`;
   }
 
   const envLoader = [
-    'if command -v node >/dev/null 2>&1; then',
+    `if [[ -x "${quotedNodeBinaryPath}" ]]; then`,
+    `  export __cc_mirror_node_bin="${quotedNodeBinaryPath}"`,
+    'elif command -v node >/dev/null 2>&1; then',
+    '  export __cc_mirror_node_bin="$(command -v node)"',
+    'fi',
+    'if [[ -n "${__cc_mirror_node_bin:-}" ]]; then',
     '  __cc_mirror_env_file="$(mktemp "${XDG_RUNTIME_DIR:-${TMPDIR:-/tmp}}/cc-mirror-env.XXXXXX")"',
-    '  node - <<\'NODE\' > "$__cc_mirror_env_file" || true',
+    '  "$__cc_mirror_node_bin" - <<\'NODE\' > "$__cc_mirror_env_file" || true',
     "const fs = require('fs');",
     "const path = require('path');",
     'const dir = process.env.CLAUDE_CONFIG_DIR;',

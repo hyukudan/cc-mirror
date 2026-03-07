@@ -105,7 +105,7 @@ test('writeWrapper uses node runtime by default', () => {
     writeWrapper(wrapperPath, configDir, binaryPath);
 
     const content = fs.readFileSync(wrapperPath, 'utf8');
-    assert.ok(content.includes('exec node '), 'Should use node runtime');
+    assert.ok(content.includes(process.execPath), 'Should embed the current node binary path');
     assert.ok(content.includes(binaryPath), 'Should include binary path');
   } finally {
     cleanup(tempDir);
@@ -179,6 +179,7 @@ test('writeWrapper includes env loader', () => {
     // Check for env loader logic
     assert.ok(content.includes('settings.json'), 'Should reference settings.json');
     assert.ok(content.includes('__cc_mirror_env_file'), 'Should use temp env file');
+    assert.ok(content.includes('__cc_mirror_node_bin'), 'Should resolve a node binary path');
     assert.ok(content.includes('source "$__cc_mirror_env_file"'), 'Should source env file');
   } finally {
     cleanup(tempDir);
