@@ -7,6 +7,7 @@ import { ensureDir } from '../../fs.js';
 import { applyPromptPack } from '../../prompt-pack.js';
 import { ensureTweakccConfig, getTweakccFallbackNote, runTweakcc, runTweakccAsync } from '../../tweakcc.js';
 import { formatTweakccFailure } from '../../errors.js';
+import { getTweakccSkipReason } from '../utils.js';
 import type { UpdateContext, UpdateStep } from '../types.js';
 
 export class TweakccUpdateStep implements UpdateStep {
@@ -14,12 +15,22 @@ export class TweakccUpdateStep implements UpdateStep {
 
   execute(ctx: UpdateContext): void {
     if (ctx.opts.noTweak) return;
+    const skipReason = getTweakccSkipReason(ctx.prefs.resolvedNpmVersion);
+    if (skipReason) {
+      ctx.state.notes.push(skipReason);
+      return;
+    }
     ctx.report('Running tweakcc patches...');
     this.runTweakcc(ctx, false);
   }
 
   async executeAsync(ctx: UpdateContext): Promise<void> {
     if (ctx.opts.noTweak) return;
+    const skipReason = getTweakccSkipReason(ctx.prefs.resolvedNpmVersion);
+    if (skipReason) {
+      ctx.state.notes.push(skipReason);
+      return;
+    }
     await ctx.report('Running tweakcc patches...');
     await this.runTweakcc(ctx, true);
   }

@@ -5,6 +5,7 @@
 import { applyPromptPack } from '../../prompt-pack.js';
 import { getTweakccFallbackNote, runTweakcc, runTweakccAsync } from '../../tweakcc.js';
 import { formatTweakccFailure } from '../../errors.js';
+import { getTweakccSkipReason } from '../utils.js';
 import type { BuildContext, BuildStep } from '../types.js';
 
 export class TweakccStep implements BuildStep {
@@ -14,6 +15,12 @@ export class TweakccStep implements BuildStep {
     const { params, paths, prefs, state } = ctx;
 
     if (params.noTweak) {
+      return;
+    }
+
+    const skipReason = getTweakccSkipReason(prefs.resolvedNpmVersion);
+    if (skipReason) {
+      state.notes.push(skipReason);
       return;
     }
 
@@ -55,6 +62,12 @@ export class TweakccStep implements BuildStep {
     const { params, paths, prefs, state } = ctx;
 
     if (params.noTweak) {
+      return;
+    }
+
+    const skipReasonAsync = getTweakccSkipReason(prefs.resolvedNpmVersion);
+    if (skipReasonAsync) {
+      state.notes.push(skipReasonAsync);
       return;
     }
 

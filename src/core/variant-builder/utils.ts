@@ -3,7 +3,7 @@
  */
 
 import type { ProviderTemplate } from '../../providers/index.js';
-import { DEFAULT_NPM_PACKAGE, DEFAULT_NPM_VERSION } from '../constants.js';
+import { DEFAULT_NPM_PACKAGE, DEFAULT_NPM_VERSION, TWEAKCC_MAX_VERIFIED_CC, TWEAKCC_VERSION } from '../constants.js';
 
 /**
  * Normalize npm package name, falling back to default if empty
@@ -40,3 +40,27 @@ export const shouldEnableShellEnv = (providerKey: string): boolean => providerKe
  * Helper to yield to event loop (for async mode)
  */
 export const yieldToEventLoop = (): Promise<void> => new Promise((resolve) => setImmediate(resolve));
+
+/**
+ * Compare two semver strings. Returns negative if a < b, 0 if equal, positive if a > b.
+ */
+const compareSemver = (a: string, b: string): number => {
+  const pa = a.split('.').map(Number);
+  const pb = b.split('.').map(Number);
+  for (let i = 0; i < 3; i++) {
+    const diff = (pa[i] ?? 0) - (pb[i] ?? 0);
+    if (diff !== 0) return diff;
+  }
+  return 0;
+};
+
+/**
+ * Check if the resolved CC version is verified to work with the pinned tweakcc.
+ * Returns a skip note if tweakcc should be skipped, or null if it's safe to run.
+ */
+export const getTweakccSkipReason = (ccVersion: string): string | null => {
+  // Non-semver versions (e.g. "latest", custom tags) — can't verify, let tweakcc try
+  if (!/^\d+\.\d+\.\d+/.test(ccVersion)) return null;
+  if (compareSemver(ccVersion, TWEAKCC_MAX_VERIFIED_CC) <= 0) return null;
+  return `Theming skipped: CC ${ccVersion} not yet verified with tweakcc@${TWEAKCC_VERSION} (max verified: ${TWEAKCC_MAX_VERIFIED_CC}).`;
+};
