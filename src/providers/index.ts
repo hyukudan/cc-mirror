@@ -20,6 +20,8 @@ export interface ProviderTemplate {
   enablesTeamMode?: boolean;
   /** Skip prompt pack overlays (pure Claude experience) */
   noPromptPack?: boolean;
+  /** Provider targets local models (Ollama, LM Studio, etc.) — disables KV-cache-breaking headers */
+  localModel?: boolean;
   /** Provider uses OpenAI-compatible API, requires translation proxy */
   requiresTranslation?: boolean;
   /** Target URL for translation proxy (OpenAI-compatible endpoint) */
@@ -135,6 +137,7 @@ const PROVIDERS: Record<string, ProviderTemplate> = {
     authMode: 'authToken',
     requiresModelMapping: false, // Models configured in ~/.claude-code-router/config.json
     credentialOptional: true, // No API key needed - CCRouter handles auth
+    localModel: true,
   },
   mirror: {
     key: 'mirror',
@@ -307,6 +310,7 @@ const PROVIDERS: Record<string, ProviderTemplate> = {
     authMode: 'authToken',
     credentialOptional: true,
     requiresTranslation: true,
+    localModel: true,
   },
   custom: {
     key: 'custom',
@@ -387,6 +391,17 @@ export const buildEnv = ({ providerKey, baseUrl, apiKey, extraEnv, modelOverride
   }
   if (!Object.hasOwn(env, 'CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC')) {
     env.CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC = '1';
+  }
+
+  // Local model optimizations: disable attribution header that invalidates KV cache
+  // (causes up to 90% slower inference). See: https://unsloth.ai/docs/basics/claude-code
+  if (provider.localModel) {
+    if (!Object.hasOwn(env, 'CLAUDE_CODE_ATTRIBUTION_HEADER')) {
+      env.CLAUDE_CODE_ATTRIBUTION_HEADER = '0';
+    }
+    if (!Object.hasOwn(env, 'CLAUDE_CODE_ENABLE_TELEMETRY')) {
+      env.CLAUDE_CODE_ENABLE_TELEMETRY = '0';
+    }
   }
 
   // For 'none' authMode, only apply cosmetic env vars - no auth or base URL

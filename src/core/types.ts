@@ -154,4 +154,6 @@ export interface TweakResult {
   status: number | null;
   stderr?: string;
   stdout?: string;
+  tweakccSpec?: string;
+  fallbackFromTweakccSpec?: string;
 }

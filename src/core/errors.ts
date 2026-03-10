@@ -1,10 +1,19 @@
-const extractErrorHint = (text: string) => {
+export const isTweakccNativeExtractionFailure = (text: string) => {
   const normalized = text.toLowerCase();
-  if (normalized.includes('could not extract js from native binary')) {
-    return 'tweakcc reported a native Claude Code binary. cc-mirror uses npm installs only; update or recreate the variant, or run with --no-tweak.';
+  return (
+    normalized.includes('could not extract js from native binary') ||
+    normalized.includes('failed to extract claude.js from native installation') ||
+    normalized.includes('failed to extract javascript from native installation')
+  );
+};
+
+const extractErrorHint = (text: string) => {
+  if (isTweakccNativeExtractionFailure(text)) {
+    return 'tweakcc could not extract JS from the native Claude Code binary. This usually means the pinned tweakcc/native extractor (often node-lief) cannot read this Claude Code release yet. Re-run with --no-tweak to skip theming, or update cc-mirror/tweakcc to a version that supports this binary.';
   }
+  const normalized = text.toLowerCase();
   if (normalized.includes('node-lief')) {
-    return 'tweakcc requires node-lief for native Claude Code binaries. cc-mirror uses npm installs only; update or recreate the variant, or run with --no-tweak.';
+    return 'tweakcc requires native extraction support such as node-lief to patch native Claude Code binaries. If that extractor cannot be installed or loaded on your system, re-run with --no-tweak to skip theming.';
   }
   return null;
 };

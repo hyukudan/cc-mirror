@@ -5,13 +5,46 @@ import { createRequire } from 'node:module';
 import { buildBrandConfig } from '../brands/index.js';
 import type { MiscConfig, TweakccSettings } from '../brands/types.js';
 import { TWEAKCC_VERSION } from './constants.js';
+import { isTweakccNativeExtractionFailure } from './errors.js';
 import { commandExists } from './paths.js';
 import type { TweakResult } from './types.js';
 
 export type TweakccResult = TweakResult;
+const TWEAKCC_LATEST_SPEC = 'latest';
 
 const require = createRequire(import.meta.url);
 const shell = process.platform === 'win32';
+
+const getCombinedOutput = (result: { stderr?: string; stdout?: string }) =>
+  `${result.stderr ?? ''}\n${result.stdout ?? ''}`.trim();
+
+const withTweakccMetadata = (
+  result: TweakccResult,
+  tweakccSpec: string,
+  fallbackFromTweakccSpec?: string
+): TweakccResult => ({
+  ...result,
+  tweakccSpec,
+  fallbackFromTweakccSpec,
+});
+
+const shouldRetryWithLatest = (result: TweakccResult, tweakccSpec: string) =>
+  tweakccSpec !== TWEAKCC_LATEST_SPEC &&
+  result.status !== 0 &&
+  isTweakccNativeExtractionFailure(getCombinedOutput(result));
+
+const writeFallbackNotice = (fromSpec: string, toSpec: string) => {
+  process.stderr.write(
+    `cc-mirror: tweakcc@${fromSpec} could not read this Claude Code binary; retrying with tweakcc@${toSpec}.\n`
+  );
+};
+
+export const getTweakccFallbackNote = (result: TweakccResult | null | undefined): string | null => {
+  const fallbackFrom = result?.fallbackFromTweakccSpec?.trim();
+  const used = result?.tweakccSpec?.trim();
+  if (!fallbackFrom || !used || fallbackFrom === used) return null;
+  return `Pinned tweakcc@${fallbackFrom} could not read this Claude Code binary; automatically retried with tweakcc@${used}.`;
+};
 
 export const ensureTweakccConfig = (tweakDir: string, brandKey?: string | null): boolean => {
   if (!brandKey) return false;
@@ -212,17 +245,30 @@ export const runTweakcc = (
     return { status: 1, stderr: 'npx not found', stdout: '' } as TweakccResult;
   }
 
-  const result = spawnSync('npx', [`tweakcc@${TWEAKCC_VERSION}`, '--apply'], {
-    stdio: 'pipe',
-    env,
-    encoding: 'utf8',
-    shell,
-  });
-  if (stdio === 'inherit') {
-    if (result.stdout) process.stdout.write(result.stdout);
-    if (result.stderr) process.stderr.write(result.stderr);
+  const runVersion = (versionSpec: string) => {
+    const result = spawnSync('npx', [`tweakcc@${versionSpec}`, '--apply'], {
+      stdio: 'pipe',
+      env,
+      encoding: 'utf8',
+      shell,
+    });
+    if (stdio === 'inherit') {
+      if (result.stdout) process.stdout.write(result.stdout);
+      if (result.stderr) process.stderr.write(result.stderr);
+    }
+    return withTweakccMetadata(result as TweakccResult, versionSpec);
+  };
+
+  const primary = runVersion(TWEAKCC_VERSION);
+  if (!shouldRetryWithLatest(primary, TWEAKCC_VERSION)) {
+    return primary;
   }
-  return result;
+
+  if (stdio === 'inherit') {
+    writeFallbackNotice(TWEAKCC_VERSION, TWEAKCC_LATEST_SPEC);
+  }
+
+  return withTweakccMetadata(runVersion(TWEAKCC_LATEST_SPEC), TWEAKCC_LATEST_SPEC, TWEAKCC_VERSION);
 };
 
 export const launchTweakccUi = (tweakDir: string, binaryPath: string): TweakccResult => {
@@ -247,7 +293,19 @@ export const launchTweakccUi = (tweakDir: string, binaryPath: string): TweakccRe
     return { status: 1, stderr: 'npx not found', stdout: '' } as TweakccResult;
   }
 
-  return spawnSync('npx', [`tweakcc@${TWEAKCC_VERSION}`], { stdio: 'inherit', env, encoding: 'utf8', shell });
+  const runVersion = (versionSpec: string) =>
+    withTweakccMetadata(
+      spawnSync('npx', [`tweakcc@${versionSpec}`], { stdio: 'inherit', env, encoding: 'utf8', shell }) as TweakccResult,
+      versionSpec
+    );
+
+  const primary = runVersion(TWEAKCC_VERSION);
+  if (!shouldRetryWithLatest(primary, TWEAKCC_VERSION)) {
+    return primary;
+  }
+
+  writeFallbackNotice(TWEAKCC_VERSION, TWEAKCC_LATEST_SPEC);
+  return withTweakccMetadata(runVersion(TWEAKCC_LATEST_SPEC), TWEAKCC_LATEST_SPEC, TWEAKCC_VERSION);
 };
 
 // Async version for TUI progress updates
@@ -304,5 +362,20 @@ export const runTweakccAsync = async (
     return { status: 1, stderr: 'npx not found', stdout: '' } as TweakccResult;
   }
 
-  return spawnTweakccAsync('npx', [`tweakcc@${TWEAKCC_VERSION}`, '--apply'], env, stdio);
+  const runVersion = async (versionSpec: string) => {
+    const result = await spawnTweakccAsync('npx', [`tweakcc@${versionSpec}`, '--apply'], env, stdio);
+    return withTweakccMetadata(result, versionSpec);
+  };
+
+  const primary = await runVersion(TWEAKCC_VERSION);
+  if (!shouldRetryWithLatest(primary, TWEAKCC_VERSION)) {
+    return primary;
+  }
+
+  if (stdio === 'inherit') {
+    writeFallbackNotice(TWEAKCC_VERSION, TWEAKCC_LATEST_SPEC);
+  }
+
+  const fallback = await runVersion(TWEAKCC_LATEST_SPEC);
+  return withTweakccMetadata(fallback, TWEAKCC_LATEST_SPEC, TWEAKCC_VERSION);
 };
