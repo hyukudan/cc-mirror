@@ -17,7 +17,6 @@ import {
   TEAM_MODE_DISABLED,
   TEAM_MODE_ENABLED,
   CLAUDE_CODE_PACKAGE,
-  CLAUDE_CODE_CLI_FILENAME,
   ENV_VARS,
   SKILLS,
   BLOCKED_TOOLS,
@@ -38,7 +37,7 @@ export interface TeamModeState {
  * On 2.1.16+ the Task tools are native, so no patch is needed.
  */
 export function tryPatchCli(paths: TeamModePaths, state: TeamModeState): void {
-  const cliPath = path.join(paths.npmDir, 'node_modules', CLAUDE_CODE_PACKAGE, CLAUDE_CODE_CLI_FILENAME);
+  const cliPath = path.join(paths.npmDir, 'node_modules', CLAUDE_CODE_PACKAGE, 'cli.js');
 
   if (!fs.existsSync(cliPath)) {
     state.notes.push('Warning: cli.js not found, skipping patch');
@@ -76,7 +75,7 @@ export function tryPatchCli(paths: TeamModePaths, state: TeamModeState): void {
  * Reverse the cli.js patch (for disabling team mode)
  */
 export function reverseCliPatch(paths: TeamModePaths, state: TeamModeState): void {
-  const cliPath = path.join(paths.npmDir, 'node_modules', CLAUDE_CODE_PACKAGE, CLAUDE_CODE_CLI_FILENAME);
+  const cliPath = path.join(paths.npmDir, 'node_modules', CLAUDE_CODE_PACKAGE, 'cli.js');
 
   if (!fs.existsSync(cliPath)) {
     return;

@@ -34,9 +34,14 @@ export const getInstallArgs = (pm: PackageManager, npmDir: string, pkgSpec: stri
   }
 };
 
-export const resolveNpmCliPath = (npmDir: string, npmPackage: string): string => {
-  const packageParts = npmPackage.split('/');
-  return path.join(npmDir, 'node_modules', ...packageParts, 'cli.js');
+export const resolveClaudeBinaryPath = (
+  npmDir: string,
+  npmPackage: string,
+  platform: NodeJS.Platform = process.platform
+): string => {
+  const parts = npmPackage.split('/');
+  const binName = platform === 'win32' ? 'claude.exe' : 'claude';
+  return path.join(npmDir, 'node_modules', ...parts, 'bin', binName);
 };
 
 const isWindows = process.platform === 'win32';
@@ -131,12 +136,12 @@ export const installNpmClaude = (params: {
     throw new Error(formatInstallError(pm, pkgSpec, output));
   }
 
-  const cliPath = resolveNpmCliPath(params.npmDir, params.npmPackage);
-  if (!fs.existsSync(cliPath)) {
-    throw new Error(`${pm} install succeeded but cli.js was not found at ${cliPath}`);
+  const binaryPath = resolveClaudeBinaryPath(params.npmDir, params.npmPackage);
+  if (!fs.existsSync(binaryPath)) {
+    throw new Error(`${pm} install succeeded but the Claude binary was not found at ${binaryPath}`);
   }
 
-  return { cliPath, packageManager: pm };
+  return { cliPath: binaryPath, packageManager: pm };
 };
 
 /**
@@ -191,13 +196,13 @@ export const installNpmClaudeAsync = (params: {
         return;
       }
 
-      const cliPath = resolveNpmCliPath(params.npmDir, params.npmPackage);
-      if (!fs.existsSync(cliPath)) {
-        reject(new Error(`${pm} install succeeded but cli.js was not found at ${cliPath}`));
+      const binaryPath = resolveClaudeBinaryPath(params.npmDir, params.npmPackage);
+      if (!fs.existsSync(binaryPath)) {
+        reject(new Error(`${pm} install succeeded but the Claude binary was not found at ${binaryPath}`));
         return;
       }
 
-      resolve({ cliPath, packageManager: pm });
+      resolve({ cliPath: binaryPath, packageManager: pm });
     });
 
     child.on('error', (err) => {

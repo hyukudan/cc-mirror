@@ -16,12 +16,7 @@ import { listVariants as listVariantsImpl } from './variants.js';
 import { assertValidTeamName, assertValidVariantName, isValidEnvKey } from './validation.js';
 import { getProvider } from '../providers/index.js';
 import { listMcpServers, type McpServerConfig } from './claude-config.js';
-import {
-  TEAM_MODE_ENABLED,
-  TEAM_MODE_DISABLED,
-  CLAUDE_CODE_PACKAGE,
-  CLAUDE_CODE_CLI_FILENAME,
-} from './variant-builder/constants.js';
+import { TEAM_MODE_ENABLED, TEAM_MODE_DISABLED, CLAUDE_CODE_PACKAGE } from './variant-builder/constants.js';
 import type { DoctorOptions, DoctorReportItem, McpServerStatus, VariantMeta } from './types.js';
 
 interface DoctorContext {
@@ -294,7 +289,7 @@ const checkTeamModePatch = (ctx: DoctorContext, results: DoctorResults, installe
   if (!ctx.meta?.teamModeEnabled) return;
   if (ctx.meta.installType === 'native') return;
 
-  const cliPath = path.join(ctx.npmDir, 'node_modules', CLAUDE_CODE_PACKAGE, CLAUDE_CODE_CLI_FILENAME);
+  const cliPath = path.join(ctx.npmDir, 'node_modules', CLAUDE_CODE_PACKAGE, 'cli.js');
   if (!fs.existsSync(cliPath)) {
     results.issues.push('team mode enabled but cli.js not found');
     return;

@@ -15,7 +15,6 @@ export const TEAM_MODE_ENABLED = 'function sU(){return!0}';
  * Claude Code package constants
  */
 export const CLAUDE_CODE_PACKAGE = '@anthropic-ai/claude-code';
-export const CLAUDE_CODE_CLI_FILENAME = 'cli.js';
 
 /**
  * Environment variable names
@@ -77,6 +76,4 @@ export const FILES = {
   SETTINGS_JSON: 'settings.json',
   VARIANT_JSON: 'variant.json',
   PACKAGE_JSON: 'package.json',
-  CLI_JS: 'cli.js',
-  CLI_BACKUP: 'cli.js.backup',
 } as const;
