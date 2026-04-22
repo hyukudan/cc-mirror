@@ -2,13 +2,13 @@
  * TeamModeStep - Configures team mode features during variant creation
  *
  * Team mode enables:
- * - TaskCreate, TaskGet, TaskUpdate, TaskList tools
+ * - TaskCreate, TaskGet, TaskUpdate, TaskList tools (native in 2.1.16+)
  * - Team collaboration via shared task storage
  * - Orchestrator and task-manager skills
  *
- * Claude Code 2.1.16+ has native Task tools — the cli.js patch is only
- * needed for older versions (<=2.0.x) where the feature was gated behind
- * a minified flag. On newer versions the patch is skipped automatically.
+ * No cli.js patching is required: Claude Code 2.1.16+ ships Task tools
+ * natively, so enablement is purely configuration (settings.json env vars,
+ * permissions, skills, and team-pack prompts).
  */
 
 import type { BuildContext, BuildStep } from '../types.js';
@@ -28,7 +28,6 @@ export class TeamModeStep implements BuildStep {
 
     teamModeService.enable(
       {
-        npmDir: ctx.paths.npmDir,
         configDir: ctx.paths.configDir,
         tweakDir: ctx.paths.tweakDir,
       },
@@ -42,7 +41,6 @@ export class TeamModeStep implements BuildStep {
 
     teamModeService.enable(
       {
-        npmDir: ctx.paths.npmDir,
         configDir: ctx.paths.configDir,
         tweakDir: ctx.paths.tweakDir,
       },

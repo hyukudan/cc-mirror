@@ -21,7 +21,7 @@ export interface VariantMeta {
   npmDir?: string;
   npmPackage?: string;
   npmVersion?: string;
-  /** Whether team mode is enabled (cli.js patched) */
+  /** Whether team mode is enabled (native Task tools + orchestrator/task-manager skills) */
   teamModeEnabled?: boolean;
 }
 
@@ -90,9 +90,9 @@ export interface UpdateVariantOptions {
     defaultModel?: string;
     subagentModel?: string;
   };
-  /** Enable team mode by patching cli.js */
+  /** Enable team mode (native Task tools + orchestrator/task-manager skills) */
   enableTeamMode?: boolean;
-  /** Disable team mode by reversing cli.js patch */
+  /** Disable team mode (unset env vars, remove skills + team-pack prompts) */
   disableTeamMode?: boolean;
   /** Skip bundled team skills (orchestrator, task-manager) even when team mode is enabled */
   noTeamSkills?: boolean;
