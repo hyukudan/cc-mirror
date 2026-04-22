@@ -8,7 +8,7 @@
 export { tick, send, waitFor, KEYS } from './ink-helpers.js';
 
 // Filesystem utilities
-export { makeTempDir, writeExecutable, readFile, cleanup, resolveNpmCliPath, captureConsole } from './fs-helpers.js';
+export { makeTempDir, writeExecutable, readFile, cleanup, captureConsole } from './fs-helpers.js';
 
 // Fake npm for isolated testing
 export { createFakeNpm, withFakeNpm } from './fake-npm.js';

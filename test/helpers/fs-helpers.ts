@@ -33,12 +33,6 @@ export const cleanup = (dir: string) => {
 };
 
 /**
- * Resolve path to npm CLI within node_modules
- */
-export const resolveNpmCliPath = (npmDir: string, npmPackage: string) =>
-  path.join(npmDir, 'node_modules', ...npmPackage.split('/'), 'cli.js');
-
-/**
  * Capture console.log output during async function execution
  */
 export const captureConsole = async (fn: () => Promise<void>): Promise<string> => {

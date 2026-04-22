@@ -1,10 +1,12 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 import * as core from '../src/core/index.js';
 import { getWrapperPath } from '../src/core/wrapper.js';
-import { makeTempDir, readFile, cleanup, withFakeNpm, resolveNpmCliPath } from './helpers/index.js';
+import { resolveClaudeBinaryPath } from '../src/core/install.js';
+import { makeTempDir, readFile, cleanup, withFakeNpm } from './helpers/index.js';
 
 test('core create/update/remove/doctor flows', () => {
   withFakeNpm(() => {
@@ -26,7 +28,7 @@ test('core create/update/remove/doctor flows', () => {
 
     const variantDir = path.join(rootDir, 'alpha');
     const npmDir = path.join(variantDir, 'npm');
-    const binaryPath = resolveNpmCliPath(npmDir, core.DEFAULT_NPM_PACKAGE);
+    const binaryPath = resolveClaudeBinaryPath(npmDir, core.DEFAULT_NPM_PACKAGE);
     const configPath = path.join(variantDir, 'config', 'settings.json');
     const wrapperPath = getWrapperPath(binDir, 'alpha');
     const variantMetaPath = path.join(variantDir, 'variant.json');
@@ -44,13 +46,15 @@ test('core create/update/remove/doctor flows', () => {
     assert.equal(configJson.env.DISABLE_AUTOUPDATER, '1');
     assert.equal(configJson.env.CLAUDE_CODE_ENABLE_PROMPT_SUGGESTION, '1');
 
-    const cliContent = readFile(binaryPath);
-    assert.ok(cliContent.includes('process.stdin.emit("data","\\x1b")'));
-    assert.equal(cliContent.includes('process.on("SIGINT",()=>{process.exit(0)})'), false);
-
     process.env.CC_MIRROR_FAKE_NPM_PAYLOAD = 'claude new';
     core.updateVariant(rootDir, 'alpha', { noTweak: true, tweakccStdio: 'pipe' });
-    assert.equal(readFile(binaryPath).includes('claude new'), true);
+    // The fake binary echoes CC_MIRROR_FAKE_NPM_PAYLOAD at runtime; executing
+    // it confirms the native binary was re-staged successfully after update.
+    const stdout = execFileSync(binaryPath, [], {
+      encoding: 'utf8',
+      env: { ...process.env, CC_MIRROR_FAKE_NPM_PAYLOAD: 'claude new' },
+    });
+    assert.equal(stdout.includes('claude new'), true);
 
     const doctorReport = core.doctor(rootDir, binDir);
     assert.equal(doctorReport.length, 1);
@@ -349,10 +353,12 @@ test('settingsOnly update preserves binary and only updates settings', () => {
 
     const variantDir = path.join(rootDir, 'gamma');
     const npmDir = path.join(variantDir, 'npm');
-    const binaryPath = resolveNpmCliPath(npmDir, core.DEFAULT_NPM_PACKAGE);
+    const binaryPath = resolveClaudeBinaryPath(npmDir, core.DEFAULT_NPM_PACKAGE);
 
-    // Verify original binary content
-    assert.equal(readFile(binaryPath).includes('claude original'), true);
+    // Capture the binary's mtime before the settingsOnly update so we can
+    // confirm afterwards that the installer did not re-stage the binary.
+    assert.ok(fs.existsSync(binaryPath));
+    const originalMtimeMs = fs.statSync(binaryPath).mtimeMs;
 
     // Update with a different fake npm payload
     process.env.CC_MIRROR_FAKE_NPM_PAYLOAD = 'claude updated';
@@ -368,9 +374,8 @@ test('settingsOnly update preserves binary and only updates settings', () => {
       },
     });
 
-    // Binary should still have original content (not reinstalled)
-    assert.equal(readFile(binaryPath).includes('claude original'), true);
-    assert.equal(readFile(binaryPath).includes('claude updated'), false);
+    // Binary file should not have been re-staged (mtime unchanged).
+    assert.equal(fs.statSync(binaryPath).mtimeMs, originalMtimeMs);
 
     // But settings should be updated with model overrides
     const configPath = path.join(variantDir, 'config', 'settings.json');
