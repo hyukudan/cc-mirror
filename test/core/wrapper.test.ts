@@ -93,7 +93,7 @@ test('writeWrapper sets TWEAKCC_CONFIG_DIR', () => {
   }
 });
 
-test('writeWrapper uses node runtime by default', () => {
+test('writeWrapper uses native runtime by default', () => {
   const tempDir = makeTempDir();
   const configDir = path.join(tempDir, 'config');
   const wrapperPath = path.join(tempDir, 'wrapper');
@@ -105,8 +105,13 @@ test('writeWrapper uses node runtime by default', () => {
     writeWrapper(wrapperPath, configDir, binaryPath);
 
     const content = fs.readFileSync(wrapperPath, 'utf8');
-    assert.ok(content.includes(process.execPath), 'Should embed the current node binary path');
-    assert.ok(content.includes(binaryPath), 'Should include binary path');
+    // Native default: exec the binary directly, no node wrapper on the exec line
+    const execLine = content.split('\n').find((line) => line.startsWith('exec'));
+    assert.ok(execLine, 'Should have exec line');
+    assert.ok(!execLine.includes('node'), 'Default runtime should not spawn node');
+    assert.ok(execLine.includes(binaryPath), 'Should include binary path');
+    // Env loader still references node for settings.json parsing
+    assert.ok(content.includes(process.execPath), 'Env loader should embed node binary path');
   } finally {
     cleanup(tempDir);
   }
@@ -131,6 +136,21 @@ test('writeWrapper uses native runtime when specified', () => {
     assert.ok(execLine.includes(binaryPath), 'Should include binary path');
   } finally {
     cleanup(tempDir);
+  }
+});
+
+test('wrapper execs native binary directly', () => {
+  const dir = makeTempDir();
+  try {
+    const wp = path.join(dir, 'wrap.sh');
+    const cfg = path.join(dir, 'config');
+    fs.mkdirSync(cfg, { recursive: true });
+    writeWrapper(wp, cfg, '/opt/claude/bin/claude', 'native');
+    const content = fs.readFileSync(wp, 'utf8');
+    assert.match(content, /exec "\/opt\/claude\/bin\/claude" "\$@"/);
+    assert.doesNotMatch(content, /exec "[^"]+node[^"]*" "\/opt\/claude\/bin\/claude"/);
+  } finally {
+    cleanup(dir);
   }
 });
 

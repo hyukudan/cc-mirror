@@ -34,14 +34,14 @@ export const writeWrapper = (
   wrapperPath: string,
   configDir: string,
   binaryPath: string,
-  runtime: WrapperRuntime = 'node',
+  _runtime: WrapperRuntime = 'native',
   options: WrapperOptions = {}
 ) => {
   const tweakDir = path.join(path.dirname(configDir), 'tweakcc');
   const quotedNodeBinaryPath = NODE_BINARY_PATH.replaceAll('"', '\\"');
-  const nodeCommand = runtime === 'node' ? `"${quotedNodeBinaryPath}"` : '"${__cc_mirror_node_bin:-node}"';
 
-  // For translation providers, use the launcher instead of direct exec
+  // For translation providers, use the launcher (node-spawned) instead of direct exec.
+  // Otherwise exec the native Claude binary directly.
   let execLine: string;
   if (options.requiresTranslation) {
     // Launcher handles proxy lifecycle and spawns Claude Code
@@ -49,7 +49,7 @@ export const writeWrapper = (
     const launcherCmd = LAUNCHER_NEEDS_TSX ? 'npx tsx' : '"${__cc_mirror_node_bin:-node}"';
     execLine = `exec ${launcherCmd} "${LAUNCHER_PATH}" "${binaryPath}" "${configDir}" -- "$@"`;
   } else {
-    execLine = runtime === 'node' ? `exec ${nodeCommand} "${binaryPath}" "$@"` : `exec "${binaryPath}" "$@"`;
+    execLine = `exec "${binaryPath}" "$@"`;
   }
 
   const envLoader = [
@@ -428,7 +428,7 @@ export const writeWindowsWrapper = (
   wrapperPath: string,
   configDir: string,
   binaryPath: string,
-  runtime: WrapperRuntime = 'node',
+  _runtime: WrapperRuntime = 'native',
   options: WrapperOptions = {}
 ) => {
   const tweakDir = path.join(path.dirname(configDir), 'tweakcc');
@@ -463,7 +463,8 @@ try {
   fs.writeFileSync(helperScriptPath, helperScript, { mode: 0o644 });
   const helperScriptName = path.basename(helperScriptPath);
 
-  // For translation providers, use the launcher
+  // For translation providers, use the launcher (node-spawned) instead of direct exec.
+  // Otherwise exec the native Claude binary directly.
   const launcherPathWin = path.win32.normalize(LAUNCHER_PATH);
   let execLine: string;
   if (options.requiresTranslation) {
@@ -471,7 +472,7 @@ try {
     const launcherCmd = LAUNCHER_NEEDS_TSX ? 'npx tsx' : 'node';
     execLine = `${launcherCmd} "${launcherPathWin}" "${binaryPathWin}" "${configDirWin}" -- %*`;
   } else {
-    execLine = runtime === 'node' ? `node "${binaryPathWin}" %*` : `"${binaryPathWin}" %*`;
+    execLine = `"${binaryPathWin}" %*`;
   }
 
   const splashLines: string[] = [
@@ -814,7 +815,7 @@ export const writeWrapperForPlatform = (
   wrapperPath: string,
   configDir: string,
   binaryPath: string,
-  runtime: WrapperRuntime = 'node',
+  runtime: WrapperRuntime = 'native',
   options: WrapperOptions = {}
 ): string => {
   if (process.platform === 'win32') {
