@@ -2,9 +2,13 @@
  * E2E Tests - Team Mode Feature
  *
  * Tests team mode enable/disable functionality:
- * - cli.js patching
  * - bundled skill installation
  * - variant.json metadata
+ * - team-pack prompts
+ * - TodoWrite deny permission
+ *
+ * Note: Claude Code 2.1.16+ ships Task tools natively, so there is no
+ * cli.js patch to assert on. Enablement is purely configuration.
  */
 
 import test from 'node:test';
@@ -15,9 +19,6 @@ import * as core from '../../src/core/index.js';
 import { TEAM_PACK_FILES, STALE_TEAM_PACK_TARGETS } from '../../src/team-pack/index.js';
 import { makeTempDir, readFile, cleanup, withFakeNpm } from '../helpers/index.js';
 
-const TEAM_MODE_ENABLED = 'function sU(){return!0}';
-const TEAM_MODE_DISABLED = 'function sU(){return!1}';
-
 test('E2E: Team Mode', async (t) => {
   const createdDirs: string[] = [];
 
@@ -27,7 +28,7 @@ test('E2E: Team Mode', async (t) => {
     }
   });
 
-  await t.test('enables team mode and patches cli.js', () => {
+  await t.test('enables team mode and installs skills + meta flag', () => {
     withFakeNpm(() => {
       const rootDir = makeTempDir();
       const binDir = makeTempDir();
@@ -49,12 +50,6 @@ test('E2E: Team Mode', async (t) => {
       // Verify variant was created
       const variantDir = path.join(rootDir, 'test-team-enabled');
       assert.ok(fs.existsSync(variantDir), 'variant dir should exist');
-
-      // Verify cli.js was patched
-      const cliPath = path.join(variantDir, 'npm', 'node_modules', '@anthropic-ai', 'claude-code', 'cli.js');
-      const cliContent = readFile(cliPath);
-      assert.ok(cliContent.includes(TEAM_MODE_ENABLED), 'cli.js should have team mode enabled');
-      assert.ok(!cliContent.includes(TEAM_MODE_DISABLED), 'cli.js should not have team mode disabled');
 
       // Verify bundled skills installed
       const orchestratorPath = path.join(variantDir, 'config', 'skills', 'orchestration');
@@ -104,12 +99,6 @@ test('E2E: Team Mode', async (t) => {
 
       const variantDir = path.join(rootDir, 'test-team-disabled');
 
-      // Verify cli.js was NOT patched
-      const cliPath = path.join(variantDir, 'npm', 'node_modules', '@anthropic-ai', 'claude-code', 'cli.js');
-      const cliContent = readFile(cliPath);
-      assert.ok(cliContent.includes(TEAM_MODE_DISABLED), 'cli.js should have team mode disabled');
-      assert.ok(!cliContent.includes(TEAM_MODE_ENABLED), 'cli.js should not have team mode enabled');
-
       // Verify bundled skills NOT installed
       const orchestratorPath = path.join(variantDir, 'config', 'skills', 'orchestration');
       const taskManagerPath = path.join(variantDir, 'config', 'skills', 'task-manager');
@@ -142,10 +131,10 @@ test('E2E: Team Mode', async (t) => {
 
       const variantDir = path.join(rootDir, 'test-mirror');
 
-      // Mirror provider should auto-enable team mode
-      const cliPath = path.join(variantDir, 'npm', 'node_modules', '@anthropic-ai', 'claude-code', 'cli.js');
-      const cliContent = readFile(cliPath);
-      assert.ok(cliContent.includes(TEAM_MODE_ENABLED), 'mirror should auto-enable team mode');
+      // Mirror provider should auto-enable team mode → meta flag + skills
+      const metaPath = path.join(variantDir, 'variant.json');
+      const meta = JSON.parse(readFile(metaPath));
+      assert.equal(meta.teamModeEnabled, true, 'mirror should auto-enable team mode');
 
       // Verify bundled skills installed
       const orchestratorPath = path.join(variantDir, 'config', 'skills', 'orchestration');
@@ -176,11 +165,11 @@ test('E2E: Team Mode', async (t) => {
       });
 
       const variantDir = path.join(rootDir, 'test-toggle');
-      const cliPath = path.join(variantDir, 'npm', 'node_modules', '@anthropic-ai', 'claude-code', 'cli.js');
+      const metaPath = path.join(variantDir, 'variant.json');
 
       // Verify initially disabled
-      let cliContent = readFile(cliPath);
-      assert.ok(cliContent.includes(TEAM_MODE_DISABLED), 'should start with team mode disabled');
+      let meta = JSON.parse(readFile(metaPath));
+      assert.ok(!meta.teamModeEnabled, 'should start with team mode disabled');
 
       // Enable via update (noTweak to avoid tweakcc async issues with fake npm)
       core.updateVariant(rootDir, 'test-toggle', {
@@ -190,8 +179,8 @@ test('E2E: Team Mode', async (t) => {
       });
 
       // Verify now enabled
-      cliContent = readFile(cliPath);
-      assert.ok(cliContent.includes(TEAM_MODE_ENABLED), 'should have team mode enabled after update');
+      meta = JSON.parse(readFile(metaPath));
+      assert.equal(meta.teamModeEnabled, true, 'should have team mode enabled after update');
 
       // Verify bundled skills installed
       const orchestratorPath = path.join(variantDir, 'config', 'skills', 'orchestration');
@@ -207,8 +196,8 @@ test('E2E: Team Mode', async (t) => {
       });
 
       // Verify disabled again
-      cliContent = readFile(cliPath);
-      assert.ok(cliContent.includes(TEAM_MODE_DISABLED), 'should have team mode disabled after update');
+      meta = JSON.parse(readFile(metaPath));
+      assert.ok(!meta.teamModeEnabled, 'should have team mode disabled after update');
 
       // Verify bundled skills removed
       assert.ok(!fs.existsSync(orchestratorPath), 'orchestrator skill should be removed after disabling');

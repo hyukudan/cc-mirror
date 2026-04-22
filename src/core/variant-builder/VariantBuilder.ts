@@ -25,7 +25,6 @@ import {
 // Import steps (will be created incrementally)
 import { PrepareDirectoriesStep } from './steps/PrepareDirectoriesStep.js';
 import { InstallNpmStep } from './steps/InstallNpmStep.js';
-import { CliPatchStep } from './steps/CliPatchStep.js';
 import { TeamModeStep } from './steps/TeamModeStep.js';
 import { WriteConfigStep } from './steps/WriteConfigStep.js';
 import { BrandThemeStep } from './steps/BrandThemeStep.js';
@@ -46,7 +45,6 @@ export class VariantBuilder {
     this.steps = [
       new PrepareDirectoriesStep(),
       new InstallNpmStep(),
-      new CliPatchStep(),
       new WriteConfigStep(),
       new BrandThemeStep(), // Creates tweakcc/config.json
       new TeamModeStep(), // Patches cli.js and configures team toolset (needs config.json)

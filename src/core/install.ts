@@ -34,9 +34,40 @@ export const getInstallArgs = (pm: PackageManager, npmDir: string, pkgSpec: stri
   }
 };
 
-export const resolveNpmCliPath = (npmDir: string, npmPackage: string): string => {
-  const packageParts = npmPackage.split('/');
-  return path.join(npmDir, 'node_modules', ...packageParts, 'cli.js');
+/**
+ * Resolves the path to the native Claude binary written by the package's
+ * postinstall. Despite the `.exe` suffix the file is platform-independent —
+ * Anthropic's install.cjs always writes to `bin/claude.exe` so npm's
+ * `bin` mapping (`{"claude": "bin/claude.exe"}`) can stay identical on every
+ * platform and produce the right cmd-shim on Windows without branching.
+ */
+export const resolveClaudeBinaryPath = (npmDir: string, npmPackage: string): string => {
+  const parts = npmPackage.split('/');
+  return path.join(npmDir, 'node_modules', ...parts, 'bin', 'claude.exe');
+};
+
+/**
+ * Some package managers (notably pnpm v10) block `postinstall` scripts by
+ * default, which means `@anthropic-ai/claude-code`'s platform-bin linker
+ * never runs and `bin/claude` is missing after a successful install. This
+ * helper runs `node install.cjs` inside the package directory manually so
+ * the post-install step still happens regardless of package manager policy.
+ *
+ * Returns `true` when the script ran with exit code 0. Returns `false` when
+ * the script does not exist. Errors from spawning are not swallowed — they
+ * surface via a non-zero status or throw from spawnSync.
+ */
+export const runPostinstallFallback = (npmDir: string, npmPackage: string): boolean => {
+  const parts = npmPackage.split('/');
+  const pkgDir = path.join(npmDir, 'node_modules', ...parts);
+  const installScript = path.join(pkgDir, 'install.cjs');
+  if (!fs.existsSync(installScript)) return false;
+  const result = spawnSync(process.execPath, [installScript], {
+    cwd: pkgDir,
+    stdio: 'pipe',
+    encoding: 'utf8',
+  });
+  return result.status === 0;
 };
 
 const isWindows = process.platform === 'win32';
@@ -131,12 +162,19 @@ export const installNpmClaude = (params: {
     throw new Error(formatInstallError(pm, pkgSpec, output));
   }
 
-  const cliPath = resolveNpmCliPath(params.npmDir, params.npmPackage);
-  if (!fs.existsSync(cliPath)) {
-    throw new Error(`${pm} install succeeded but cli.js was not found at ${cliPath}`);
+  const binaryPath = resolveClaudeBinaryPath(params.npmDir, params.npmPackage);
+  // Always invoke the postinstall fallback: the package ships with a small
+  // placeholder at bin/claude.exe that the real install.cjs replaces with the
+  // native binary. If the package manager skipped postinstall (pnpm v10), the
+  // placeholder stays on disk and `fs.existsSync` returns true even though
+  // nothing runnable is there. install.cjs is idempotent — re-running it
+  // when the native binary is already in place just relinks the same file.
+  runPostinstallFallback(params.npmDir, params.npmPackage);
+  if (!fs.existsSync(binaryPath)) {
+    throw new Error(`${pm} install succeeded but the Claude binary was not found at ${binaryPath}`);
   }
 
-  return { cliPath, packageManager: pm };
+  return { cliPath: binaryPath, packageManager: pm };
 };
 
 /**
@@ -191,13 +229,16 @@ export const installNpmClaudeAsync = (params: {
         return;
       }
 
-      const cliPath = resolveNpmCliPath(params.npmDir, params.npmPackage);
-      if (!fs.existsSync(cliPath)) {
-        reject(new Error(`${pm} install succeeded but cli.js was not found at ${cliPath}`));
+      const binaryPath = resolveClaudeBinaryPath(params.npmDir, params.npmPackage);
+      // See note on sync path: always re-run install.cjs to replace the
+      // shipped placeholder with the platform-native binary.
+      runPostinstallFallback(params.npmDir, params.npmPackage);
+      if (!fs.existsSync(binaryPath)) {
+        reject(new Error(`${pm} install succeeded but the Claude binary was not found at ${binaryPath}`));
         return;
       }
 
-      resolve({ cliPath, packageManager: pm });
+      resolve({ cliPath: binaryPath, packageManager: pm });
     });
 
     child.on('error', (err) => {

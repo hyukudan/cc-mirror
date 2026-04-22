@@ -14,7 +14,7 @@ export class WrapperStep implements BuildStep {
     const options: WrapperOptions = {
       requiresTranslation: ctx.provider.requiresTranslation,
     };
-    writeWrapperForPlatform(ctx.paths.wrapperPath, ctx.paths.configDir, ctx.state.binaryPath, 'node', options);
+    writeWrapperForPlatform(ctx.paths.wrapperPath, ctx.paths.configDir, ctx.state.binaryPath, 'native', options);
     if (process.platform === 'win32') {
       const binDir = ctx.paths.resolvedBin;
       const pathResult = ensureWindowsUserPath(binDir);
@@ -29,7 +29,7 @@ export class WrapperStep implements BuildStep {
     const options: WrapperOptions = {
       requiresTranslation: ctx.provider.requiresTranslation,
     };
-    writeWrapperForPlatform(ctx.paths.wrapperPath, ctx.paths.configDir, ctx.state.binaryPath, 'node', options);
+    writeWrapperForPlatform(ctx.paths.wrapperPath, ctx.paths.configDir, ctx.state.binaryPath, 'native', options);
     if (process.platform === 'win32') {
       const binDir = ctx.paths.resolvedBin;
       const pathResult = ensureWindowsUserPath(binDir);

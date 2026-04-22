@@ -31,14 +31,18 @@ test('E2E: Dashboard command', async (t) => {
   });
 
   await t.test('dashboard shows variants with correct info', async () => {
-    await withFakeNpm(async () => {
-      const rootDir = makeTempDir();
-      const binDir = makeTempDir();
-      createdDirs.push(rootDir, binDir);
+    const rootDir = makeTempDir();
+    const binDir = makeTempDir();
+    createdDirs.push(rootDir, binDir);
 
+    // Use a short name so the dashboard's 12-char column truncation does
+    // not mask the assertion.
+    const variantName = 'dash-test';
+
+    withFakeNpm(() => {
       // Create a variant
       core.createVariant({
-        name: 'dashboard-test',
+        name: variantName,
         providerKey: 'zai',
         apiKey: 'test-key',
         rootDir,
@@ -49,24 +53,24 @@ test('E2E: Dashboard command', async (t) => {
         noTweak: true,
         tweakccStdio: 'pipe',
       });
-
-      const output = await captureConsole(async () => {
-        await runDashboard({ rootDir, binDir });
-      });
-
-      assert.ok(output.includes('CC-Mirror Dashboard'), 'Should include dashboard title');
-      assert.ok(output.includes('Variants (1)'), 'Should show variant count');
-      assert.ok(output.includes('dashboard-test'), 'Should show variant name');
-      assert.ok(output.includes('Ready') || output.includes('✓'), 'Should show ready status');
     });
+
+    const output = await captureConsole(async () => {
+      await runDashboard({ rootDir, binDir });
+    });
+
+    assert.ok(output.includes('CC-Mirror Dashboard'), 'Should include dashboard title');
+    assert.ok(output.includes('Variants (1)'), 'Should show variant count');
+    assert.ok(output.includes(variantName), 'Should show variant name');
+    assert.ok(output.includes('Ready') || output.includes('✓'), 'Should show ready status');
   });
 
   await t.test('dashboard shows team mode info', async () => {
-    await withFakeNpm(async () => {
-      const rootDir = makeTempDir();
-      const binDir = makeTempDir();
-      createdDirs.push(rootDir, binDir);
+    const rootDir = makeTempDir();
+    const binDir = makeTempDir();
+    createdDirs.push(rootDir, binDir);
 
+    withFakeNpm(() => {
       // Create a variant with team mode
       core.createVariant({
         name: 'team-dashboard',
@@ -81,21 +85,21 @@ test('E2E: Dashboard command', async (t) => {
         tweakccStdio: 'pipe',
         enableTeamMode: true,
       });
-
-      const output = await captureConsole(async () => {
-        await runDashboard({ rootDir, binDir });
-      });
-
-      assert.ok(output.includes('Team Mode: 1 active variant'), 'Should show team mode active');
     });
+
+    const output = await captureConsole(async () => {
+      await runDashboard({ rootDir, binDir });
+    });
+
+    assert.ok(output.includes('Team Mode: 1 active variant'), 'Should show team mode active');
   });
 
   await t.test('dashboard outputs JSON when --json flag is used', async () => {
-    await withFakeNpm(async () => {
-      const rootDir = makeTempDir();
-      const binDir = makeTempDir();
-      createdDirs.push(rootDir, binDir);
+    const rootDir = makeTempDir();
+    const binDir = makeTempDir();
+    createdDirs.push(rootDir, binDir);
 
+    withFakeNpm(() => {
       // Create a variant
       core.createVariant({
         name: 'json-test',
@@ -109,26 +113,26 @@ test('E2E: Dashboard command', async (t) => {
         noTweak: true,
         tweakccStdio: 'pipe',
       });
-
-      const output = await captureConsole(async () => {
-        await runDashboard({ rootDir, binDir, json: true });
-      });
-
-      // Parse JSON output
-      const data = JSON.parse(output);
-      assert.ok(Array.isArray(data.variants), 'Should have variants array');
-      assert.equal(data.variants.length, 1, 'Should have one variant');
-      assert.equal(data.variants[0].name, 'json-test', 'Should have correct variant name');
-      assert.ok(typeof data.totalDisk === 'string', 'Should have totalDisk string');
     });
+
+    const output = await captureConsole(async () => {
+      await runDashboard({ rootDir, binDir, json: true });
+    });
+
+    // Parse JSON output
+    const data = JSON.parse(output);
+    assert.ok(Array.isArray(data.variants), 'Should have variants array');
+    assert.equal(data.variants.length, 1, 'Should have one variant');
+    assert.equal(data.variants[0].name, 'json-test', 'Should have correct variant name');
+    assert.ok(typeof data.totalDisk === 'string', 'Should have totalDisk string');
   });
 
   await t.test('dashboard shows disk usage', async () => {
-    await withFakeNpm(async () => {
-      const rootDir = makeTempDir();
-      const binDir = makeTempDir();
-      createdDirs.push(rootDir, binDir);
+    const rootDir = makeTempDir();
+    const binDir = makeTempDir();
+    createdDirs.push(rootDir, binDir);
 
+    withFakeNpm(() => {
       // Create a variant
       core.createVariant({
         name: 'disk-test',
@@ -142,14 +146,14 @@ test('E2E: Dashboard command', async (t) => {
         noTweak: true,
         tweakccStdio: 'pipe',
       });
-
-      const output = await captureConsole(async () => {
-        await runDashboard({ rootDir, binDir });
-      });
-
-      assert.ok(output.includes('Disk:'), 'Should show disk usage');
-      // Check for size format (e.g., "150.0 MB" or similar)
-      assert.match(output, /\d+(\.\d+)?\s*(B|KB|MB|GB|TB)/, 'Should show formatted size');
     });
+
+    const output = await captureConsole(async () => {
+      await runDashboard({ rootDir, binDir });
+    });
+
+    assert.ok(output.includes('Disk:'), 'Should show disk usage');
+    // Check for size format (e.g., "150.0 MB" or similar)
+    assert.match(output, /\d+(\.\d+)?\s*(B|KB|MB|GB|TB)/, 'Should show formatted size');
   });
 });

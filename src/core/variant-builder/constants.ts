@@ -6,16 +6,9 @@
  */
 
 /**
- * Team mode CLI patch patterns (for Claude Code <= 2.0.x)
- */
-export const TEAM_MODE_DISABLED = 'function sU(){return!1}';
-export const TEAM_MODE_ENABLED = 'function sU(){return!0}';
-
-/**
  * Claude Code package constants
  */
 export const CLAUDE_CODE_PACKAGE = '@anthropic-ai/claude-code';
-export const CLAUDE_CODE_CLI_FILENAME = 'cli.js';
 
 /**
  * Environment variable names
@@ -77,6 +70,4 @@ export const FILES = {
   SETTINGS_JSON: 'settings.json',
   VARIANT_JSON: 'variant.json',
   PACKAGE_JSON: 'package.json',
-  CLI_JS: 'cli.js',
-  CLI_BACKUP: 'cli.js.backup',
 } as const;

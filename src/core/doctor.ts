@@ -16,12 +16,6 @@ import { listVariants as listVariantsImpl } from './variants.js';
 import { assertValidTeamName, assertValidVariantName, isValidEnvKey } from './validation.js';
 import { getProvider } from '../providers/index.js';
 import { listMcpServers, type McpServerConfig } from './claude-config.js';
-import {
-  TEAM_MODE_ENABLED,
-  TEAM_MODE_DISABLED,
-  CLAUDE_CODE_PACKAGE,
-  CLAUDE_CODE_CLI_FILENAME,
-} from './variant-builder/constants.js';
 import type { DoctorOptions, DoctorReportItem, McpServerStatus, VariantMeta } from './types.js';
 
 interface DoctorContext {
@@ -288,40 +282,6 @@ const checkTeamNames = (ctx: DoctorContext, results: DoctorResults): void => {
 };
 
 /**
- * Check team mode patch status and optionally fix it
- */
-const checkTeamModePatch = (ctx: DoctorContext, results: DoctorResults, installedVersion: string | undefined): void => {
-  if (!ctx.meta?.teamModeEnabled) return;
-  if (ctx.meta.installType === 'native') return;
-
-  const cliPath = path.join(ctx.npmDir, 'node_modules', CLAUDE_CODE_PACKAGE, CLAUDE_CODE_CLI_FILENAME);
-  if (!fs.existsSync(cliPath)) {
-    results.issues.push('team mode enabled but cli.js not found');
-    return;
-  }
-
-  // Claude Code 2.1.x has tasks enabled by default (no patch needed)
-  let needsPatch = true;
-  if (installedVersion) {
-    const [major, minor] = installedVersion.split('.').map(Number);
-    needsPatch = major < 2 || (major === 2 && minor < 1);
-  }
-
-  if (!needsPatch) return;
-
-  const cliContent = fs.readFileSync(cliPath, 'utf8');
-  if (cliContent.includes(TEAM_MODE_ENABLED)) return;
-
-  if (ctx.isFix && cliContent.includes(TEAM_MODE_DISABLED)) {
-    const patched = cliContent.replace(TEAM_MODE_DISABLED, TEAM_MODE_ENABLED);
-    fs.writeFileSync(cliPath, patched);
-    results.fixes.push('Re-applied team mode cli.js patch');
-  } else {
-    results.issues.push('team mode enabled but cli.js patch missing');
-  }
-};
-
-/**
  * Perform health check on a single variant
  */
 const checkVariant = (
@@ -370,7 +330,6 @@ const checkVariant = (
   checkSettings(ctx, results);
   checkMcpServers(ctx, results, report);
   checkTeamNames(ctx, results);
-  checkTeamModePatch(ctx, results, installedVersion);
 
   report.issues = results.issues.length > 0 ? results.issues : undefined;
   report.warnings = results.warnings.length > 0 ? results.warnings : undefined;

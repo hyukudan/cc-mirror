@@ -30,10 +30,6 @@ test('doctor strict reports config issues', () => {
   writeExecutable(binaryPath, '#!/usr/bin/env node\n');
   writeExecutable(wrapperPath, '#!/usr/bin/env bash\n');
 
-  const cliPath = path.join(npmDir, 'node_modules', '@anthropic-ai', 'claude-code', 'cli.js');
-  fs.mkdirSync(path.dirname(cliPath), { recursive: true });
-  fs.writeFileSync(cliPath, 'function sU(){return!1}');
-
   fs.writeFileSync(
     path.join(configDir, 'settings.json'),
     JSON.stringify({ env: { 'BAD-KEY': '1', CLAUDE_CODE_TEAM_NAME: 'oops' } }, null, 2)
@@ -66,7 +62,6 @@ test('doctor strict reports config issues', () => {
   if (!isWindows) {
     assert.ok(item.issues?.some((issue) => issue.includes('invalid team name')));
   }
-  assert.ok(item.issues?.some((issue) => issue.includes('team mode enabled but cli.js patch missing')));
 
   cleanup(rootDir);
   cleanup(binDir);

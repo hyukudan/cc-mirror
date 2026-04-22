@@ -15,7 +15,6 @@ function createBrokenVariant(rootDir: string, binDir: string, name: string) {
   const variantDir = path.join(rootDir, name);
   const configDir = path.join(variantDir, 'config');
   const tweakDir = path.join(variantDir, 'tweakcc');
-  const npmDir = path.join(variantDir, 'npm');
   const binaryPath = path.join(variantDir, 'bin', 'cli.js');
   const wrapperPath = path.join(binDir, name);
 
@@ -24,10 +23,7 @@ function createBrokenVariant(rootDir: string, binDir: string, name: string) {
   fs.mkdirSync(path.dirname(binaryPath), { recursive: true });
   writeExecutable(binaryPath, '#!/usr/bin/env node\n');
 
-  const cliPath = path.join(npmDir, 'node_modules', '@anthropic-ai', 'claude-code', 'cli.js');
-  fs.mkdirSync(path.dirname(cliPath), { recursive: true });
-
-  return { variantDir, configDir, tweakDir, npmDir, binaryPath, wrapperPath, cliPath };
+  return { variantDir, configDir, tweakDir, binaryPath, wrapperPath };
 }
 
 test('doctor --fix repairs wrapper permissions', { skip: isWindows && 'chmod not applicable on Windows' }, () => {
@@ -119,47 +115,6 @@ test('doctor --fix removes invalid env keys from settings', () => {
   assert.equal(settings.env.VALID_KEY, 'ok');
   assert.equal(settings.env['BAD-KEY'], undefined);
   assert.equal(settings.env['123bad'], undefined);
-
-  cleanup(rootDir);
-  cleanup(binDir);
-});
-
-test('doctor --fix re-applies team mode cli.js patch', () => {
-  const rootDir = makeTempDir();
-  const binDir = makeTempDir();
-  const name = 'fix-patch';
-  const { variantDir, configDir, tweakDir, npmDir, binaryPath, wrapperPath, cliPath } = createBrokenVariant(
-    rootDir,
-    binDir,
-    name
-  );
-  writeExecutable(wrapperPath, '#!/usr/bin/env bash\n');
-
-  // Write cli.js with DISABLED team mode (simulates broken patch)
-  fs.writeFileSync(cliPath, 'function sU(){return!1}');
-
-  fs.writeFileSync(path.join(configDir, 'settings.json'), JSON.stringify({ env: {} }, null, 2));
-  fs.writeFileSync(
-    path.join(variantDir, 'variant.json'),
-    JSON.stringify({
-      name,
-      provider: 'zai',
-      createdAt: new Date().toISOString(),
-      binaryPath,
-      configDir,
-      tweakDir,
-      npmDir,
-      teamModeEnabled: true,
-    })
-  );
-
-  const report = core.doctor(rootDir, binDir, { fix: true });
-  const item = report.find((e) => e.name === name)!;
-  assert.ok(item.fixes?.some((f) => f.includes('team mode cli.js patch')));
-
-  // Verify cli.js was patched
-  const content = fs.readFileSync(cliPath, 'utf8');
-  assert.ok(content.includes('function sU(){return!0}'));
 
   cleanup(rootDir);
   cleanup(binDir);

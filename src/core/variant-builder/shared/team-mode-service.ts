@@ -14,11 +14,10 @@ import {
   removeTaskManagerSkill,
 } from '../../skills.js';
 import { copyTeamPackPrompts, removeTeamToolset } from '../../../team-pack/index.js';
-import { tryPatchCli, configureSettings, reverseCliPatch, unsetTeamModeEnv } from '../team-mode-utils.js';
+import { configureSettings, unsetTeamModeEnv } from '../team-mode-utils.js';
 import { VARIANT_DIRS } from '../constants.js';
 
 export interface TeamModeContext {
-  npmDir: string;
   configDir: string;
   tweakDir: string;
 }
@@ -36,16 +35,13 @@ export class TeamModeService {
    * Enable team mode with all its features
    */
   enable(ctx: TeamModeContext, state: TeamModeState): void {
-    // --- 1. cli.js patch (only for <=2.0.x where Task tools are gated) ---
-    tryPatchCli({ npmDir: ctx.npmDir }, state);
-
-    // --- 2. Configure settings.json (env vars + skill permissions) ---
+    // --- 1. Configure settings.json (env vars + skill permissions) ---
     configureSettings(path.join(ctx.configDir, 'settings.json'), state);
 
-    // --- 3. Install skills ---
+    // --- 2. Install skills ---
     this.installSkills(ctx.configDir, state);
 
-    // --- 4. Team pack prompts ---
+    // --- 3. Team pack prompts ---
     const systemPromptsDir = path.join(ctx.tweakDir, VARIANT_DIRS.SYSTEM_PROMPTS);
     const copiedFiles = copyTeamPackPrompts(systemPromptsDir);
     if (copiedFiles.length > 0) {
@@ -64,9 +60,6 @@ export class TeamModeService {
    * Disable team mode and remove its features
    */
   disable(ctx: TeamModeContext, state: TeamModeState): void {
-    // Try to reverse the cli.js patch (only relevant for <=2.0.x)
-    reverseCliPatch({ npmDir: ctx.npmDir }, state);
-
     // Remove TodoWrite from settings.json permissions.deny
     if (removeTeamToolset(ctx.configDir)) {
       state.notes.push('TodoWrite unblocked (team toolset removed)');
