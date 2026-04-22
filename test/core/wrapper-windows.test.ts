@@ -85,7 +85,7 @@ test('writeWindowsWrapper switches to the translator launcher when requiresTrans
     const configDir = path.join(dir, 'config');
     fs.mkdirSync(configDir, { recursive: true });
 
-    writeWindowsWrapper(wrapperPath, configDir, 'C:\\claude.exe', 'native', { requiresTranslation: true });
+    writeWindowsWrapper(wrapperPath, configDir, 'C:\\claude.exe', { requiresTranslation: true });
 
     const content = fs.readFileSync(wrapperPath, 'utf8');
     // Either npx tsx (dev) or node (bundled) — assert one of the two.
@@ -144,7 +144,7 @@ test('writeWrapper respects requiresTranslation option and routes through launch
     const configDir = path.join(dir, 'config');
     fs.mkdirSync(configDir, { recursive: true });
 
-    writeWrapper(wrapperPath, configDir, '/opt/claude/bin/claude', 'native', { requiresTranslation: true });
+    writeWrapper(wrapperPath, configDir, '/opt/claude/bin/claude', { requiresTranslation: true });
 
     const content = fs.readFileSync(wrapperPath, 'utf8');
     const execLine = content.split('\n').find((line) => line.startsWith('exec')) ?? '';

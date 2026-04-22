@@ -23,8 +23,6 @@ const LAUNCHER_PATH = fs.existsSync(DIST_LAUNCHER_FROM_BUNDLE)
 const LAUNCHER_NEEDS_TSX = LAUNCHER_PATH.endsWith('.ts');
 const NODE_BINARY_PATH = process.execPath;
 
-export type WrapperRuntime = 'native' | 'node';
-
 export interface WrapperOptions {
   /** Use translation proxy for OpenAI-compatible providers */
   requiresTranslation?: boolean;
@@ -34,7 +32,6 @@ export const writeWrapper = (
   wrapperPath: string,
   configDir: string,
   binaryPath: string,
-  _runtime: WrapperRuntime = 'native',
   options: WrapperOptions = {}
 ) => {
   const tweakDir = path.join(path.dirname(configDir), 'tweakcc');
@@ -428,7 +425,6 @@ export const writeWindowsWrapper = (
   wrapperPath: string,
   configDir: string,
   binaryPath: string,
-  _runtime: WrapperRuntime = 'native',
   options: WrapperOptions = {}
 ) => {
   const tweakDir = path.join(path.dirname(configDir), 'tweakcc');
@@ -815,13 +811,12 @@ export const writeWrapperForPlatform = (
   wrapperPath: string,
   configDir: string,
   binaryPath: string,
-  runtime: WrapperRuntime = 'native',
   options: WrapperOptions = {}
 ): string => {
   if (process.platform === 'win32') {
-    writeWindowsWrapper(wrapperPath, configDir, binaryPath, runtime, options);
+    writeWindowsWrapper(wrapperPath, configDir, binaryPath, options);
     return wrapperPath;
   }
-  writeWrapper(wrapperPath, configDir, binaryPath, runtime, options);
+  writeWrapper(wrapperPath, configDir, binaryPath, options);
   return wrapperPath;
 };

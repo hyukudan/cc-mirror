@@ -93,7 +93,7 @@ test('writeWrapper sets TWEAKCC_CONFIG_DIR', () => {
   }
 });
 
-test('writeWrapper uses native runtime by default', () => {
+test('writeWrapper execs the native binary directly', () => {
   const tempDir = makeTempDir();
   const configDir = path.join(tempDir, 'config');
   const wrapperPath = path.join(tempDir, 'wrapper');
@@ -105,35 +105,12 @@ test('writeWrapper uses native runtime by default', () => {
     writeWrapper(wrapperPath, configDir, binaryPath);
 
     const content = fs.readFileSync(wrapperPath, 'utf8');
-    // Native default: exec the binary directly, no node wrapper on the exec line
     const execLine = content.split('\n').find((line) => line.startsWith('exec'));
     assert.ok(execLine, 'Should have exec line');
-    assert.ok(!execLine.includes('node'), 'Default runtime should not spawn node');
+    assert.ok(!execLine.includes('node'), 'Exec line should not spawn node');
     assert.ok(execLine.includes(binaryPath), 'Should include binary path');
     // Env loader still references node for settings.json parsing
     assert.ok(content.includes(process.execPath), 'Env loader should embed node binary path');
-  } finally {
-    cleanup(tempDir);
-  }
-});
-
-test('writeWrapper uses native runtime when specified', () => {
-  const tempDir = makeTempDir();
-  const configDir = path.join(tempDir, 'config');
-  const wrapperPath = path.join(tempDir, 'wrapper');
-  const binaryPath = '/path/to/native-binary';
-
-  fs.mkdirSync(configDir, { recursive: true });
-
-  try {
-    writeWrapper(wrapperPath, configDir, binaryPath, 'native');
-
-    const content = fs.readFileSync(wrapperPath, 'utf8');
-    // Native runtime should not have 'exec node'
-    const execLine = content.split('\n').find((line) => line.startsWith('exec'));
-    assert.ok(execLine, 'Should have exec line');
-    assert.ok(!execLine.includes('node'), 'Native runtime should not use node');
-    assert.ok(execLine.includes(binaryPath), 'Should include binary path');
   } finally {
     cleanup(tempDir);
   }
@@ -145,7 +122,7 @@ test('wrapper execs native binary directly', () => {
     const wp = path.join(dir, 'wrap.sh');
     const cfg = path.join(dir, 'config');
     fs.mkdirSync(cfg, { recursive: true });
-    writeWrapper(wp, cfg, '/opt/claude/bin/claude', 'native');
+    writeWrapper(wp, cfg, '/opt/claude/bin/claude');
     const content = fs.readFileSync(wp, 'utf8');
     assert.match(content, /exec "\/opt\/claude\/bin\/claude" "\$@"/);
     assert.doesNotMatch(content, /exec "[^"]+node[^"]*" "\/opt\/claude\/bin\/claude"/);

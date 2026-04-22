@@ -195,7 +195,7 @@ function refreshVariant(rootDir: string, name: string, dryRun: boolean): Refresh
         requiresTranslation: provider.requiresTranslation,
       };
       const wrapperPath = getWrapperPath(meta.binDir, name);
-      writeWrapperForPlatform(wrapperPath, configDir, meta.binaryPath, 'native', wrapperOptions);
+      writeWrapperForPlatform(wrapperPath, configDir, meta.binaryPath, wrapperOptions);
     }
   }
 

@@ -19,14 +19,10 @@ export interface TeamModeState {
   notes: string[];
 }
 
-export interface TeamModeSettings {
-  agentType?: string;
-}
-
 /**
  * Configure settings.json with team mode environment variables and permissions
  */
-export function configureSettings(settingsPath: string, state: TeamModeState, _settings: TeamModeSettings = {}): void {
+export function configureSettings(settingsPath: string, state: TeamModeState): void {
   if (!fs.existsSync(settingsPath)) return;
 
   try {
