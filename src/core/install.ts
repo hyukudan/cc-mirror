@@ -163,11 +163,15 @@ export const installNpmClaude = (params: {
   }
 
   const binaryPath = resolveClaudeBinaryPath(params.npmDir, params.npmPackage);
+  // Always invoke the postinstall fallback: the package ships with a small
+  // placeholder at bin/claude.exe that the real install.cjs replaces with the
+  // native binary. If the package manager skipped postinstall (pnpm v10), the
+  // placeholder stays on disk and `fs.existsSync` returns true even though
+  // nothing runnable is there. install.cjs is idempotent — re-running it
+  // when the native binary is already in place just relinks the same file.
+  runPostinstallFallback(params.npmDir, params.npmPackage);
   if (!fs.existsSync(binaryPath)) {
-    runPostinstallFallback(params.npmDir, params.npmPackage);
-    if (!fs.existsSync(binaryPath)) {
-      throw new Error(`${pm} install succeeded but the Claude binary was not found at ${binaryPath}`);
-    }
+    throw new Error(`${pm} install succeeded but the Claude binary was not found at ${binaryPath}`);
   }
 
   return { cliPath: binaryPath, packageManager: pm };
@@ -226,12 +230,12 @@ export const installNpmClaudeAsync = (params: {
       }
 
       const binaryPath = resolveClaudeBinaryPath(params.npmDir, params.npmPackage);
+      // See note on sync path: always re-run install.cjs to replace the
+      // shipped placeholder with the platform-native binary.
+      runPostinstallFallback(params.npmDir, params.npmPackage);
       if (!fs.existsSync(binaryPath)) {
-        runPostinstallFallback(params.npmDir, params.npmPackage);
-        if (!fs.existsSync(binaryPath)) {
-          reject(new Error(`${pm} install succeeded but the Claude binary was not found at ${binaryPath}`));
-          return;
-        }
+        reject(new Error(`${pm} install succeeded but the Claude binary was not found at ${binaryPath}`));
+        return;
       }
 
       resolve({ cliPath: binaryPath, packageManager: pm });
