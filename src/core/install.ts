@@ -34,14 +34,16 @@ export const getInstallArgs = (pm: PackageManager, npmDir: string, pkgSpec: stri
   }
 };
 
-export const resolveClaudeBinaryPath = (
-  npmDir: string,
-  npmPackage: string,
-  platform: NodeJS.Platform = process.platform
-): string => {
+/**
+ * Resolves the path to the native Claude binary written by the package's
+ * postinstall. Despite the `.exe` suffix the file is platform-independent —
+ * Anthropic's install.cjs always writes to `bin/claude.exe` so npm's
+ * `bin` mapping (`{"claude": "bin/claude.exe"}`) can stay identical on every
+ * platform and produce the right cmd-shim on Windows without branching.
+ */
+export const resolveClaudeBinaryPath = (npmDir: string, npmPackage: string): string => {
   const parts = npmPackage.split('/');
-  const binName = platform === 'win32' ? 'claude.exe' : 'claude';
-  return path.join(npmDir, 'node_modules', ...parts, 'bin', binName);
+  return path.join(npmDir, 'node_modules', ...parts, 'bin', 'claude.exe');
 };
 
 /**

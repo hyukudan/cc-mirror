@@ -7,11 +7,13 @@
  *
  *   node_modules/@anthropic-ai/claude-code/
  *     package.json               # bin -> bin/claude.exe, postinstall -> install.cjs
- *     install.cjs                # copies bin/claude.exe -> bin/claude (+0755)
+ *     install.cjs                # would hardlink native binary over bin/claude.exe
  *     cli-wrapper.cjs            # minimal stub referenced by some tooling
  *     bin/
- *       claude.exe               # executable shell-script placeholder
- *       claude                   # pre-staged copy; postinstall re-stages it
+ *       claude.exe               # executable shell-script placeholder (the binary
+ *                                # lives here on every platform — name is a
+ *                                # Windows-only artifact the real package keeps so
+ *                                # its `bin` field stays platform-agnostic)
  */
 
 import fs from 'node:fs';
@@ -34,27 +36,15 @@ echo "$PAYLOAD"
 `;
 
 /**
- * Minimal postinstall script emitted into the fake package. It mirrors what
- * the real 2.1.113+ installer does: copy the platform-specific binary (here
- * always `bin/claude.exe`) into `bin/claude` with exec bits.
+ * Minimal postinstall script emitted into the fake package. It's a no-op in
+ * tests because the real installer's job — hardlinking the platform-native
+ * binary over `bin/claude.exe` — doesn't apply when the fake placeholder is
+ * already the runnable artifact. Kept around so callers can prove the fallback
+ * runs without erroring.
  */
 const INSTALL_CJS = `#!/usr/bin/env node
 // Stub postinstall for the cc-mirror test harness.
-const fs = require('node:fs');
-const path = require('node:path');
-
-const pkgRoot = __dirname;
-const source = path.join(pkgRoot, 'bin', 'claude.exe');
-const target = path.join(pkgRoot, 'bin', 'claude');
-
-if (!fs.existsSync(source)) {
-  // Nothing to stage; real installers would throw here.
-  process.exit(0);
-}
-
-fs.mkdirSync(path.dirname(target), { recursive: true });
-fs.copyFileSync(source, target);
-fs.chmodSync(target, 0o755);
+process.exit(0);
 `;
 
 /**
@@ -92,9 +82,6 @@ const stageFakeClaudePackage = (prefix: string) => {
   fs.writeFileSync(path.join(pkgRoot, 'cli-wrapper.cjs'), CLI_WRAPPER_CJS);
 
   writeExecutable(path.join(binDir, 'claude.exe'), buildClaudeExePlaceholder());
-  // Pre-stage bin/claude so consumers that skip postinstall still see a
-  // runnable entry point. The real installer does the same via install.cjs.
-  writeExecutable(path.join(binDir, 'claude'), buildClaudeExePlaceholder());
 };
 
 /**
@@ -147,8 +134,6 @@ fs.writeFileSync(path.join(pkgRoot, 'cli-wrapper.cjs'), CLI_WRAPPER_CJS);
 
 fs.writeFileSync(path.join(binDir, 'claude.exe'), CLAUDE_EXE_PLACEHOLDER, { mode: 0o755 });
 fs.chmodSync(path.join(binDir, 'claude.exe'), 0o755);
-fs.writeFileSync(path.join(binDir, 'claude'), CLAUDE_EXE_PLACEHOLDER, { mode: 0o755 });
-fs.chmodSync(path.join(binDir, 'claude'), 0o755);
 `;
 
   // Create fake scripts for all package managers.
@@ -167,8 +152,7 @@ fs.chmodSync(path.join(binDir, 'claude'), 0o755);
  * Execute a function with fake npm in PATH.
  *
  * The fake package manager stages the Claude Code 2.1.113+ native-binary
- * layout (bin/claude.exe + install.cjs + bin/claude) under the requested
- * prefix.
+ * layout (bin/claude.exe + install.cjs) under the requested prefix.
  */
 export const withFakeNpm = (fn: () => void) => {
   const binDir = makeTempDir();

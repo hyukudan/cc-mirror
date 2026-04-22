@@ -3,10 +3,10 @@
  *
  * These tests assert the on-disk layout emitted by `withFakeNpm` matches the
  * Claude Code 2.1.113+ native-binary packaging:
- *   - `bin/claude.exe` (platform-native binary placeholder)
- *   - `install.cjs` postinstall script that copies `bin/claude.exe` → `bin/claude`
+ *   - `bin/claude.exe` (platform-native binary; name unchanged across platforms)
+ *   - `install.cjs` postinstall script (real one hardlinks native binary over
+ *     bin/claude.exe; fake is a no-op)
  *   - `package.json` with `bin`, `scripts.postinstall`, and `optionalDependencies`
- *   - `bin/claude` exists with exec bits after a simulated install
  *   - no legacy `cli.js`
  */
 
@@ -59,12 +59,6 @@ test('withFakeNpm emits native-binary package layout (no cli.js)', () => {
       assert.ok(fs.existsSync(claudeExe), 'bin/claude.exe should exist');
       const exeMode = fs.statSync(claudeExe).mode & 0o777;
       assert.ok((exeMode & 0o111) !== 0, `bin/claude.exe should be executable (mode: ${exeMode.toString(8)})`);
-
-      // bin/claude should exist with exec bits (either pre-staged or produced by postinstall).
-      const claudeBin = path.join(pkgRoot, 'bin', 'claude');
-      assert.ok(fs.existsSync(claudeBin), 'bin/claude should exist after install');
-      const binMode = fs.statSync(claudeBin).mode & 0o777;
-      assert.ok((binMode & 0o111) !== 0, `bin/claude should be executable (mode: ${binMode.toString(8)})`);
 
       // Legacy cli.js must NOT be produced.
       const legacyCli = path.join(pkgRoot, 'cli.js');
