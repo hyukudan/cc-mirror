@@ -44,6 +44,30 @@ export const resolveClaudeBinaryPath = (
   return path.join(npmDir, 'node_modules', ...parts, 'bin', binName);
 };
 
+/**
+ * Some package managers (notably pnpm v10) block `postinstall` scripts by
+ * default, which means `@anthropic-ai/claude-code`'s platform-bin linker
+ * never runs and `bin/claude` is missing after a successful install. This
+ * helper runs `node install.cjs` inside the package directory manually so
+ * the post-install step still happens regardless of package manager policy.
+ *
+ * Returns `true` when the script ran with exit code 0. Returns `false` when
+ * the script does not exist. Errors from spawning are not swallowed — they
+ * surface via a non-zero status or throw from spawnSync.
+ */
+export const runPostinstallFallback = (npmDir: string, npmPackage: string): boolean => {
+  const parts = npmPackage.split('/');
+  const pkgDir = path.join(npmDir, 'node_modules', ...parts);
+  const installScript = path.join(pkgDir, 'install.cjs');
+  if (!fs.existsSync(installScript)) return false;
+  const result = spawnSync(process.execPath, [installScript], {
+    cwd: pkgDir,
+    stdio: 'pipe',
+    encoding: 'utf8',
+  });
+  return result.status === 0;
+};
+
 const isWindows = process.platform === 'win32';
 
 export const getInstallPreflightNotes = (): string[] => {
@@ -138,7 +162,10 @@ export const installNpmClaude = (params: {
 
   const binaryPath = resolveClaudeBinaryPath(params.npmDir, params.npmPackage);
   if (!fs.existsSync(binaryPath)) {
-    throw new Error(`${pm} install succeeded but the Claude binary was not found at ${binaryPath}`);
+    runPostinstallFallback(params.npmDir, params.npmPackage);
+    if (!fs.existsSync(binaryPath)) {
+      throw new Error(`${pm} install succeeded but the Claude binary was not found at ${binaryPath}`);
+    }
   }
 
   return { cliPath: binaryPath, packageManager: pm };
@@ -198,8 +225,11 @@ export const installNpmClaudeAsync = (params: {
 
       const binaryPath = resolveClaudeBinaryPath(params.npmDir, params.npmPackage);
       if (!fs.existsSync(binaryPath)) {
-        reject(new Error(`${pm} install succeeded but the Claude binary was not found at ${binaryPath}`));
-        return;
+        runPostinstallFallback(params.npmDir, params.npmPackage);
+        if (!fs.existsSync(binaryPath)) {
+          reject(new Error(`${pm} install succeeded but the Claude binary was not found at ${binaryPath}`));
+          return;
+        }
       }
 
       resolve({ cliPath: binaryPath, packageManager: pm });
