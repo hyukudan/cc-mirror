@@ -157,20 +157,25 @@ export const installNpmClaude = (params: {
     if (result.stderr) process.stderr.write(result.stderr);
   }
 
-  if (result.status !== 0) {
-    const output = `${result.stderr ?? ''}\n${result.stdout ?? ''}`.trim();
-    throw new Error(formatInstallError(pm, pkgSpec, output));
-  }
+  // A non-zero exit is not necessarily fatal: pnpm v11 exits non-zero when it
+  // *ignores* the package's build scripts (ERR_PNPM_IGNORED_BUILDS) even
+  // though the package itself was added successfully. The real authority on
+  // success is whether the native binary ends up on disk, so defer throwing
+  // until after the postinstall fallback has had a chance to recover it.
+  const installFailedOutput = result.status !== 0 ? `${result.stderr ?? ''}\n${result.stdout ?? ''}`.trim() : null;
 
   const binaryPath = resolveClaudeBinaryPath(params.npmDir, params.npmPackage);
   // Always invoke the postinstall fallback: the package ships with a small
   // placeholder at bin/claude.exe that the real install.cjs replaces with the
-  // native binary. If the package manager skipped postinstall (pnpm v10), the
-  // placeholder stays on disk and `fs.existsSync` returns true even though
+  // native binary. If the package manager skipped postinstall (pnpm v10/v11),
+  // the placeholder stays on disk and `fs.existsSync` returns true even though
   // nothing runnable is there. install.cjs is idempotent — re-running it
   // when the native binary is already in place just relinks the same file.
   runPostinstallFallback(params.npmDir, params.npmPackage);
   if (!fs.existsSync(binaryPath)) {
+    if (installFailedOutput !== null) {
+      throw new Error(formatInstallError(pm, pkgSpec, installFailedOutput));
+    }
     throw new Error(`${pm} install succeeded but the Claude binary was not found at ${binaryPath}`);
   }
 
@@ -223,17 +228,20 @@ export const installNpmClaudeAsync = (params: {
     });
 
     child.on('close', (code) => {
-      if (code !== 0) {
-        const output = `${stderr}\n${stdout}`.trim();
-        reject(new Error(formatInstallError(pm, pkgSpec, output)));
-        return;
-      }
+      // See note on sync path: a non-zero exit may just mean pnpm ignored the
+      // package's build scripts. Let the postinstall fallback run and treat the
+      // presence of the native binary as the real success signal.
+      const installFailedOutput = code !== 0 ? `${stderr}\n${stdout}`.trim() : null;
 
       const binaryPath = resolveClaudeBinaryPath(params.npmDir, params.npmPackage);
-      // See note on sync path: always re-run install.cjs to replace the
-      // shipped placeholder with the platform-native binary.
+      // Always re-run install.cjs to replace the shipped placeholder with the
+      // platform-native binary.
       runPostinstallFallback(params.npmDir, params.npmPackage);
       if (!fs.existsSync(binaryPath)) {
+        if (installFailedOutput !== null) {
+          reject(new Error(formatInstallError(pm, pkgSpec, installFailedOutput)));
+          return;
+        }
         reject(new Error(`${pm} install succeeded but the Claude binary was not found at ${binaryPath}`));
         return;
       }

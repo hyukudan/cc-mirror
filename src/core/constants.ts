@@ -6,9 +6,9 @@ export const DEFAULT_BIN_DIR =
   process.platform === 'win32'
     ? path.join(os.homedir(), '.cc-mirror', 'bin')
     : path.join(os.homedir(), '.local', 'bin');
-export const TWEAKCC_VERSION = '4.0.11';
+export const TWEAKCC_VERSION = '4.0.13';
 /** Highest CC version verified to work with the pinned TWEAKCC_VERSION */
-export const TWEAKCC_MAX_VERIFIED_CC = '2.1.71';
+export const TWEAKCC_MAX_VERIFIED_CC = '2.1.152';
 export const DEFAULT_NPM_PACKAGE = '@anthropic-ai/claude-code';
 export const DEFAULT_NPM_VERSION = '2.1.117';
 
