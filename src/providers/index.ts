@@ -22,6 +22,9 @@ export interface ProviderTemplate {
   noPromptPack?: boolean;
   /** Provider targets local models (Ollama, LM Studio, etc.) — disables KV-cache-breaking headers */
   localModel?: boolean;
+  /** Provider targets Anthropic's own backend — keeps nonessential traffic on so feature-flag
+   *  evaluation (and with it Remote Control / cloud agents) keeps working */
+  firstParty?: boolean;
   /** Provider uses OpenAI-compatible API, requires translation proxy */
   requiresTranslation?: boolean;
   /** Target URL for translation proxy (OpenAI-compatible endpoint) */
@@ -157,6 +160,7 @@ const PROVIDERS: Record<string, ProviderTemplate> = {
     credentialOptional: true, // No credentials required at create time
     enablesTeamMode: true, // Auto-enable team mode patch
     noPromptPack: true, // Skip prompt pack (pure Claude experience)
+    firstParty: true, // Talks to Anthropic directly - keep nonessential traffic enabled
   },
   kimi: {
     key: 'kimi',
@@ -383,13 +387,16 @@ export const buildEnv = ({ providerKey, baseUrl, apiKey, extraEnv, modelOverride
   const env: ProviderEnv = { ...provider.env };
   const authMode = provider.authMode ?? 'apiKey';
 
-  // Universal defaults applied to ALL providers (including authMode=none)
+  // Baseline defaults applied to every provider (including authMode=none), unless noted
   // CLAUDE_CODE_CONTEXT_LIMIT: CLI 2.1.x has a bug where undefined results in NaN,
   // breaking autocompact and causing sessions to grow unbounded until they crash.
   if (!Object.hasOwn(env, 'CLAUDE_CODE_CONTEXT_LIMIT')) {
     env.CLAUDE_CODE_CONTEXT_LIMIT = '200000';
   }
-  if (!Object.hasOwn(env, 'CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC')) {
+  // Third-party endpoints must not phone home to Anthropic. First-party providers are
+  // exempt: there the flag turns off GrowthBook feature-flag evaluation, which silently
+  // disables Remote Control and cloud agents.
+  if (!provider.firstParty && !Object.hasOwn(env, 'CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC')) {
     env.CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC = '1';
   }
 

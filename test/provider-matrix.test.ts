@@ -7,7 +7,7 @@
 
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { listProviders, getProvider } from '../src/providers/index.js';
+import { listProviders, getProvider, buildEnv } from '../src/providers/index.js';
 
 test('Provider Feature Matrix', async (t) => {
   const providers = listProviders(true); // Include experimental
@@ -29,6 +29,33 @@ test('Provider Feature Matrix', async (t) => {
     assert.ok(mirror.noPromptPack, 'mirror should have noPromptPack: true');
     assert.ok(mirror.credentialOptional, 'mirror should have credentialOptional: true');
     assert.equal(mirror.authMode, 'none', 'mirror should have authMode: none');
+    assert.ok(mirror.firstParty, 'mirror should have firstParty: true');
+  });
+
+  await t.test('mirror is the only first-party provider', () => {
+    const firstParty = providers.filter((p) => p.firstParty).map((p) => p.key);
+    assert.deepEqual(firstParty, ['mirror'], 'only mirror targets Anthropic directly');
+  });
+
+  await t.test('first-party providers keep nonessential traffic enabled', () => {
+    // The flag disables GrowthBook feature-flag evaluation, which silently turns off
+    // Remote Control and cloud agents. Only meaningful when talking to Anthropic itself.
+    const env = buildEnv({ providerKey: 'mirror' });
+    assert.ok(
+      !Object.hasOwn(env, 'CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC'),
+      'mirror must not disable nonessential traffic'
+    );
+  });
+
+  await t.test('third-party providers disable nonessential traffic', () => {
+    for (const provider of providers.filter((p) => !p.firstParty)) {
+      const env = buildEnv({ providerKey: provider.key });
+      assert.equal(
+        String(env.CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC),
+        '1',
+        `${provider.key} must not phone home to Anthropic`
+      );
+    }
   });
 
   await t.test('ccrouter provider has correct auth mode', () => {

@@ -14,6 +14,7 @@ import {
   MINIMAX_DENY_TOOLS,
   ZAI_DENY_TOOLS,
 } from '../../claude-config.js';
+import { getProvider } from '../../../providers/index.js';
 import type { UpdateContext, UpdateStep } from '../types.js';
 
 export class ConfigUpdateStep implements UpdateStep {
@@ -69,13 +70,18 @@ export class ConfigUpdateStep implements UpdateStep {
     });
 
     // Env defaults
-    const envDefaultsUpdated = ensureSettingsEnvDefaults(meta.configDir, {
+    const envDefaults: Record<string, string | number> = {
       TWEAKCC_CONFIG_DIR: meta.tweakDir,
       DISABLE_AUTOUPDATER: '1',
       CLAUDE_CODE_ENABLE_PROMPT_SUGGESTION: '1',
       CLAUDE_CODE_CONTEXT_LIMIT: '200000',
-      CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC: '1',
-    });
+    };
+    // Mirrors buildEnv(): first-party providers must keep nonessential traffic enabled,
+    // otherwise every update would re-disable feature flags and break Remote Control.
+    if (!getProvider(meta.provider)?.firstParty) {
+      envDefaults.CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC = '1';
+    }
+    const envDefaultsUpdated = ensureSettingsEnvDefaults(meta.configDir, envDefaults);
 
     if (Array.isArray(opts.extraEnv) && opts.extraEnv.length > 0) {
       const overrides: Record<string, string | number> = {};
