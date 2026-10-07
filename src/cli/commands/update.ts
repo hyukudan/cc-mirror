@@ -37,21 +37,33 @@ export function runUpdateCommand({ opts }: UpdateCommandOptions): void {
   const disableTeamMode = opts['disable-team-mode'] ? true : undefined;
   const extraEnv = buildExtraEnv(opts);
 
+  const failures: { name: string; message: string }[] = [];
   for (const name of names) {
-    const result = core.updateVariant(rootDir, name, {
-      binDir,
-      npmPackage: opts['npm-package'] as string | undefined,
-      npmVersion: opts['npm-version'] as string | undefined,
-      brand: opts.brand as string | undefined,
-      noTweak: Boolean(opts.noTweak),
-      extraEnv,
-      promptPack,
-      skillInstall,
-      shellEnv,
-      skillUpdate,
-      enableTeamMode,
-      disableTeamMode,
-    });
+    let result: ReturnType<typeof core.updateVariant>;
+    try {
+      result = core.updateVariant(rootDir, name, {
+        binDir,
+        npmPackage: opts['npm-package'] as string | undefined,
+        npmVersion: opts['npm-version'] as string | undefined,
+        brand: opts.brand as string | undefined,
+        noTweak: Boolean(opts.noTweak),
+        extraEnv,
+        promptPack,
+        skillInstall,
+        shellEnv,
+        skillUpdate,
+        enableTeamMode,
+        disableTeamMode,
+      });
+    } catch (error) {
+      // A single named target keeps the old fail-fast behaviour; when updating
+      // every variant, one broken install must not block the rest.
+      if (target) throw error;
+      const message = error instanceof Error ? error.message : String(error);
+      failures.push({ name, message });
+      console.error(`✗ Update failed: ${name}\n  ${message.split('\n')[0]}`);
+      continue;
+    }
     const wrapperPath = getWrapperPath(binDir, name);
     printSummary({
       action: 'Updated',
@@ -59,5 +71,12 @@ export function runUpdateCommand({ opts }: UpdateCommandOptions): void {
       wrapperPath,
       notes: result.notes,
     });
+  }
+
+  if (failures.length > 0) {
+    console.error(
+      `\n${failures.length} of ${names.length} variants failed to update: ${failures.map((f) => f.name).join(', ')}`
+    );
+    process.exitCode = 1;
   }
 }
