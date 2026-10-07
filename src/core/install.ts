@@ -130,6 +130,39 @@ const ensureNpmManifest = (npmDir: string) => {
   }
 };
 
+/**
+ * pnpm v11 refuses to run build scripts until each package is explicitly
+ * listed under `allowBuilds` in pnpm-workspace.yaml. When the entry is left
+ * unanswered pnpm writes a placeholder ("set this to true or false"), skips
+ * install.cjs, and later reinstalls can leave bin/ without the native binary.
+ * Pre-approve the Claude Code package so postinstall always runs.
+ */
+export const ensurePnpmAllowBuilds = (npmDir: string, npmPackage: string): void => {
+  const workspacePath = path.join(npmDir, 'pnpm-workspace.yaml');
+  const entry = `  '${npmPackage}': true`;
+  if (!fs.existsSync(workspacePath)) {
+    fs.writeFileSync(workspacePath, `allowBuilds:\n${entry}\n`, 'utf8');
+    return;
+  }
+  const lines = fs.readFileSync(workspacePath, 'utf8').split('\n');
+  const pkgLine = new RegExp(`^\\s+['"]?${npmPackage.replace(/[.*+?^${}()|[\]\\/]/g, '\\$&')}['"]?:`);
+  const blockStart = lines.findIndex((line) => /^allowBuilds:\s*$/.test(line));
+  if (blockStart === -1) {
+    lines.unshift('allowBuilds:', entry);
+  } else {
+    let i = blockStart + 1;
+    let replaced = false;
+    for (; i < lines.length && /^\s+/.test(lines[i]); i++) {
+      if (pkgLine.test(lines[i])) {
+        lines[i] = entry;
+        replaced = true;
+      }
+    }
+    if (!replaced) lines.splice(blockStart + 1, 0, entry);
+  }
+  fs.writeFileSync(workspacePath, lines.join('\n'), 'utf8');
+};
+
 export const installNpmClaude = (params: {
   npmDir: string;
   npmPackage: string;
@@ -145,6 +178,7 @@ export const installNpmClaude = (params: {
   }
 
   ensureNpmManifest(params.npmDir);
+  if (pm === 'pnpm') ensurePnpmAllowBuilds(params.npmDir, params.npmPackage);
   const result = spawnSync(pm, getInstallArgs(pm, params.npmDir, pkgSpec), {
     stdio: 'pipe',
     encoding: 'utf8',
@@ -208,6 +242,7 @@ export const installNpmClaudeAsync = (params: {
     }
 
     ensureNpmManifest(params.npmDir);
+    if (pm === 'pnpm') ensurePnpmAllowBuilds(params.npmDir, params.npmPackage);
     const child = spawn(pm, getInstallArgs(pm, params.npmDir, pkgSpec), {
       stdio: 'pipe',
       cwd: params.npmDir,

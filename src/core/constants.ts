@@ -10,7 +10,7 @@ export const TWEAKCC_VERSION = '4.0.13';
 /** Highest CC version verified to work with the pinned TWEAKCC_VERSION */
 export const TWEAKCC_MAX_VERIFIED_CC = '2.1.152';
 export const DEFAULT_NPM_PACKAGE = '@anthropic-ai/claude-code';
-export const DEFAULT_NPM_VERSION = '2.1.117';
+export const DEFAULT_NPM_VERSION = '2.1.293';
 
 // ANSI color codes for splash screen ASCII art
 export const SPLASH_COLORS = {
