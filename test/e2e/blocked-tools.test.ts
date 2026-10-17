@@ -1,8 +1,8 @@
 /**
- * E2E Tests - Blocked Tools Configuration
+ * E2E Tests - Provider Tool Denies
  *
- * Tests that provider blocked tools are correctly written to
- * settings.json permissions.deny and team mode adds TodoWrite.
+ * Verifies that cc-mirror enforces provider-specific tool restrictions via
+ * Claude Code's native settings.json permissions (not tweakcc toolsets).
  */
 
 import test from 'node:test';
@@ -10,10 +10,10 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import * as core from '../../src/core/index.js';
-import { ZAI_DENY_TOOLS, MINIMAX_DENY_TOOLS } from '../../src/core/claude-config.js';
-import { makeTempDir, readFile, cleanup, withFakeNpm } from '../helpers/index.js';
+import { MINIMAX_DENY_TOOLS, ZAI_DENY_TOOLS } from '../../src/core/claude-config.js';
+import { makeTempDir, readFile, cleanup } from '../helpers/index.js';
 
-test('E2E: Blocked Tools', async (t) => {
+test('E2E: Tool denies', async (t) => {
   const createdDirs: string[] = [];
 
   t.after(() => {
@@ -22,159 +22,67 @@ test('E2E: Blocked Tools', async (t) => {
     }
   });
 
-  await t.test('zai brand has blocked tools configured in settings.json', () => {
-    withFakeNpm(() => {
-      const rootDir = makeTempDir();
-      const binDir = makeTempDir();
-      createdDirs.push(rootDir, binDir);
+  await t.test('zai settings.json denies provider-injected tools + built-in web tools', async () => {
+    const rootDir = makeTempDir();
+    const binDir = makeTempDir();
+    createdDirs.push(rootDir, binDir);
 
-      core.createVariant({
-        name: 'test-zai-blocked',
-        providerKey: 'zai',
-        apiKey: 'test-key',
-        rootDir,
-        binDir,
-        enableTeamMode: false,
-        promptPack: false,
-        skillInstall: false,
-        noTweak: true,
-        tweakccStdio: 'pipe',
-      });
-
-      const variantDir = path.join(rootDir, 'test-zai-blocked');
-      const settingsPath = path.join(variantDir, 'config', 'settings.json');
-
-      assert.ok(fs.existsSync(settingsPath), 'settings.json should exist');
-
-      const settings = JSON.parse(readFile(settingsPath));
-      const deny: unknown = settings.permissions?.deny;
-
-      assert.ok(Array.isArray(deny), 'permissions.deny should be an array');
-
-      // Verify all expected tools are blocked
-      for (const tool of ZAI_DENY_TOOLS) {
-        assert.ok((deny as string[]).includes(tool), `settings.permissions.deny should include ${tool}`);
-      }
+    await core.createVariantAsync({
+      name: 'test-zai-deny',
+      providerKey: 'zai',
+      apiKey: 'test-key',
+      claudeVersion: 'stable',
+      rootDir,
+      binDir,
+      promptPack: false,
+      skillInstall: false,
+      noTweak: true,
+      tweakccStdio: 'pipe',
     });
+
+    const variantDir = path.join(rootDir, 'test-zai-deny');
+    const settingsPath = path.join(variantDir, 'config', 'settings.json');
+
+    assert.ok(fs.existsSync(settingsPath), 'settings.json should exist');
+
+    const settings = JSON.parse(readFile(settingsPath));
+    const deny = settings.permissions?.deny;
+    assert.ok(Array.isArray(deny), 'permissions.deny should be an array');
+
+    for (const tool of ZAI_DENY_TOOLS) {
+      assert.ok(deny.includes(tool), `zai should deny ${tool}`);
+    }
   });
 
-  await t.test('minimax brand has blocked tools configured in settings.json', () => {
-    withFakeNpm(() => {
-      const rootDir = makeTempDir();
-      const binDir = makeTempDir();
-      createdDirs.push(rootDir, binDir);
+  await t.test('minimax settings.json denies WebSearch', async () => {
+    const rootDir = makeTempDir();
+    const binDir = makeTempDir();
+    createdDirs.push(rootDir, binDir);
 
-      core.createVariant({
-        name: 'test-minimax-blocked',
-        providerKey: 'minimax',
-        apiKey: 'test-key',
-        rootDir,
-        binDir,
-        enableTeamMode: false,
-        promptPack: false,
-        skillInstall: false,
-        noTweak: true,
-        tweakccStdio: 'pipe',
-      });
-
-      const variantDir = path.join(rootDir, 'test-minimax-blocked');
-      const settingsPath = path.join(variantDir, 'config', 'settings.json');
-
-      assert.ok(fs.existsSync(settingsPath), 'settings.json should exist');
-
-      const settings = JSON.parse(readFile(settingsPath));
-      const deny: unknown = settings.permissions?.deny;
-
-      assert.ok(Array.isArray(deny), 'permissions.deny should be an array');
-
-      // Verify all expected tools are blocked
-      for (const tool of MINIMAX_DENY_TOOLS) {
-        assert.ok((deny as string[]).includes(tool), `settings.permissions.deny should include ${tool}`);
-      }
+    await core.createVariantAsync({
+      name: 'test-minimax-deny',
+      providerKey: 'minimax',
+      apiKey: 'test-key',
+      claudeVersion: 'stable',
+      rootDir,
+      binDir,
+      promptPack: false,
+      skillInstall: false,
+      noTweak: true,
+      tweakccStdio: 'pipe',
     });
-  });
 
-  await t.test('team mode adds TodoWrite to settings.json permissions.deny for zai', () => {
-    withFakeNpm(() => {
-      const rootDir = makeTempDir();
-      const binDir = makeTempDir();
-      createdDirs.push(rootDir, binDir);
+    const variantDir = path.join(rootDir, 'test-minimax-deny');
+    const settingsPath = path.join(variantDir, 'config', 'settings.json');
 
-      core.createVariant({
-        name: 'test-zai-team',
-        providerKey: 'zai',
-        apiKey: 'test-key',
-        rootDir,
-        binDir,
-        enableTeamMode: true,
-        promptPack: false,
-        skillInstall: false,
-        noTweak: true,
-        tweakccStdio: 'pipe',
-      });
+    assert.ok(fs.existsSync(settingsPath), 'settings.json should exist');
 
-      const variantDir = path.join(rootDir, 'test-zai-team');
-      const settingsPath = path.join(variantDir, 'config', 'settings.json');
+    const settings = JSON.parse(readFile(settingsPath));
+    const deny = settings.permissions?.deny;
+    assert.ok(Array.isArray(deny), 'permissions.deny should be an array');
 
-      assert.ok(fs.existsSync(settingsPath), 'settings.json should exist');
-
-      const settings = JSON.parse(readFile(settingsPath));
-      const deny: unknown = settings.permissions?.deny;
-
-      assert.ok(Array.isArray(deny), 'permissions.deny should be an array');
-
-      // Verify TodoWrite is blocked
-      assert.ok((deny as string[]).includes('TodoWrite'), 'settings.permissions.deny should include TodoWrite');
-
-      // Verify zai blocked tools are also present (merged)
-      for (const tool of ZAI_DENY_TOOLS) {
-        assert.ok(
-          (deny as string[]).includes(tool),
-          `settings.permissions.deny should include inherited blocked tool ${tool}`
-        );
-      }
-    });
-  });
-
-  await t.test('team mode adds TodoWrite to settings.json permissions.deny for minimax', () => {
-    withFakeNpm(() => {
-      const rootDir = makeTempDir();
-      const binDir = makeTempDir();
-      createdDirs.push(rootDir, binDir);
-
-      core.createVariant({
-        name: 'test-minimax-team',
-        providerKey: 'minimax',
-        apiKey: 'test-key',
-        rootDir,
-        binDir,
-        enableTeamMode: true,
-        promptPack: false,
-        skillInstall: false,
-        noTweak: true,
-        tweakccStdio: 'pipe',
-      });
-
-      const variantDir = path.join(rootDir, 'test-minimax-team');
-      const settingsPath = path.join(variantDir, 'config', 'settings.json');
-
-      assert.ok(fs.existsSync(settingsPath), 'settings.json should exist');
-
-      const settings = JSON.parse(readFile(settingsPath));
-      const deny: unknown = settings.permissions?.deny;
-
-      assert.ok(Array.isArray(deny), 'permissions.deny should be an array');
-
-      // Verify TodoWrite is blocked
-      assert.ok((deny as string[]).includes('TodoWrite'), 'settings.permissions.deny should include TodoWrite');
-
-      // Verify minimax blocked tools are also present (merged)
-      for (const tool of MINIMAX_DENY_TOOLS) {
-        assert.ok(
-          (deny as string[]).includes(tool),
-          `settings.permissions.deny should include inherited blocked tool ${tool}`
-        );
-      }
-    });
+    for (const tool of MINIMAX_DENY_TOOLS) {
+      assert.ok(deny.includes(tool), `minimax should deny ${tool}`);
+    }
   });
 });

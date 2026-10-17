@@ -1,9 +1,7 @@
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { createHash } from 'node:crypto';
 import { spawn, spawnSync } from 'node:child_process';
-import { fileURLToPath } from 'node:url';
 import { commandExists } from './paths.js';
 
 export type SkillInstallStatus = 'installed' | 'updated' | 'skipped' | 'failed';
@@ -15,10 +13,7 @@ export interface SkillInstallResult {
 }
 
 const DEV_BROWSER_REPO = 'https://github.com/SawyerHood/dev-browser.git';
-const DEV_BROWSER_REF = '66682fb0513aec308e68d71740e2b0394a29d884';
-const DEV_BROWSER_BRANCH = 'main';
-const DEV_BROWSER_ARCHIVE = `https://github.com/SawyerHood/dev-browser/archive/${DEV_BROWSER_REF}.tar.gz`;
-const DEV_BROWSER_ARCHIVE_SHA256 = '4a065f6944afda54400d801fb4814ecfe393249a68ce27c9e69346e93b9e85af';
+const DEV_BROWSER_ARCHIVE = 'https://github.com/SawyerHood/dev-browser/archive/refs/heads/main.tar.gz';
 const SKILL_SUBDIR = path.join('skills', 'dev-browser');
 const MANAGED_MARKER = '.cc-mirror-managed';
 
@@ -28,50 +23,6 @@ const ensureDir = (dir: string) => {
 
 const copyDir = (source: string, target: string) => {
   fs.cpSync(source, target, { recursive: true });
-};
-
-const sha256File = (filePath: string): string => {
-  const hash = createHash('sha256');
-  hash.update(fs.readFileSync(filePath));
-  return hash.digest('hex');
-};
-
-const isUnsafeTarEntry = (entry: string): boolean => {
-  if (!entry) return false;
-  const normalized = entry.replace(/\\/g, '/');
-  if (normalized.startsWith('/') || /^[A-Za-z]:/.test(normalized)) return true;
-  const parts = normalized.split('/');
-  return parts.some((part) => part === '..');
-};
-
-const verifyArchive = (archivePath: string): { ok: boolean; message?: string } => {
-  const hash = sha256File(archivePath);
-  if (hash !== DEV_BROWSER_ARCHIVE_SHA256) {
-    return { ok: false, message: 'dev-browser archive checksum mismatch' };
-  }
-  const listResult = spawnSync('tar', ['-tzf', archivePath], { encoding: 'utf8' });
-  if (listResult.status !== 0) {
-    return { ok: false, message: listResult.stderr?.trim() || 'tar list failed' };
-  }
-  const entries = listResult.stdout.split('\n').filter(Boolean);
-  for (const entry of entries) {
-    if (isUnsafeTarEntry(entry)) {
-      return { ok: false, message: `tar archive contains unsafe path: ${entry}` };
-    }
-  }
-  return { ok: true };
-};
-
-const verifyGitHead = (targetDir: string): { ok: boolean; message?: string } => {
-  const result = spawnSync('git', ['rev-parse', 'HEAD'], { cwd: targetDir, encoding: 'utf8' });
-  if (result.status !== 0) {
-    return { ok: false, message: result.stderr?.trim() || 'git rev-parse failed' };
-  }
-  const head = result.stdout.trim();
-  if (head !== DEV_BROWSER_REF) {
-    return { ok: false, message: `dev-browser ref mismatch (expected ${DEV_BROWSER_REF})` };
-  }
-  return { ok: true };
 };
 
 const resolveSkillSourceDir = (repoDir: string): string | null => {
@@ -87,19 +38,11 @@ const resolveSkillSourceDir = (repoDir: string): string | null => {
 
 const cloneRepo = (targetDir: string): { ok: boolean; message?: string } => {
   if (!commandExists('git')) return { ok: false, message: 'git not found' };
-  const result = spawnSync(
-    'git',
-    ['clone', '--depth', '1', '--branch', DEV_BROWSER_BRANCH, DEV_BROWSER_REPO, targetDir],
-    {
-      encoding: 'utf8',
-    }
-  );
-  if (result.status !== 0) {
-    return { ok: false, message: result.stderr?.trim() || result.stdout?.trim() || 'git clone failed' };
-  }
-  const verify = verifyGitHead(targetDir);
-  if (!verify.ok) return verify;
-  return { ok: true };
+  const result = spawnSync('git', ['clone', '--depth', '1', DEV_BROWSER_REPO, targetDir], {
+    encoding: 'utf8',
+  });
+  if (result.status === 0) return { ok: true };
+  return { ok: false, message: result.stderr?.trim() || result.stdout?.trim() || 'git clone failed' };
 };
 
 const downloadArchive = (targetDir: string): { ok: boolean; message?: string } => {
@@ -111,8 +54,6 @@ const downloadArchive = (targetDir: string): { ok: boolean; message?: string } =
   if (curlResult.status !== 0) {
     return { ok: false, message: curlResult.stderr?.trim() || 'curl failed' };
   }
-  const verify = verifyArchive(archivePath);
-  if (!verify.ok) return verify;
   const tarResult = spawnSync('tar', ['-xzf', archivePath, '-C', targetDir], { encoding: 'utf8' });
   if (tarResult.status !== 0) {
     return { ok: false, message: tarResult.stderr?.trim() || 'tar extract failed' };
@@ -173,200 +114,6 @@ export const ensureDevBrowserSkill = (opts: {
   }
 };
 
-// ============================================================================
-// Orchestration Skill (bundled with cc-mirror)
-// ============================================================================
-
-const ORCHESTRATOR_SKILL_NAME = 'orchestration';
-
-/**
- * Find the bundled orchestrator skill directory
- * Works both in development (src/skills) and production (dist/skills)
- */
-const findBundledSkillDir = (): string | null => {
-  // Get the directory of this module
-  const thisFile = fileURLToPath(import.meta.url);
-  const thisDir = path.dirname(thisFile);
-
-  // Try development path: src/skills/multi-agent-orchestrator
-  const devPath = path.join(thisDir, '..', 'skills', ORCHESTRATOR_SKILL_NAME);
-  if (fs.existsSync(devPath)) return devPath;
-
-  // Try production path: dist/skills/multi-agent-orchestrator
-  const distPath = path.join(thisDir, 'skills', ORCHESTRATOR_SKILL_NAME);
-  if (fs.existsSync(distPath)) return distPath;
-
-  // Try relative to dist/cc-mirror.mjs
-  const distPath2 = path.join(thisDir, '..', 'skills', ORCHESTRATOR_SKILL_NAME);
-  if (fs.existsSync(distPath2)) return distPath2;
-
-  return null;
-};
-
-export interface OrchestratorSkillResult {
-  status: 'installed' | 'removed' | 'skipped' | 'failed';
-  message?: string;
-  path?: string;
-}
-
-/**
- * Install the orchestration skill to a variant's config directory
- */
-export const installOrchestratorSkill = (configDir: string): OrchestratorSkillResult => {
-  const sourceDir = findBundledSkillDir();
-  if (!sourceDir) {
-    return { status: 'failed', message: 'bundled orchestrator skill not found' };
-  }
-
-  const skillsDir = path.join(configDir, 'skills');
-  const targetDir = path.join(skillsDir, ORCHESTRATOR_SKILL_NAME);
-  const markerPath = path.join(targetDir, MANAGED_MARKER);
-
-  try {
-    ensureDir(skillsDir);
-
-    // If exists and not managed by us, skip
-    if (fs.existsSync(targetDir) && !fs.existsSync(markerPath)) {
-      return { status: 'skipped', message: 'existing skill is user-managed', path: targetDir };
-    }
-
-    // Remove existing and copy fresh
-    if (fs.existsSync(targetDir)) {
-      fs.rmSync(targetDir, { recursive: true, force: true });
-    }
-
-    copyDir(sourceDir, targetDir);
-    fs.writeFileSync(
-      markerPath,
-      JSON.stringify({ managedBy: 'cc-mirror', updatedAt: new Date().toISOString() }, null, 2)
-    );
-
-    return { status: 'installed', path: targetDir };
-  } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    return { status: 'failed', message };
-  }
-};
-
-/**
- * Remove the orchestration skill from a variant's config directory
- */
-export const removeOrchestratorSkill = (configDir: string): OrchestratorSkillResult => {
-  const skillsDir = path.join(configDir, 'skills');
-  const targetDir = path.join(skillsDir, ORCHESTRATOR_SKILL_NAME);
-  const markerPath = path.join(targetDir, MANAGED_MARKER);
-
-  // If doesn't exist, nothing to do
-  if (!fs.existsSync(targetDir)) {
-    return { status: 'skipped', message: 'skill not installed' };
-  }
-
-  // If exists but not managed by us, don't remove
-  if (!fs.existsSync(markerPath)) {
-    return { status: 'skipped', message: 'skill is user-managed, not removing' };
-  }
-
-  try {
-    fs.rmSync(targetDir, { recursive: true, force: true });
-    return { status: 'removed', path: targetDir };
-  } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    return { status: 'failed', message };
-  }
-};
-
-// ============================================================================
-// Task Manager Skill (bundled with cc-mirror, for team mode)
-// ============================================================================
-
-const TASK_MANAGER_SKILL_NAME = 'task-manager';
-
-/**
- * Find the bundled task-manager skill directory
- */
-const findBundledTaskManagerSkillDir = (): string | null => {
-  const thisFile = fileURLToPath(import.meta.url);
-  const thisDir = path.dirname(thisFile);
-
-  // Try development path: src/skills/task-manager
-  const devPath = path.join(thisDir, '..', 'skills', TASK_MANAGER_SKILL_NAME);
-  if (fs.existsSync(devPath)) return devPath;
-
-  // Try production path: dist/skills/task-manager
-  const distPath = path.join(thisDir, 'skills', TASK_MANAGER_SKILL_NAME);
-  if (fs.existsSync(distPath)) return distPath;
-
-  // Try relative to dist/cc-mirror.mjs
-  const distPath2 = path.join(thisDir, '..', 'skills', TASK_MANAGER_SKILL_NAME);
-  if (fs.existsSync(distPath2)) return distPath2;
-
-  return null;
-};
-
-/**
- * Install the task-manager skill to a variant's config directory
- */
-export const installTaskManagerSkill = (configDir: string): OrchestratorSkillResult => {
-  const sourceDir = findBundledTaskManagerSkillDir();
-  if (!sourceDir) {
-    return { status: 'failed', message: 'bundled task-manager skill not found' };
-  }
-
-  const skillsDir = path.join(configDir, 'skills');
-  const targetDir = path.join(skillsDir, TASK_MANAGER_SKILL_NAME);
-  const markerPath = path.join(targetDir, MANAGED_MARKER);
-
-  try {
-    ensureDir(skillsDir);
-
-    // If exists and not managed by us, skip
-    if (fs.existsSync(targetDir) && !fs.existsSync(markerPath)) {
-      return { status: 'skipped', message: 'existing skill is user-managed', path: targetDir };
-    }
-
-    // Remove existing and copy fresh
-    if (fs.existsSync(targetDir)) {
-      fs.rmSync(targetDir, { recursive: true, force: true });
-    }
-
-    copyDir(sourceDir, targetDir);
-    fs.writeFileSync(
-      markerPath,
-      JSON.stringify({ managedBy: 'cc-mirror', updatedAt: new Date().toISOString() }, null, 2)
-    );
-
-    return { status: 'installed', path: targetDir };
-  } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    return { status: 'failed', message };
-  }
-};
-
-/**
- * Remove the task-manager skill from a variant's config directory
- */
-export const removeTaskManagerSkill = (configDir: string): OrchestratorSkillResult => {
-  const skillsDir = path.join(configDir, 'skills');
-  const targetDir = path.join(skillsDir, TASK_MANAGER_SKILL_NAME);
-  const markerPath = path.join(targetDir, MANAGED_MARKER);
-
-  if (!fs.existsSync(targetDir)) {
-    return { status: 'skipped', message: 'skill not installed' };
-  }
-
-  if (!fs.existsSync(markerPath)) {
-    return { status: 'skipped', message: 'skill is user-managed, not removing' };
-  }
-
-  try {
-    fs.rmSync(targetDir, { recursive: true, force: true });
-    return { status: 'removed', path: targetDir };
-  } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    return { status: 'failed', message };
-  }
-};
-
 // Async versions for TUI progress updates
 
 const spawnAsync = (cmd: string, args: string[]): Promise<{ ok: boolean; message?: string }> => {
@@ -390,19 +137,7 @@ const spawnAsync = (cmd: string, args: string[]): Promise<{ ok: boolean; message
 
 const cloneRepoAsync = async (targetDir: string): Promise<{ ok: boolean; message?: string }> => {
   if (!commandExists('git')) return { ok: false, message: 'git not found' };
-  const cloneResult = await spawnAsync('git', [
-    'clone',
-    '--depth',
-    '1',
-    '--branch',
-    DEV_BROWSER_BRANCH,
-    DEV_BROWSER_REPO,
-    targetDir,
-  ]);
-  if (!cloneResult.ok) return cloneResult;
-  const verify = verifyGitHead(targetDir);
-  if (!verify.ok) return verify;
-  return { ok: true };
+  return spawnAsync('git', ['clone', '--depth', '1', DEV_BROWSER_REPO, targetDir]);
 };
 
 const downloadArchiveAsync = async (targetDir: string): Promise<{ ok: boolean; message?: string }> => {
@@ -412,8 +147,6 @@ const downloadArchiveAsync = async (targetDir: string): Promise<{ ok: boolean; m
   const archivePath = path.join(targetDir, 'dev-browser.tar.gz');
   const curlResult = await spawnAsync('curl', ['-L', '-o', archivePath, DEV_BROWSER_ARCHIVE]);
   if (!curlResult.ok) return curlResult;
-  const verify = verifyArchive(archivePath);
-  if (!verify.ok) return verify;
   return spawnAsync('tar', ['-xzf', archivePath, '-C', targetDir]);
 };
 

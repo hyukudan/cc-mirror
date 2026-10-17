@@ -7,7 +7,14 @@
 
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { listProviders, getProvider, buildEnv } from '../src/providers/index.js';
+import {
+  listProviders,
+  getProvider,
+  buildEnv,
+  getProviderCapability,
+  PROVIDER_DISPLAY_ORDER,
+  resolveStartupModelSetting,
+} from '../src/providers/index.js';
 
 test('Provider Feature Matrix', async (t) => {
   const providers = listProviders(true); // Include experimental
@@ -22,40 +29,32 @@ test('Provider Feature Matrix', async (t) => {
     }
   });
 
-  await t.test('mirror provider has enablesTeamMode', () => {
-    const mirror = getProvider('mirror');
-    assert.ok(mirror, 'mirror provider should exist');
-    assert.ok(mirror.enablesTeamMode, 'mirror should have enablesTeamMode: true');
-    assert.ok(mirror.noPromptPack, 'mirror should have noPromptPack: true');
-    assert.ok(mirror.credentialOptional, 'mirror should have credentialOptional: true');
-    assert.equal(mirror.authMode, 'none', 'mirror should have authMode: none');
-    assert.ok(mirror.firstParty, 'mirror should have firstParty: true');
-  });
-
-  await t.test('mirror is the only first-party provider', () => {
-    const firstParty = providers.filter((p) => p.firstParty).map((p) => p.key);
-    assert.deepEqual(firstParty, ['mirror'], 'only mirror targets Anthropic directly');
-  });
-
-  await t.test('first-party providers keep nonessential traffic enabled', () => {
-    // The flag disables GrowthBook feature-flag evaluation, which silently turns off
-    // Remote Control and cloud agents. Only meaningful when talking to Anthropic itself.
-    const env = buildEnv({ providerKey: 'mirror' });
-    assert.ok(
-      !Object.hasOwn(env, 'CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC'),
-      'mirror must not disable nonessential traffic'
+  await t.test('providers follow canonical display order', () => {
+    assert.deepEqual(
+      providers.map((provider) => provider.key),
+      Array.from(PROVIDER_DISPLAY_ORDER),
+      'providers should appear in canonical display order'
     );
   });
 
-  await t.test('third-party providers disable nonessential traffic', () => {
-    for (const provider of providers.filter((p) => !p.firstParty)) {
-      const env = buildEnv({ providerKey: provider.key });
-      assert.equal(
-        String(env.CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC),
-        '1',
-        `${provider.key} must not phone home to Anthropic`
-      );
-    }
+  await t.test('mirror provider has clean defaults', () => {
+    const mirror = getProvider('mirror');
+    assert.ok(mirror, 'mirror provider should exist');
+    assert.ok(mirror.noPromptPack, 'mirror should have noPromptPack: true');
+    assert.ok(mirror.credentialOptional, 'mirror should have credentialOptional: true');
+    assert.equal(mirror.authMode, 'none', 'mirror should have authMode: none');
+  });
+
+  await t.test('mirror keeps claude.ai login and feature flags available', () => {
+    const env = buildEnv({ providerKey: 'mirror' });
+    assert.equal(env.DISABLE_UPDATES, '1', 'mirror runtime is still cc-mirror managed');
+    assert.equal(env.DISABLE_LOGIN_COMMAND, undefined, 'mirror must allow /login');
+    assert.equal(env.DISABLE_LOGOUT_COMMAND, undefined, 'mirror must allow /logout');
+    assert.equal(env.CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC, undefined, 'mirror needs feature-flag evaluation');
+
+    const zaiEnv = buildEnv({ providerKey: 'zai', apiKey: 'test-key' });
+    assert.equal(zaiEnv.DISABLE_LOGIN_COMMAND, '1', 'hosted providers still hide /login');
+    assert.equal(zaiEnv.CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC, '1');
   });
 
   await t.test('ccrouter provider has correct auth mode', () => {
@@ -72,48 +71,28 @@ test('Provider Feature Matrix', async (t) => {
     assert.equal(openrouter.authMode, 'authToken', 'openrouter should use authToken mode');
   });
 
-  await t.test('gatewayz provider requires model mapping', () => {
-    const gatewayz = getProvider('gatewayz');
-    assert.ok(gatewayz, 'gatewayz provider should exist');
-    assert.ok(gatewayz.requiresModelMapping, 'gatewayz should require model mapping');
-    assert.equal(gatewayz.authMode, 'authToken', 'gatewayz should use authToken mode');
-  });
-
-  await t.test('nanogpt provider requires model mapping', () => {
-    const nanogpt = getProvider('nanogpt');
-    assert.ok(nanogpt, 'nanogpt provider should exist');
-    assert.ok(nanogpt.requiresModelMapping, 'nanogpt should require model mapping');
-    assert.equal(nanogpt.authMode, 'authToken', 'nanogpt should use authToken mode');
-  });
-
-  await t.test('ollama provider uses authToken with translation API key', () => {
+  await t.test('ollama provider uses auth token + api key', () => {
     const ollama = getProvider('ollama');
     assert.ok(ollama, 'ollama provider should exist');
     assert.equal(ollama.authMode, 'authToken', 'ollama should use authToken mode');
-    assert.ok(!ollama.authTokenAlsoSetsApiKey, 'ollama should not set authTokenAlsoSetsApiKey');
-    assert.equal(ollama.env.CC_MIRROR_TRANSLATION_API_KEY, 'ollama', 'ollama should use translation API key');
-    assert.ok(ollama.credentialOptional, 'ollama should have credentialOptional: true');
-    assert.ok(ollama.requiresTranslation, 'ollama should require translation');
-    assert.equal(ollama.env.CC_MIRROR_SPLASH_STYLE, 'ollama', 'ollama should have ollama splash style');
+    assert.ok(ollama.authTokenAlsoSetsApiKey, 'ollama should keep API key with auth token');
+    assert.ok(ollama.requiresModelMapping, 'ollama should require model mapping');
+    assert.ok(ollama.env.ANTHROPIC_AUTH_TOKEN, 'ollama should have default auth token');
+    assert.ok(ollama.env.ANTHROPIC_API_KEY, 'ollama should have default api key');
   });
 
-  await t.test('poe provider requires model mapping and authToken', () => {
-    const poe = getProvider('poe');
-    assert.ok(poe, 'poe provider should exist');
-    assert.ok(poe.requiresModelMapping, 'poe should require model mapping');
-    assert.equal(poe.authMode, 'authToken', 'poe should use authToken mode');
-    assert.equal(poe.env.CC_MIRROR_SPLASH_STYLE, 'poe', 'poe should have poe splash style');
-  });
-
-  await t.test('zai and minimax providers have splash styles', () => {
+  await t.test('zai, minimax, and kimi providers have splash styles', () => {
     const zai = getProvider('zai');
     const minimax = getProvider('minimax');
+    const kimi = getProvider('kimi');
 
     assert.ok(zai, 'zai provider should exist');
     assert.ok(minimax, 'minimax provider should exist');
+    assert.ok(kimi, 'kimi provider should exist');
 
     assert.equal(zai.env.CC_MIRROR_SPLASH_STYLE, 'zai');
     assert.equal(minimax.env.CC_MIRROR_SPLASH_STYLE, 'minimax');
+    assert.equal(kimi.env.CC_MIRROR_SPLASH_STYLE, 'kimi');
   });
 
   await t.test('experimental providers are hidden by default', () => {
@@ -142,15 +121,87 @@ test('Provider Feature Matrix', async (t) => {
   await t.test('zai provider has default models', () => {
     const zai = getProvider('zai');
     assert.ok(zai, 'zai provider should exist');
-    assert.ok(zai.env.ANTHROPIC_DEFAULT_HAIKU_MODEL, 'zai should have haiku model');
-    assert.ok(zai.env.ANTHROPIC_DEFAULT_SONNET_MODEL, 'zai should have sonnet model');
-    assert.ok(zai.env.ANTHROPIC_DEFAULT_OPUS_MODEL, 'zai should have opus model');
+    assert.equal(zai.env.ANTHROPIC_DEFAULT_HAIKU_MODEL, 'glm-4.5-air', 'zai should default haiku to glm-4.5-air');
+    assert.equal(zai.env.ANTHROPIC_DEFAULT_SONNET_MODEL, 'glm-5-turbo', 'zai should default sonnet to glm-5-turbo');
+    assert.equal(zai.env.ANTHROPIC_DEFAULT_OPUS_MODEL, 'glm-5.1', 'zai should default opus to glm-5.1');
+  });
+
+  await t.test('kimi provider has default models', () => {
+    const kimi = getProvider('kimi');
+    assert.ok(kimi, 'kimi provider should exist');
+    assert.equal(kimi.baseUrl, 'https://api.kimi.com/coding');
+    assert.equal(kimi.authMode, 'authToken');
+    assert.equal(kimi.env.ANTHROPIC_CUSTOM_HEADERS, 'User-Agent: KimiCLI/1.5');
+    assert.equal(kimi.env.ANTHROPIC_DEFAULT_HAIKU_MODEL, 'kimi-for-coding');
+    assert.equal(kimi.env.ANTHROPIC_DEFAULT_SONNET_MODEL, 'kimi-for-coding');
+    assert.equal(kimi.env.ANTHROPIC_DEFAULT_OPUS_MODEL, 'kimi-for-coding');
+    assert.equal(kimi.env.ANTHROPIC_MODEL, 'kimi-for-coding');
+    assert.equal(kimi.env.CLAUDE_CODE_SUBAGENT_MODEL, 'kimi-for-coding');
   });
 
   await t.test('minimax provider has model settings', () => {
     const minimax = getProvider('minimax');
     assert.ok(minimax, 'minimax provider should exist');
-    assert.ok(minimax.env.ANTHROPIC_MODEL, 'minimax should have ANTHROPIC_MODEL');
-    assert.ok(minimax.env.ANTHROPIC_SMALL_FAST_MODEL, 'minimax should have ANTHROPIC_SMALL_FAST_MODEL');
+    assert.equal(minimax.authMode, 'authToken', 'minimax should use auth token mode');
+    assert.equal(minimax.env.ANTHROPIC_MODEL, 'MiniMax-M2.7');
+    assert.equal(
+      minimax.env.ANTHROPIC_SMALL_FAST_MODEL,
+      'MiniMax-M2.7',
+      'minimax should default small-fast model to M2.7'
+    );
+    const minimaxProfile = getProviderCapability('minimax');
+    assert.ok(minimaxProfile, 'minimax capability profile should exist');
+    assert.equal(resolveStartupModelSetting(minimaxProfile), 'MiniMax-M2.7');
+  });
+
+  await t.test('buildEnv derives alias models without forcing startup env', () => {
+    const zaiEnv = buildEnv({ providerKey: 'zai', apiKey: 'test-key' });
+    assert.equal(zaiEnv.ANTHROPIC_MODEL, undefined, 'startup model should be stored in settings.model');
+    assert.equal(zaiEnv.ANTHROPIC_DEFAULT_OPUS_MODEL_NAME, 'GLM-5.1');
+    assert.equal(zaiEnv.ANTHROPIC_CUSTOM_MODEL_OPTION_NAME, 'GLM-5.1');
+    assert.equal(zaiEnv.DISABLE_TELEMETRY, '1');
+    assert.equal(zaiEnv.ENABLE_TOOL_SEARCH, 'false');
+    assert.equal(
+      zaiEnv.ANTHROPIC_SMALL_FAST_MODEL,
+      zaiEnv.ANTHROPIC_DEFAULT_HAIKU_MODEL,
+      'ANTHROPIC_SMALL_FAST_MODEL should follow the Haiku alias by default'
+    );
+    const zaiProfile = getProviderCapability('zai');
+    assert.ok(zaiProfile, 'zai capability profile should exist');
+    assert.equal(resolveStartupModelSetting(zaiProfile), 'glm-5.1');
+  });
+
+  await t.test('buildEnv preserves explicit alias/small-fast model overrides', () => {
+    const modelOverrides = {
+      opus: 'glm-5',
+      haiku: 'glm-4.5-air',
+      defaultModel: 'glm-4.7',
+      smallFast: 'glm-5-air',
+    };
+    const env = buildEnv({
+      providerKey: 'zai',
+      apiKey: 'test-key',
+      modelOverrides,
+    });
+
+    assert.equal(env.ANTHROPIC_MODEL, undefined, 'explicit default model override should be stored in settings.model');
+    const zaiProfile = getProviderCapability('zai');
+    assert.ok(zaiProfile, 'zai capability profile should exist');
+    assert.equal(resolveStartupModelSetting(zaiProfile, modelOverrides), 'glm-4.7');
+    assert.equal(env.ANTHROPIC_SMALL_FAST_MODEL, 'glm-5-air', 'explicit small-fast override should be preserved');
+  });
+
+  await t.test('nanogpt provider uses current endpoint and non-Anthropic defaults', () => {
+    const nanogpt = getProvider('nanogpt');
+    assert.ok(nanogpt, 'nanogpt provider should exist');
+    assert.equal(nanogpt.baseUrl, 'https://nano-gpt.com/api/v1');
+
+    const env = buildEnv({ providerKey: 'nanogpt', apiKey: 'test-key' });
+    assert.equal(env.ANTHROPIC_BASE_URL, 'https://nano-gpt.com/api/v1');
+    assert.equal(env.API_TIMEOUT_MS, '600000');
+    assert.equal(env.ANTHROPIC_DEFAULT_OPUS_MODEL, 'openai/gpt-5.2');
+    assert.equal(env.ANTHROPIC_DEFAULT_SONNET_MODEL, 'openai/gpt-5.2');
+    assert.equal(env.ANTHROPIC_DEFAULT_HAIKU_MODEL, 'google/gemini-3-flash-preview');
+    assert.equal(env.ANTHROPIC_DEFAULT_HAIKU_MODEL_NAME, 'Gemini 3 Flash');
   });
 });

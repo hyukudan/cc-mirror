@@ -3,7 +3,6 @@
  */
 
 import * as core from '../../core/index.js';
-import { assertValidVariantName } from '../../core/validation.js';
 import type { ParsedArgs } from '../args.js';
 
 export interface TweakCommandOptions {
@@ -14,11 +13,11 @@ export interface TweakCommandOptions {
  * Execute the tweak command
  */
 export function runTweakCommand({ opts }: TweakCommandOptions): void {
-  let target = opts._ && opts._[0];
+  const target = opts._ && opts._[0];
   if (!target) {
-    throw new Error('tweak requires a variant name');
+    console.error('tweak requires a variant name');
+    process.exit(1);
   }
-  target = assertValidVariantName(target);
   const rootDir = (opts.root as string) || core.DEFAULT_ROOT;
   core.tweakVariant(rootDir, target);
 }

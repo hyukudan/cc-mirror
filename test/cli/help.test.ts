@@ -34,13 +34,6 @@ test('printHelp outputs usage information', () => {
   assert.ok(text.includes('remove'), 'Should include remove command');
   assert.ok(text.includes('doctor'), 'Should include doctor command');
   assert.ok(text.includes('tweak'), 'Should include tweak command');
-  assert.ok(text.includes('run'), 'Should include run command');
-  assert.ok(text.includes('mcp'), 'Should include mcp command');
-  assert.ok(text.includes('export'), 'Should include export command');
-  assert.ok(text.includes('import'), 'Should include import command');
-  assert.ok(text.includes('config'), 'Should include config command');
-  assert.ok(text.includes('path'), 'Should include path command');
-  assert.ok(text.includes('sync'), 'Should include sync command');
 });
 
 test('printHelp documents provider options', () => {
@@ -50,9 +43,8 @@ test('printHelp documents provider options', () => {
   assert.ok(text.includes('--provider'), 'Should document provider option');
   assert.ok(text.includes('zai'), 'Should list zai provider');
   assert.ok(text.includes('minimax'), 'Should list minimax provider');
-  assert.ok(text.includes('gatewayz'), 'Should list gatewayz provider');
+  assert.ok(text.includes('kimi'), 'Should list kimi provider');
   assert.ok(text.includes('openrouter'), 'Should list openrouter provider');
-  assert.ok(text.includes('nanogpt'), 'Should list nanogpt provider');
   assert.ok(text.includes('ccrouter'), 'Should list ccrouter provider');
 });
 
@@ -84,9 +76,6 @@ test('printHelp documents flag options', () => {
   assert.ok(text.includes('--tui') || text.includes('tui'), 'Should document tui flag');
   assert.ok(text.includes('--no-prompt-pack'), 'Should document no-prompt-pack flag');
   assert.ok(text.includes('--shell-env') || text.includes('shell'), 'Should document shell-env flag');
-  assert.ok(text.includes('--apply'), 'Should document path apply flag');
-  assert.ok(text.includes('--npm-package'), 'Should document npm-package flag');
-  assert.ok(text.includes('--npm-version'), 'Should document npm-version flag');
 });
 
 test('printHelp documents CLI sections', () => {

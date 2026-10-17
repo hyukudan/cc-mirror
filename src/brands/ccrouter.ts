@@ -1,5 +1,8 @@
 import type { TweakccConfig, Theme } from './types.js';
 import { DEFAULT_THEMES } from './defaultThemes.js';
+import { buildBrandMiscConfig } from './miscDefaults.js';
+import { buildBrandSettingsDefaults } from './settingsDefaults.js';
+import { buildDiffPalette } from './diffPalette.js';
 import { formatUserMessage, getUserLabel } from './userLabel.js';
 
 type Rgb = { r: number; g: number; b: number };
@@ -41,22 +44,22 @@ const mix = (hexA: string, hexB: string, weight: number) => {
 const lighten = (hex: string, weight: number) => mix(hex, '#ffffff', weight);
 
 const palette = {
-  base: '#edf6ff',
-  surface: '#f6fbff',
-  panel: '#e3f0fb',
-  border: '#c5d9ee',
-  borderStrong: '#9fb9d8',
-  text: '#162434',
-  textMuted: '#3f546b',
-  textDim: '#6b7f95',
+  base: '#0c1320',
+  surface: '#111a2a',
+  panel: '#16233a',
+  border: '#2a3f61',
+  borderStrong: '#3f5f90',
+  text: '#e7f1ff',
+  textMuted: '#bfd0e8',
+  textDim: '#8ca4c4',
   sky: '#4da3ff',
   skySoft: '#7bbcff',
   skyDeep: '#2a6fcb',
-  cyan: '#6cc7ff',
-  green: '#3aa876',
-  red: '#d34e5c',
-  orange: '#e59b3e',
-  purple: '#6b7dd8',
+  cyan: '#64d5ff',
+  green: '#2fb37f',
+  red: '#e06b7a',
+  orange: '#d9a04d',
+  purple: '#7e8fe0',
 };
 
 const theme: Theme = {
@@ -86,14 +89,7 @@ const theme: Theme = {
     error: rgb(palette.red),
     warning: rgb(palette.orange),
     warningShimmer: lighten(palette.orange, 0.28),
-    diffAdded: mix(palette.base, palette.green, 0.2),
-    diffRemoved: mix(palette.base, palette.red, 0.2),
-    diffAddedDimmed: mix(palette.base, palette.green, 0.12),
-    diffRemovedDimmed: mix(palette.base, palette.red, 0.12),
-    diffAddedWord: mix(palette.base, palette.green, 0.42),
-    diffRemovedWord: mix(palette.base, palette.red, 0.42),
-    diffAddedWordDimmed: mix(palette.base, palette.green, 0.28),
-    diffRemovedWordDimmed: mix(palette.base, palette.red, 0.28),
+    ...buildDiffPalette(),
     red_FOR_SUBAGENTS_ONLY: rgb(palette.red),
     blue_FOR_SUBAGENTS_ONLY: rgb(palette.skyDeep),
     green_FOR_SUBAGENTS_ONLY: rgb(palette.green),
@@ -119,9 +115,9 @@ const theme: Theme = {
     rainbow_violet_shimmer: lighten(palette.purple, 0.35),
     clawd_body: rgb(palette.skyDeep),
     clawd_background: rgb(palette.base),
-    userMessageBackground: rgb(palette.panel),
-    bashMessageBackgroundColor: rgb(palette.surface),
-    memoryBackgroundColor: mix(palette.panel, palette.skySoft, 0.12),
+    userMessageBackground: mix('#383838', palette.sky, 0.12),
+    bashMessageBackgroundColor: mix('#404040', palette.sky, 0.08),
+    memoryBackgroundColor: mix('#383838', palette.cyan, 0.1),
     rate_limit_fill: rgb(palette.sky),
     rate_limit_empty: rgb(palette.borderStrong),
   },
@@ -134,7 +130,7 @@ export const buildCCRouterTweakccConfig = (): TweakccConfig => ({
   changesApplied: false,
   hidePiebaldAnnouncement: true,
   settings: {
-    themes: [theme, ...DEFAULT_THEMES],
+    themes: [theme, ...DEFAULT_THEMES.filter((t) => t.id !== theme.id)],
     thinkingVerbs: {
       format: '{}... ',
       verbs: [
@@ -173,15 +169,7 @@ export const buildCCRouterTweakccConfig = (): TweakccConfig => ({
     inputBox: {
       removeBorder: true,
     },
-    misc: {
-      showTweakccVersion: false,
-      showPatchesApplied: false,
-      expandThinkingBlocks: true,
-      enableConversationTitle: true,
-      hideStartupBanner: true,
-      hideCtrlGToEditPrompt: true,
-      hideStartupClawd: true,
-      increaseFileReadLimit: true,
-    },
+    misc: buildBrandMiscConfig(),
+    ...buildBrandSettingsDefaults(),
   },
 });

@@ -3,7 +3,6 @@
  */
 
 import type { ProviderTemplate } from '../../providers/index.js';
-import type { Screen } from '../router/types.js';
 
 /**
  * Completion result data
@@ -41,18 +40,15 @@ export interface CreateVariantParams {
   baseUrl: string;
   apiKey: string;
   extraEnv: string[];
+  claudeVersion: string;
   modelOverrides: ModelOverrides;
   brandKey: string;
   rootDir: string;
   binDir: string;
-  npmPackage: string;
-  npmVersion: string;
   usePromptPack: boolean;
-  promptPackMode: 'minimal' | 'maximal';
   installSkill: boolean;
   shellEnv: boolean;
   skillUpdate: boolean;
-  enableTeamMode: boolean;
   provider: ProviderTemplate | null;
 }
 
@@ -62,7 +58,7 @@ export interface CreateVariantParams {
 export interface OperationCallbacks {
   setProgressLines: (lines: string[]) => void;
   addProgressLine: (line: string) => void;
-  setScreen: (screen: Screen) => void;
+  setScreen: (screen: string) => void;
   onComplete: (result: CompletionResult) => void;
   onError: (error: string) => void;
 }

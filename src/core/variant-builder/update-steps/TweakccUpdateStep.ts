@@ -5,32 +5,47 @@
 import { resolveBrandKey } from '../../../brands/index.js';
 import { ensureDir } from '../../fs.js';
 import { applyPromptPack } from '../../prompt-pack.js';
-import { ensureTweakccConfig, getTweakccFallbackNote, runTweakcc, runTweakccAsync } from '../../tweakcc.js';
-import { formatTweakccFailure } from '../../errors.js';
-import { getTweakccSkipReason } from '../utils.js';
+import { ensureTweakccConfig, getTweakccResultNotes, runTweakcc, runTweakccAsync } from '../../tweakcc.js';
+import { getManagedTweakccPatchIds } from '../../tweakcc-profile.js';
+import { formatTweakccFailure, isRecoverableTweakccFailure } from '../../errors.js';
 import type { UpdateContext, UpdateStep } from '../types.js';
 
 export class TweakccUpdateStep implements UpdateStep {
   name = 'Tweakcc';
 
+  private addTweakccNotes(ctx: UpdateContext): void {
+    for (const note of getTweakccResultNotes(ctx.state.tweakResult)) {
+      if (!ctx.state.notes.includes(note)) {
+        ctx.state.notes.push(note);
+      }
+    }
+  }
+
+  private handleTweakccFailure(ctx: UpdateContext, output: string): void {
+    const message = formatTweakccFailure(output);
+    if (!isRecoverableTweakccFailure(output)) {
+      throw new Error(message);
+    }
+
+    ctx.prefs.promptPackEnabled = false;
+    ctx.prefs.promptPackPreference = false;
+    if (!ctx.state.notes.includes(message)) {
+      ctx.state.notes.push(message);
+    }
+    const fallbackNote = 'Continuing with pristine native runtime; tweakcc theming and prompt pack were skipped.';
+    if (!ctx.state.notes.includes(fallbackNote)) {
+      ctx.state.notes.push(fallbackNote);
+    }
+  }
+
   execute(ctx: UpdateContext): void {
     if (ctx.opts.noTweak) return;
-    const skipReason = getTweakccSkipReason(ctx.prefs.resolvedNpmVersion);
-    if (skipReason) {
-      ctx.state.notes.push(skipReason);
-      return;
-    }
     ctx.report('Running tweakcc patches...');
     this.runTweakcc(ctx, false);
   }
 
   async executeAsync(ctx: UpdateContext): Promise<void> {
     if (ctx.opts.noTweak) return;
-    const skipReason = getTweakccSkipReason(ctx.prefs.resolvedNpmVersion);
-    if (skipReason) {
-      ctx.state.notes.push(skipReason);
-      return;
-    }
     await ctx.report('Running tweakcc patches...');
     await this.runTweakcc(ctx, true);
   }
@@ -46,23 +61,27 @@ export class TweakccUpdateStep implements UpdateStep {
       meta.brand = state.brandKey ?? undefined;
     }
 
-    ensureTweakccConfig(meta.tweakDir, state.brandKey);
+    ensureTweakccConfig(meta.tweakDir, state.brandKey, { providerKey: meta.provider });
+    const patchIds = getManagedTweakccPatchIds(state.brandKey, {
+      providerKey: meta.provider,
+      promptPackEnabled: prefs.promptPackEnabled,
+    });
 
     // Run tweakcc
     const tweakResult = isAsync
-      ? await runTweakccAsync(meta.tweakDir, meta.binaryPath, prefs.commandStdio)
-      : runTweakcc(meta.tweakDir, meta.binaryPath, prefs.commandStdio);
+      ? await runTweakccAsync(meta.tweakDir, meta.binaryPath, prefs.commandStdio, patchIds)
+      : runTweakcc(meta.tweakDir, meta.binaryPath, prefs.commandStdio, patchIds);
 
     state.tweakResult = tweakResult;
-    const fallbackNote = getTweakccFallbackNote(tweakResult);
-    if (fallbackNote && !state.notes.includes(fallbackNote)) {
-      state.notes.push(fallbackNote);
-    }
+    this.addTweakccNotes(ctx);
 
     if (tweakResult.status !== 0) {
       const output = `${tweakResult.stderr ?? ''}\n${tweakResult.stdout ?? ''}`.trim();
-      throw new Error(formatTweakccFailure(output));
+      this.handleTweakccFailure(ctx, output);
+      return;
     }
+
+    let shouldReapply = false;
 
     // Apply prompt pack if enabled
     if (prefs.promptPackEnabled) {
@@ -75,27 +94,28 @@ export class TweakccUpdateStep implements UpdateStep {
       const packResult = applyPromptPack(meta.tweakDir, meta.provider);
       if (packResult.changed) {
         state.notes.push(`Prompt pack applied (${packResult.updated.join(', ')})`);
+        shouldReapply = true;
+      }
+    }
 
-        if (isAsync) {
-          await ctx.report('Re-applying tweakcc...');
-        } else {
-          ctx.report('Re-applying tweakcc...');
-        }
+    if (shouldReapply) {
+      if (isAsync) {
+        await ctx.report('Re-applying tweakcc...');
+      } else {
+        ctx.report('Re-applying tweakcc...');
+      }
 
-        const reapply = isAsync
-          ? await runTweakccAsync(meta.tweakDir, meta.binaryPath, prefs.commandStdio)
-          : runTweakcc(meta.tweakDir, meta.binaryPath, prefs.commandStdio);
+      const reapply = isAsync
+        ? await runTweakccAsync(meta.tweakDir, meta.binaryPath, prefs.commandStdio, patchIds)
+        : runTweakcc(meta.tweakDir, meta.binaryPath, prefs.commandStdio, patchIds);
 
-        state.tweakResult = reapply;
-        const reapplyFallbackNote = getTweakccFallbackNote(reapply);
-        if (reapplyFallbackNote && !state.notes.includes(reapplyFallbackNote)) {
-          state.notes.push(reapplyFallbackNote);
-        }
+      state.tweakResult = reapply;
+      this.addTweakccNotes(ctx);
 
-        if (reapply.status !== 0) {
-          const output = `${reapply.stderr ?? ''}\n${reapply.stdout ?? ''}`.trim();
-          throw new Error(formatTweakccFailure(output));
-        }
+      if (reapply.status !== 0) {
+        const output = `${reapply.stderr ?? ''}\n${reapply.stdout ?? ''}`.trim();
+        this.handleTweakccFailure(ctx, output);
+        return;
       }
     }
   }

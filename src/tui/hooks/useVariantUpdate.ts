@@ -4,12 +4,12 @@
  */
 
 import { useEffect, useRef } from 'react';
-import type { Screen } from '../router/types.js';
 import path from 'node:path';
 import type { VariantMeta } from '../../core/types.js';
 import type { CoreModule } from '../app.js';
 import type { CompletionResult } from './types.js';
 import { buildHelpLines } from './useVariantCreate.js';
+import { describePromptPack, describeShellEnv, getTuiProviderCapabilities } from '../providerCapabilities.js';
 
 export interface SelectedVariant extends VariantMeta {
   wrapperPath: string;
@@ -22,34 +22,25 @@ export interface UseVariantUpdateOptions {
   binDir: string;
   core: CoreModule;
   setProgressLines: (updater: (prev: string[]) => string[]) => void;
-  setScreen: (screen: Screen) => void;
+  setScreen: (screen: string) => void;
   onComplete: (result: CompletionResult) => void;
 }
 
 /**
  * Build the summary lines for an updated variant
  */
-export function buildUpdateSummary(meta: VariantMeta, notes?: string[]): string[] {
-  // Build prompt pack description with provider-specific routing info
-  const getPromptPackDescription = (): string => {
-    if (!meta.promptPack) return 'off';
-    if (meta.provider === 'zai') return 'on (zai-cli routing)';
-    if (meta.provider === 'minimax') return 'on (MCP routing)';
-    return 'on';
-  };
-
-  // Build team mode description
-  const getTeamModeDescription = (): string => {
-    if (!meta.teamModeEnabled) return 'off';
-    return 'on (orchestrator + task-manager skills, TodoWrite blocked)';
-  };
+export function buildUpdateSummary(meta: VariantMeta, notes: string[] | undefined): string[] {
+  const capabilities = getTuiProviderCapabilities(meta.provider || 'custom');
+  const installLine = `Install: native ${meta.nativeVersion || 'latest'} (${meta.claudeOrig.replace('native:', 'v')})`;
 
   return [
     `Provider: ${meta.provider}`,
-    `Prompt pack: ${getPromptPackDescription()}`,
+    installLine,
+    `Prompt pack: ${describePromptPack(Boolean(meta.promptPack), capabilities)}`,
     `dev-browser skill: ${meta.skillInstall ? 'on' : 'off'}`,
-    `Team mode: ${getTeamModeDescription()}`,
-    ...(meta.provider === 'zai' ? [`Shell env: ${meta.shellEnv ? 'write Z_AI_API_KEY' : 'manual'}`] : []),
+    ...(capabilities.shellEnv.configurable
+      ? [`Shell env: ${describeShellEnv(Boolean(meta.shellEnv), capabilities)}`]
+      : []),
     ...(notes || []),
   ];
 }
@@ -58,11 +49,7 @@ export function buildUpdateSummary(meta: VariantMeta, notes?: string[]): string[
  * Build the next steps for an updated variant
  */
 export function buildUpdateNextSteps(name: string, rootDir: string): string[] {
-  return [
-    `Run: ${name}`,
-    `Tweak: cc-mirror tweak ${name}`,
-    `Config: ${path.join(rootDir, name, 'config', 'settings.json')}`,
-  ];
+  return [`Run: ${name}`, `Config: ${path.join(rootDir, name, 'config', 'settings.json')}`];
 }
 
 /**

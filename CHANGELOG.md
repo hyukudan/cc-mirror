@@ -1,298 +1,75 @@
 # Changelog
 
-All notable changes to this project will be documented in this file.
+This repository tracks changes primarily through Git history.
 
-## [1.7.1] - 2026-02-07
+## v2.2.0
 
-### Fixed
+### Highlights
 
-- **Orchestration hang** (#34): All `TaskOutput` calls in orchestration skill now require `timeout=30000` to prevent infinite hangs when agents crash.
-- **Temp dir isolation** (#24): Unix wrapper `mktemp` now uses `XDG_RUNTIME_DIR` / `TMPDIR` for per-user temp files, avoiding conflicts on multi-user systems.
-- **Windows `nul` artifact**: Added `nul` to `.gitignore` to prevent Windows reserved device name from being tracked.
+- **Provider-native defaults** — Added capability profiles so create/update/doctor/TUI use one source of truth for provider auth, endpoints, models, privacy flags, MCP servers, and managed settings.
+- **Latest provider models** — Updated Kimi to `kimi-k2.6`, MiniMax to `MiniMax-M2.7`, and Z.ai to GLM-5.1/5-Turbo/4.5-Air defaults.
+- **Managed updates** — `cc-mirror update` now refreshes cc-mirror-owned defaults to the latest profile while preserving credentials and custom env.
+- **Cleaner variant UI** — Suppresses upstream launch promos, startup version branding, update/install checks, nonessential traffic, and stale model picker entries for managed variants.
+- **TweakCC hardening** — Validates patched native output, retries with latest TweakCC where appropriate, removes brittle patch defaults, and restores a working runtime when patching fails.
+- **Kimi launch fix** — Removes stale auth-token unsetting during update and defaults Kimi to Moonshot's Anthropic-compatible endpoint.
+- **Doctor upgrades** — Adds provider capability drift checks for auth, model mappings, MCP servers, permissions, managed env, and shell profile wiring without leaking secrets.
+- **Security hardening** — Safely parses config JSON with prototype-key stripping and size limits across core config readers, doctor, TUI, and wrapper-generated env loaders.
+- **MCP docs** — Clarifies variant-scoped MCP setup, `--scope user`, project `.mcp.json`, and how cc-mirror preserves user-added servers.
+- **Contribution policy** — Moves the project to issue-first external contributions and restricts new pull request creation to collaborators.
 
-### Added
+## v2.0.1
 
-- `--no-team-skills` documented in CLI reference (`docs/reference/cli-reference.md`).
-- Timeout Handling subsection in orchestration patterns error recovery guide.
+### Fixes
 
-## [1.7.0] - 2026-01-31
+- **Windows tweakcc execution** — Invoke `tweakcc` via `cmd.exe` + `npx.cmd` so variant creation/update works reliably when `npx` isn’t directly executable.
+- **Windows PATH + tilde handling** — Better `~` expansion (supports `~\\`) and `list` now expands tilde before reading variants.
+- **Docs** — Fixed Windows PATH examples (avoid double-escaped backslashes).
 
-### Added
+### CI / Dev
 
-- `--no-team-skills` flag to enable team mode without bundled orchestrator/task-manager skills.
-- TUI architecture documentation in `docs/architecture/tui-architecture.md`.
+- **CI** — Added a Windows end-to-end smoke test on every PR (bundle + quick create + list/doctor + wrapper).
+- **Tests** — Added regression coverage for Windows tweakcc execution and tilde expansion.
+- **Lint** — Fixed a macOS CI failure caused by an unused variable in `scripts/preview-splash-grid.mjs`.
 
-### Changed
+## v2.0.0
 
-- TUI refactored to use centralized state management (`useCreateAppState` hook).
-- TUI router infrastructure integrated with `useEscapeNavigation`.
+### Breaking Changes
 
-### Fixed
+- **Native-only installs** — Removed npm-based Claude Code installation entirely. All variants now use the native binary. Existing `npm/` directories are ignored; run `cc-mirror update` to migrate.
+- **Team mode removed** — The team mode feature has been removed to reduce complexity.
+- **Prompt pack mode** — Only `minimal` mode is supported. The `maximal` mode has been deprecated.
 
-- **Security**: JSON parsing sanitized against prototype pollution.
+### New Providers
 
-## [1.6.1] - 2026-01-30
+- **Kimi Code** — Moonshot AI's long-context coding assistant (kimi-for-coding / K2.5)
+- **Ollama** — Local model runner with Anthropic-compatible API
+- **GatewayZ** — Multi-provider AI gateway
+- **Vercel AI Gateway** — Vercel's multi-provider gateway
+- **NanoGPT** — Pay-per-token Claude Code endpoint
+- **CC Router** — Route Claude Code to any LLM (Ollama, DeepSeek, etc.)
 
-### Added
+### Features
 
-- `cc-mirror dashboard` command with variant overview, disk usage, and team mode status.
-- `cc-mirror search` command to filter providers by capability, auth type, tier, or verified status.
-- Template system for saving and reusing variant configurations.
-- TUI theme system and router infrastructure.
-- Package manager auto-detection (npm, bun, pnpm).
+- **Unique brand themes for every provider** — Each provider has its own color palette, ASCII splash art, and custom thinking verbs
+- **Adaptive diff palettes** — Diff colors now match each brand's color scheme for better readability
+- **Model overrides in TUI** — Configure Sonnet/Opus/Haiku model mappings for all providers via the interactive wizard
+- **`--claude-version` support** — Pin or update native Claude Code versions (`stable`, `latest`, or specific version)
+- **Default to latest channel** — New variants track the `latest` Claude Code release by default
+- **`--model` convenience flag** — Set all model tiers at once from CLI
+- **Social media grid preview** — `scripts/preview-splash-grid.mjs` renders a 3x3 grid of all provider splash banners
 
-### Changed
+### Improvements
 
-- E2E tests expanded with better helpers.
+- **OpenRouter Chrome theme** — Upgraded from navy to polished silver/chrome aesthetic
+- **CC Router renamed** — "Claude Code Router" shortened to "CC Router" across UI
+- **Mirror provider hidden** — Now marked as experimental (development reference only)
+- **Tool denies via settings.json** — Provider tool restrictions moved from tweakcc toolsets to `settings.json` `permissions.deny` for reliability
+- **Simplified splash art** — Cleaner, tighter ASCII art for OpenRouter, Vercel, CCRouter, and GatewayZ
+- **Long API key paste fix** — TUI masked input now preserves full key across multiple paste chunks
+- **Provider list viewport** — Constrained scrolling for cleaner TUI navigation
 
-## [1.6.0] - 2026-01-28
+### Internal
 
-### Added
-
-- **6 New Providers**: Kimi Code (K2.5), Vercel AI Gateway, Poe, Google Vertex AI, AWS Bedrock, Azure AI Foundry.
-- **API Translator**: Built-in Anthropic ↔ OpenAI translation proxy for DeepSeek.
-- Provider capabilities metadata for filtering and discovery.
-- Enterprise maintenance tools and enhanced diagnostics.
-
-### Changed
-
-- Kimi provider updated to K2.5 models.
-- Brand themes refactored to use shared color utilities.
-- Team mode now supports Claude Code 2.1.x where Task tools are enabled by default.
-- README comprehensively rewritten with Mermaid diagrams.
-
-### Fixed
-
-- Windows CMD error message display.
-- TUI test timing stabilization.
-
-## [1.5.1] - 2026-01-11
-
-### Added
-
-- Doctor JSON output (`--json` flag).
-- List JSON output (`--json` flag).
-- Version flag and help support.
-- Strict doctor checks with provider validation.
-- Release readiness checklist.
-
-### Changed
-
-- Config import hardened with variant validation.
-- Tweakcc ctrl-g patch warnings suppressed.
-
-### Fixed
-
-- Tweakcc local resolution in dist.
-
-## [1.5.0] - 2026-01-06
-
-### Added
-
-- Sync Variants flow to copy skills, MCP servers, permissions, and `CLAUDE.md`.
-- `cc-mirror sync` CLI command for syncing configs between variants.
-- `cc-mirror run <name>` command to launch a variant wrapper directly.
-- `cc-mirror mcp <name>` command to manage MCP servers in a variant.
-- `cc-mirror export/import` commands to snapshot and restore variant config.
-- `cc-mirror config` command to inspect and edit variant settings.
-- `cc-mirror path --apply` to append PATH exports to shell profiles.
-- Sync options for `tasks`, `provider-env`, and `--dry-run`.
-- GatewayZ and NanoGPT providers with themes, splash art, and model mapping.
-- Windows support: `.cmd` wrappers, PowerShell profile integration.
-- `--prefer-ipv4` flag for IPv4-first DNS resolution.
-- `--npm-version` flag to override Claude Code package version.
-- Ctrl+C interrupt patch for Claude Code CLI.
-
-### Changed
-
-- Model-mapping checks now use provider flags.
-- Create/update summaries surface PATH tips.
-- Wrapper paths are platform-aware.
-
-### Fixed
-
-- Windows npm installs use `shell` spawning.
-
-## [1.4.2] - 2026-01-05
-
-### Added
-
-- Explicit model selection for all Task() calls in orchestration skill.
-- Model tier framework: haiku, sonnet, opus with usage guidance.
-
-### Changed
-
-- All commands now use `npx cc-mirror` for portability.
-
-## [1.4.0] - 2026-01-05
-
-### Added
-
-- Tasks CLI for team mode management (`cc-mirror tasks`).
-- Task-manager skill auto-installed with team mode.
-- Core tasks store with dependency resolution helpers.
-
-### Fixed
-
-- Args parser fix for boolean flags consuming next argument.
-
-## [1.3.0] - 2026-01-05
-
-### Changed
-
-- Team mode uses `CLAUDE_CODE_TEAM_MODE`, deriving team names from project folder.
-
-### Fixed
-
-- Cross-project task pollution when settings.json overwrote dynamic team names.
-
-## [1.2.1] - 2026-01-05
-
-### Fixed
-
-- Team mode updates now refresh the orchestration skill when already enabled.
-
-## [1.1.5] - 2026-01-05
-
-### Added
-
-- Role detection in orchestration skill (main orchestrator vs spawned worker).
-- Worker agent prompt template with WORKER preamble.
-- Tool ownership section separating orchestrator vs worker tools.
-- Complete task lifecycle in documentation.
-
-### Changed
-
-- Flow diagram shows complete lifecycle with TaskList and TaskUpdate.
-- Agent scaling is now guidance-based, not quota-based.
-
-### Fixed
-
-- Agents no longer re-orchestrate when spawned.
-
-## [1.1.4] - 2026-01-05
-
-### Changed
-
-- Renamed skill: `multi-agent-orchestrator` → `orchestration`.
-- Completely rewritten orchestration skill with "Conductor" personality.
-- Maximal AskUserQuestion guidance (4 questions, 4 options).
-
-### Added
-
-- Auto-approve orchestration skill in permissions.
-- Team pack system prompts.
-- Domain expertise routing with reference files.
-
-## [1.1.3] - 2026-01-04
-
-### Fixed
-
-- useEffect infinite loop when toggling team mode.
-- Team mode visibility in configuration/summary screens.
-- Skill tool examples mismatch.
-
-### Added
-
-- Team Pack prompt files for enhanced team mode guidance.
-- TeamModeScreen TUI component.
-- Comprehensive tests for blocked tools, team mode, provider matrix.
-
-## [1.1.2] - 2026-01-04
-
-### Fixed
-
-- Suppress verbose tweakcc output during CLI variant creation.
-
-## [1.1.1] - 2026-01-04
-
-### Fixed
-
-- Mirror and CCRouter providers no longer prompt for API key.
-
-### Removed
-
-- Twitter/X share URL from create output.
-
-## [1.1.0] - 2026-01-04
-
-### Added
-
-- **Team Mode** - Multi-agent collaboration with shared task management.
-- **Mirror Claude Provider** - Pure Claude Code with team mode by default.
-- **Multi-Agent Orchestrator Skill** - "The Conductor" identity.
-- Team mode documentation and architecture docs.
-
-### Changed
-
-- Bundle script copies skills to `dist/skills`.
-- Enhanced TUI with team mode toggle.
-
-## [1.0.4] - 2026-01-04
-
-### Changed
-
-- Removed broken ASCII art success banner.
-- Streamlined Z.ai and MiniMax prompt packs.
-
-## [1.0.3] - 2026-01-03
-
-### Changed
-
-- Removed 5 unused dependencies.
-- Production dependencies reduced from 10 to 5.
-
-### Fixed
-
-- Fixed bin path to use relative path.
-
-## [1.0.2] - 2026-01-03
-
-### Changed
-
-- Upgraded to Ink 6.6.0 and React 19.
-
-## [1.0.1] - 2026-01-03
-
-### Fixed
-
-- Fixed npx compatibility by keeping React/Ink external.
-
-## [1.0.0] - 2026-01-03
-
-### Added
-
-- First public release.
-- Claude Code Router support.
-- Provider intro screens with setup guidance.
-- Beautiful README with screenshots.
-
-### Changed
-
-- Removed LiteLLM provider (replaced by Claude Code Router).
-
-## [0.3.0] - 2026-01-02
-
-### Added
-
-- Colored ASCII art splash screens for each provider.
-- Async operations for live TUI progress updates.
-- MIT License.
-
-## [0.2.0] - 2026-01-02
-
-### Added
-
-- Full-screen TUI wizard.
-- Brand theme presets.
-- Prompt packs for enhanced system prompts.
-- dev-browser skill auto-installation.
-
-## [0.1.0] - 2026-01-02
-
-### Added
-
-- Initial release.
-- CLI for creating Claude Code variants.
-- Support for Z.ai, MiniMax, OpenRouter.
-- tweakcc integration for themes.
+- Legacy tweakcc toolset migration for existing variants
+- Dark theme enforced as default for Rust native module compatibility
+- Normalized variant metadata schema

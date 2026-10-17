@@ -6,32 +6,60 @@
  */
 
 import path from 'node:path';
-import { DEFAULT_ROOT } from '../constants.js';
+import { getProviderCapability } from '../../providers/index.js';
+import { DEFAULT_CLAUDE_VERSION, DEFAULT_ROOT } from '../constants.js';
 import { expandTilde } from '../paths.js';
 import { loadVariantMeta } from '../variants.js';
-import { assertValidVariantName } from '../validation.js';
 import type { UpdateVariantOptions, UpdateVariantResult } from '../types.js';
 import type { ReportFn, UpdateContext, UpdatePaths, UpdatePreferences, UpdateState, UpdateStep } from './types.js';
-import {
-  normalizeNpmPackage,
-  normalizeNpmVersion,
-  shouldEnablePromptPack,
-  shouldInstallSkills,
-  shouldEnableShellEnv,
-  yieldToEventLoop,
-} from './utils.js';
 
 // Import steps
-import { InstallNpmUpdateStep } from './update-steps/InstallNpmUpdateStep.js';
-import { TeamModeUpdateStep } from './update-steps/TeamModeUpdateStep.js';
+import { RebuildUpdateStep } from './update-steps/RebuildUpdateStep.js';
+import { InstallNativeUpdateStep } from './update-steps/InstallNativeUpdateStep.js';
 import { ModelOverridesStep } from './update-steps/ModelOverridesStep.js';
 import { TweakccUpdateStep } from './update-steps/TweakccUpdateStep.js';
 import { WrapperUpdateStep } from './update-steps/WrapperUpdateStep.js';
 import { ConfigUpdateStep } from './update-steps/ConfigUpdateStep.js';
 import { ShellEnvUpdateStep } from './update-steps/ShellEnvUpdateStep.js';
 import { SkillInstallUpdateStep } from './update-steps/SkillInstallUpdateStep.js';
-import { PluginRepairStep } from './update-steps/PluginRepairStep.js';
 import { FinalizeUpdateStep } from './update-steps/FinalizeUpdateStep.js';
+
+// Helper functions
+const normalizeClaudeVersion = (value?: string) => {
+  const trimmed = (value ?? '').trim();
+  return trimmed.length > 0 ? trimmed : DEFAULT_CLAUDE_VERSION;
+};
+
+const resolveClaudeVersionForUpdate = (
+  meta: { nativeVersion?: string; nativeVersionSource?: string },
+  opts: UpdateVariantOptions
+) => {
+  // Explicit flag always wins.
+  if (typeof opts.claudeVersion === 'string' && opts.claudeVersion.trim().length > 0) {
+    return normalizeClaudeVersion(opts.claudeVersion);
+  }
+
+  // If the variant was explicitly pinned, keep using its stored version/channel.
+  if (meta.nativeVersionSource === 'pinned') {
+    return normalizeClaudeVersion(meta.nativeVersion);
+  }
+
+  // Missing/unknown source means "follow project defaults" (migrates old variants automatically).
+  return DEFAULT_CLAUDE_VERSION;
+};
+
+const shouldEnablePromptPack = (providerKey: string) => {
+  return getProviderCapability(providerKey)?.features.promptPack.defaultEnabled ?? false;
+};
+
+const shouldInstallSkills = (providerKey: string) =>
+  getProviderCapability(providerKey)?.features.browserSkill.defaultEnabled ?? false;
+
+const shouldEnableShellEnv = (providerKey: string) =>
+  getProviderCapability(providerKey)?.features.shellEnv.defaultEnabled ?? false;
+
+// Helper to yield to event loop (for async mode)
+const yieldToEventLoop = () => new Promise<void>((resolve) => setImmediate(resolve));
 
 /**
  * Updates variants using composable steps
@@ -42,15 +70,14 @@ export class VariantUpdater {
   constructor(private isAsync: boolean = false) {
     // Register steps in execution order
     this.steps = [
-      new InstallNpmUpdateStep(),
-      new TeamModeUpdateStep(), // Patches cli.js for team mode (if enabled)
+      new RebuildUpdateStep(),
+      new InstallNativeUpdateStep(),
       new ModelOverridesStep(),
       new TweakccUpdateStep(),
       new WrapperUpdateStep(),
       new ConfigUpdateStep(),
       new ShellEnvUpdateStep(),
       new SkillInstallUpdateStep(),
-      new PluginRepairStep(),
       new FinalizeUpdateStep(),
     ];
   }
@@ -59,14 +86,12 @@ export class VariantUpdater {
    * Initialize the update context
    */
   private initContext(rootDir: string, name: string, opts: UpdateVariantOptions): UpdateContext {
-    const safeName = assertValidVariantName(name);
     const resolvedRoot = expandTilde(rootDir || DEFAULT_ROOT) ?? rootDir;
-    const variantDir = path.join(resolvedRoot, safeName);
+    const variantDir = path.join(resolvedRoot, name);
     const meta = loadVariantMeta(variantDir);
-    if (!meta) throw new Error(`Variant not found: ${safeName}`);
+    if (!meta) throw new Error(`Variant not found: ${name}`);
 
-    const resolvedNpmPackage = normalizeNpmPackage(opts.npmPackage ?? meta.npmPackage);
-    const resolvedNpmVersion = normalizeNpmVersion(opts.npmVersion ?? meta.npmVersion);
+    const resolvedClaudeVersion = resolveClaudeVersionForUpdate(meta, opts);
     const promptPackPreference = opts.promptPack ?? meta.promptPack ?? shouldEnablePromptPack(meta.provider);
     const promptPackEnabled = !opts.noTweak && promptPackPreference;
     const skillInstallEnabled = opts.skillInstall ?? meta.skillInstall ?? shouldInstallSkills(meta.provider);
@@ -78,12 +103,11 @@ export class VariantUpdater {
       resolvedRoot,
       resolvedBin: opts.binDir ? (expandTilde(opts.binDir) ?? opts.binDir) : meta.binDir,
       variantDir,
-      npmDir: meta.npmDir || path.join(variantDir, 'npm'),
+      nativeDir: meta.nativeDir || path.join(variantDir, 'native'),
     };
 
     const prefs: UpdatePreferences = {
-      resolvedNpmPackage,
-      resolvedNpmVersion,
+      resolvedClaudeVersion,
       promptPackPreference,
       promptPackEnabled,
       skillInstallEnabled,
@@ -109,7 +133,7 @@ export class VariantUpdater {
         };
 
     return {
-      name: safeName,
+      name,
       opts,
       meta,
       paths,

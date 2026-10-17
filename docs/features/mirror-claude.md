@@ -12,23 +12,28 @@ Mirror Claude is a **pure Claude Code variant** with advanced features enabled. 
 │   ┌─────────────────────────────────────────────────────────────────────┐  │
 │   │                    PROXY PROVIDERS                                  │  │
 │   │                                                                     │  │
-│   │   ┌─────────┐     ┌─────────────┐     ┌─────────────────────────┐  │  │
-│   │   │  Z.ai   │────▶│  GLM API    │────▶│  GLM-4.7 Models         │  │  │
-│   │   └─────────┘     └─────────────┘     └─────────────────────────┘  │  │
+│   │   Z.ai ──────────▶ GLM API ────────▶ GLM-5.1/5-Turbo/4.5-Air     │  │
+│   │   MiniMax ────────▶ MiniMax API ───▶ MiniMax-M2.7                  │  │
+│   │   Kimi ───────────▶ Kimi Code API ─▶ kimi-for-coding              │  │
 │   │                                                                     │  │
-│   │   ┌─────────┐     ┌─────────────┐     ┌─────────────────────────┐  │  │
-│   │   │ MiniMax │────▶│ MiniMax API │────▶│  MiniMax-M2.1           │  │  │
-│   │   └─────────┘     └─────────────┘     └─────────────────────────┘  │  │
+│   └─────────────────────────────────────────────────────────────────────┘  │
+│                                                                            │
+│   ┌─────────────────────────────────────────────────────────────────────┐  │
+│   │                    GATEWAY PROVIDERS                                │  │
+│   │                                                                     │  │
+│   │   OpenRouter ─────▶ 100+ models (pay-per-use)                      │  │
+│   │   Vercel ─────────▶ Vercel AI Gateway                              │  │
+│   │   NanoGPT ────────▶ Claude Code endpoint                           │  │
+│   │   GatewayZ ───────▶ Multi-provider gateway                         │  │
+│   │   CC Router ──────▶ Ollama / DeepSeek / local LLMs                 │  │
+│   │   Ollama ─────────▶ Local + cloud models                           │  │
 │   │                                                                     │  │
 │   └─────────────────────────────────────────────────────────────────────┘  │
 │                                                                            │
 │   ┌─────────────────────────────────────────────────────────────────────┐  │
 │   │                    DIRECT PROVIDER                                  │  │
 │   │                                                                     │  │
-│   │   ┌─────────┐                         ┌─────────────────────────┐  │  │
-│   │   │ Mirror  │─────────────────────────▶│  Anthropic API          │  │  │
-│   │   │ Claude  │    (no proxy)           │  api.anthropic.com      │  │  │
-│   │   └─────────┘                         └─────────────────────────┘  │  │
+│   │   Mirror ─────────────────────────▶ Anthropic API (no proxy)       │  │
 │   │                                                                     │  │
 │   └─────────────────────────────────────────────────────────────────────┘  │
 │                                                                            │
@@ -56,63 +61,33 @@ No API key required at setup. When you run `mclaude`, authenticate via:
 
 ---
 
-## 👥 Multiple Claude Accounts
-
-Mirror Claude supports multiple accounts by design. Each variant has its own `CLAUDE_CONFIG_DIR`, so OAuth sessions, approvals, and settings stay isolated.
-
-### Recommended flow
-
-```bash
-# Work account
-npx cc-mirror quick --provider mirror --name claude-work
-claude-work  # sign in once
-
-# Personal account
-npx cc-mirror quick --provider mirror --name claude-personal
-claude-personal  # sign in once
-```
-
-### API key per variant (optional)
-
-If you prefer API keys, set them per variant:
-
-```bash
-npx cc-mirror update claude-work --env ANTHROPIC_API_KEY="sk-ant-..."
-npx cc-mirror update claude-personal --env ANTHROPIC_API_KEY="sk-ant-..."
-```
-
-Once authenticated, each wrapper keeps using its own account. Switch accounts by running the corresponding wrapper (e.g., `claude-work` vs `claude-personal`).
-
----
-
 ## 🎯 What You Get
 
-| Feature               | Description                                                          |
-| --------------------- | -------------------------------------------------------------------- |
-| 🤖 **Team Mode**      | Enabled by default - TaskCreate, TaskGet, TaskUpdate, TaskList tools |
-| 🎨 **Premium Theme**  | Silver/chrome aesthetic with electric blue accents                   |
-| 📁 **Full Isolation** | Separate config, sessions, and task storage                          |
-| ✨ **Pure Claude**    | No prompt packs or model overrides - authentic experience            |
+| Feature               | Description                                               |
+| --------------------- | --------------------------------------------------------- |
+| 🎨 **Premium Theme**  | Silver/chrome aesthetic with electric blue accents        |
+| 📁 **Full Isolation** | Separate config and sessions                              |
+| ✨ **Pure Claude**    | No prompt packs or model overrides - authentic experience |
 
 ---
 
 ## 📊 Provider Comparison
 
 ```
-┌──────────────────────────────────────────────────────────────────────────────┐
-│                                                                              │
-│   Feature              │ zai      │ minimax  │ openrouter │ mirror          │
-│   ─────────────────────┼──────────┼──────────┼────────────┼─────────────────│
-│   Model                │ GLM-4.7  │ M2.1     │ You choose │ Claude (native) │
-│   Auth Mode            │ API Key  │ API Key  │ Auth Token │ OAuth or Key    │
-│   ANTHROPIC_BASE_URL   │ ✓ Set    │ ✓ Set    │ ✓ Set      │ ✗ Not set       │
-│   ANTHROPIC_API_KEY    │ ✓ Set    │ ✓ Set    │ ✗          │ ✗ Not set       │
-│   Model Mappings       │ ✓ Auto   │ ✓ Auto   │ ✓ Required │ ✗ Not set       │
-│   Prompt Pack          │ ✓ Full   │ ✓ Full   │ ✗          │ ✗ Pure          │
-│   Team Mode            │ Optional │ Optional │ Optional   │ ✓ Default       │
-│   Config Isolation     │ ✓        │ ✓        │ ✓          │ ✓               │
-│                                                                              │
-└──────────────────────────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────────────────────────────┐
+│                                                                                         │
+│   Feature            │ zai/minimax │ kimi     │ openrouter │ ollama   │ mirror          │
+│   ───────────────────┼────────────┼──────────┼────────────┼──────────┼─────────────────│
+│   Model              │ GLM / M2.7 │ K2.6     │ You choose │ Local    │ Claude (native) │
+│   Auth Mode          │ Auth Token │ Auth Tok │ Auth Token │ Auth Tok │ OAuth or Key    │
+│   ANTHROPIC_BASE_URL │ ✓ Set      │ ✓ Set    │ ✓ Set      │ ✓ Set    │ ✗ Not set       │
+│   Model Mappings     │ ✓ Auto     │ ✓ Auto   │ ✓ Required │ Required │ ✗ Not set       │
+│   Prompt Pack        │ ✓ Minimal  │ ✗        │ ✗          │ ✗        │ ✗ Pure          │
+│   Config Isolation   │ ✓          │ ✓        │ ✓          │ ✓        │ ✓               │
+│                                                                                         │
+│   Also available: Vercel, NanoGPT, GatewayZ (auth token), CC Router (optional auth)    │
+│                                                                                         │
+└─────────────────────────────────────────────────────────────────────────────────────────┘
 ```
 
 ---
@@ -121,10 +96,9 @@ Once authenticated, each wrapper keeps using its own account. Switch accounts by
 
 ### Perfect For
 
-- **Power users** who want Claude Code with team features
+- **Power users** who want isolated Claude Code instances
 - **Experimentation** - isolated config for testing hooks, skills, MCP servers
 - **Multiple accounts** - keep work and personal Claude sessions separate
-- **Team workflows** - shared task management without model changes
 
 ### Not For
 
@@ -189,18 +163,21 @@ mclaude
 ```
 ┌─────────────────────────────────────────────────────────┐
 │  ~/.cc-mirror/mclaude/                                  │
-│  ├── npm/                    Claude Code installation   │
+│  ├── native/                 Claude Code installation   │
 │  ├── config/                                            │
 │  │   ├── settings.json       Minimal env (splash only)  │
 │  │   ├── .claude.json        MCP servers, approvals     │
-│  │   └── tasks/<team>/       Team mode task storage     │
 │  ├── tweakcc/                                           │
 │  │   └── config.json         Mirror theme config        │
 │  └── variant.json            Variant metadata           │
 │                                                         │
-│  Wrapper: ~/.local/bin/mclaude (Win: ~/.cc-mirror/bin/mclaude.cmd) │
+│  Wrapper: <bin-dir>/mclaude                             │
 └─────────────────────────────────────────────────────────┘
 ```
+
+Default `<bin-dir>` is `~/.local/bin` on macOS/Linux and `~/.cc-mirror/bin` on Windows.
+
+**Windows tip:** add `%USERPROFILE%\.cc-mirror\bin` to `PATH` (wrapper is `<variant>.cmd` with a sibling `<variant>.mjs` launcher).
 
 ### What Mirror Sets
 
@@ -250,6 +227,5 @@ ANTHROPIC_API_KEY="$PERSONAL_KEY" personal-claude
 
 ## 🔙 Related
 
-- [Team Mode](team-mode.md) - Detailed task management documentation
 - [Brand Themes](brand-themes.md) - Theme customization
 - [Architecture Overview](../architecture/overview.md) - How cc-mirror works

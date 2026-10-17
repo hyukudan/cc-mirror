@@ -4,7 +4,7 @@
 
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { printDoctor } from '../../src/cli/doctor.js';
+import { printDoctor, sanitizeDoctorText, type ProviderDoctorReportItem } from '../../src/cli/doctor.js';
 
 // Capture console.log output
 function captureOutput(fn: () => void): string[] {
@@ -32,13 +32,11 @@ test('printDoctor prints healthy variants with checkmark', () => {
 
   const output = captureOutput(() => printDoctor(report));
 
-  // 2 variants + empty line + summary = 4 lines
-  assert.equal(output.length, 4);
+  assert.equal(output.length, 2);
   assert.ok(output[0].includes('✓'));
   assert.ok(output[0].includes('alpha'));
   assert.ok(output[1].includes('✓'));
   assert.ok(output[1].includes('beta'));
-  assert.ok(output[3].includes('Summary: 2/2 healthy'));
 });
 
 test('printDoctor prints unhealthy variants with X and details', () => {
@@ -46,15 +44,13 @@ test('printDoctor prints unhealthy variants with X and details', () => {
 
   const output = captureOutput(() => printDoctor(report));
 
-  // 1 variant header + 2 details + empty line + summary = 5 lines
-  assert.equal(output.length, 5);
+  assert.equal(output.length, 3);
   assert.ok(output[0].includes('✗'));
   assert.ok(output[0].includes('broken'));
   assert.ok(output[1].includes('binary:'));
   assert.ok(output[1].includes('/tmp/broken'));
   assert.ok(output[2].includes('wrapper:'));
   assert.ok(output[2].includes('/tmp/bin/broken'));
-  assert.ok(output[4].includes('Summary: 0/1 healthy'));
 });
 
 test('printDoctor shows missing for undefined binaryPath', () => {
@@ -62,10 +58,8 @@ test('printDoctor shows missing for undefined binaryPath', () => {
 
   const output = captureOutput(() => printDoctor(report));
 
-  // 1 variant header + 2 details + empty line + summary = 5 lines
-  assert.equal(output.length, 5);
+  assert.equal(output.length, 3);
   assert.ok(output[1].includes('missing'));
-  assert.ok(output[4].includes('Summary: 0/1 healthy'));
 });
 
 test('printDoctor handles mixed healthy and unhealthy', () => {
@@ -76,11 +70,97 @@ test('printDoctor handles mixed healthy and unhealthy', () => {
 
   const output = captureOutput(() => printDoctor(report));
 
-  // good: 1 line, bad: 3 lines (status + binary + wrapper) + empty line + summary = 6 lines
-  assert.equal(output.length, 6);
+  // good: 1 line, bad: 3 lines (status + binary + wrapper)
+  assert.equal(output.length, 4);
   assert.ok(output[0].includes('✓'));
   assert.ok(output[0].includes('good'));
   assert.ok(output[1].includes('✗'));
   assert.ok(output[1].includes('bad'));
-  assert.ok(output[5].includes('Summary: 1/2 healthy'));
+});
+
+test('printDoctor prints provider runtime and capability findings', () => {
+  const report: ProviderDoctorReportItem[] = [
+    {
+      name: 'minimax',
+      provider: 'minimax',
+      ok: true,
+      binaryPath: '/tmp/minimax',
+      wrapperPath: '/tmp/bin/minimax',
+      runtime: {
+        ok: false,
+        settings: 'present',
+        claudeConfig: 'present',
+        auth: {
+          mode: 'authToken',
+          ok: false,
+          requiredEnv: ['ANTHROPIC_AUTH_TOKEN'],
+          presentEnv: [],
+          missingEnv: ['ANTHROPIC_AUTH_TOKEN'],
+          placeholderEnv: [],
+          emptyEnv: [],
+          apiKeyMustBeEmpty: true,
+          apiKeyEmpty: true,
+        },
+        baseUrl: {
+          required: true,
+          present: true,
+        },
+        modelMapping: {
+          required: false,
+          present: [],
+          missing: [],
+        },
+        profile: {
+          required: false,
+          status: 'not-applicable',
+        },
+      },
+      capabilities: {
+        ok: false,
+        providerContract: 'provider-template',
+        permissions: {
+          ok: false,
+          requiredDeny: ['WebSearch'],
+          presentDeny: [],
+          missingDeny: ['WebSearch'],
+        },
+        mcp: {
+          ok: true,
+          expectedServers: ['MiniMax'],
+          configuredServers: ['MiniMax'],
+          missingServers: [],
+        },
+      },
+      findings: [
+        {
+          code: 'missing-required-env',
+          severity: 'error',
+          area: 'runtime',
+          message: 'missing required env var ANTHROPIC_AUTH_TOKEN',
+        },
+      ],
+    },
+  ];
+
+  const output = captureOutput(() => printDoctor(report));
+
+  assert.ok(output[0].includes('minimax'));
+  assert.ok(output[0].includes('(minimax)'));
+  assert.ok(output.some((line) => line.includes('runtime:')));
+  assert.ok(output.some((line) => line.includes('capabilities:')));
+  assert.ok(output.some((line) => line.includes('missing required env var ANTHROPIC_AUTH_TOKEN')));
+});
+
+test('sanitizeDoctorText redacts known secret values and secret assignments', () => {
+  const text = [
+    'ANTHROPIC_AUTH_TOKEN=secret-token',
+    'stderr mentions secret-token directly',
+    'MINIMAX_API_KEY="another-secret"',
+  ].join('\n');
+
+  const sanitized = sanitizeDoctorText(text, ['secret-token', 'another-secret']);
+
+  assert.equal(sanitized.includes('secret-token'), false);
+  assert.equal(sanitized.includes('another-secret'), false);
+  assert.ok(sanitized.includes('<redacted>'));
 });

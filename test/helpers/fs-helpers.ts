@@ -33,20 +33,7 @@ export const cleanup = (dir: string) => {
 };
 
 /**
- * Capture console.log output during async function execution
+ * Resolve path to native Claude Code binary within a native install dir
  */
-export const captureConsole = async (fn: () => Promise<void>): Promise<string> => {
-  const output: string[] = [];
-  const originalLog = console.log;
-  console.log = (...args: unknown[]) => {
-    output.push(args.map((arg) => String(arg)).join(' '));
-  };
-
-  try {
-    await fn();
-  } finally {
-    console.log = originalLog;
-  }
-
-  return output.join('\n');
-};
+export const resolveNativeClaudePath = (nativeDir: string) =>
+  path.join(nativeDir, process.platform === 'win32' ? 'claude.exe' : 'claude');

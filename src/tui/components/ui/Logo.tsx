@@ -26,11 +26,11 @@ export const LogoBanner: React.FC = () => (
     </Text>
     <Text>
       <Text color={colors.logo1}>{'  ██║     ██║     '}</Text>
-      <Text color={colors.textMuted}>{'Claude Code Variant Manager'}</Text>
+      <Text color={colors.textMuted}>{'Provider-native coding variants'}</Text>
     </Text>
     <Text>
       <Text color={colors.logo1}>{'  ██║     ██║     '}</Text>
-      <Text color={colors.gold}>{'Create variants with custom providers'}</Text>
+      <Text color={colors.gold}>{'Provider variants. One command.'}</Text>
     </Text>
     <Text>
       <Text color={colors.logo1}>{'  ╚██████╗╚██████╗'}</Text>

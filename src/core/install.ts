@@ -1,291 +1,255 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import { spawn, spawnSync } from 'node:child_process';
+import { spawnSync } from 'node:child_process';
+import crypto from 'node:crypto';
+import { once } from 'node:events';
+import { Readable } from 'node:stream';
+import type { ReadableStream as NodeReadableStream } from 'node:stream/web';
+import { finished } from 'node:stream/promises';
 import { commandExists } from './paths.js';
+import { safeJsonParse } from './fs.js';
 
-export type PackageManager = 'bun' | 'pnpm' | 'yarn' | 'npm';
+const CLAUDE_VERSION_PATTERN = /^(stable|latest|[0-9]+\.[0-9]+\.[0-9]+(?:-[^[:space:]]+)?)$/;
 
-/**
- * Detect the fastest available package manager
- * Priority: bun → pnpm → yarn → npm (fallback)
- */
-export const detectPackageManager = (): PackageManager => {
-  if (commandExists('bun')) return 'bun';
-  if (commandExists('pnpm')) return 'pnpm';
-  if (commandExists('yarn')) return 'yarn';
-  if (commandExists('npm')) return 'npm';
-  throw new Error('No package manager found. Please install npm, yarn, pnpm, or bun.');
-};
+const CLAUDE_NATIVE_RELEASES_URL =
+  process.env.CC_MIRROR_CLAUDE_RELEASES_URL ??
+  'https://storage.googleapis.com/claude-code-dist-86c565f3-f756-42ad-8dfa-d59b1c096819/claude-code-releases';
 
-/**
- * Get the install command args for a package manager
- */
-export const getInstallArgs = (pm: PackageManager, npmDir: string, pkgSpec: string): string[] => {
-  switch (pm) {
-    case 'bun':
-      return ['add', '--cwd', npmDir, pkgSpec];
-    case 'pnpm':
-      return ['add', '--dir', npmDir, pkgSpec];
-    case 'yarn':
-      return ['add', '--cwd', npmDir, pkgSpec];
-    case 'npm':
-    default:
-      return ['install', '--prefix', npmDir, '--no-save', pkgSpec];
+const assertValidClaudeVersion = (value: string) => {
+  const trimmed = (value ?? '').trim();
+  if (!trimmed || !CLAUDE_VERSION_PATTERN.test(trimmed)) {
+    throw new Error(`Invalid Claude Code version "${value}". Use "stable", "latest", or a version like "2.1.37".`);
   }
 };
 
-/**
- * Resolves the path to the native Claude binary written by the package's
- * postinstall. Despite the `.exe` suffix the file is platform-independent —
- * Anthropic's install.cjs always writes to `bin/claude.exe` so npm's
- * `bin` mapping (`{"claude": "bin/claude.exe"}`) can stay identical on every
- * platform and produce the right cmd-shim on Windows without branching.
- */
-export const resolveClaudeBinaryPath = (npmDir: string, npmPackage: string): string => {
-  const parts = npmPackage.split('/');
-  return path.join(npmDir, 'node_modules', ...parts, 'bin', 'claude.exe');
-};
+const resolveNativePlatformKey = (): string => {
+  const os = process.platform;
+  const arch = process.arch;
 
-/**
- * Some package managers (notably pnpm v10) block `postinstall` scripts by
- * default, which means `@anthropic-ai/claude-code`'s platform-bin linker
- * never runs and `bin/claude` is missing after a successful install. This
- * helper runs `node install.cjs` inside the package directory manually so
- * the post-install step still happens regardless of package manager policy.
- *
- * Returns `true` when the script ran with exit code 0. Returns `false` when
- * the script does not exist. Errors from spawning are not swallowed — they
- * surface via a non-zero status or throw from spawnSync.
- */
-export const runPostinstallFallback = (npmDir: string, npmPackage: string): boolean => {
-  const parts = npmPackage.split('/');
-  const pkgDir = path.join(npmDir, 'node_modules', ...parts);
-  const installScript = path.join(pkgDir, 'install.cjs');
-  if (!fs.existsSync(installScript)) return false;
-  const result = spawnSync(process.execPath, [installScript], {
-    cwd: pkgDir,
-    stdio: 'pipe',
-    encoding: 'utf8',
-  });
-  return result.status === 0;
-};
-
-const isWindows = process.platform === 'win32';
-
-export const getInstallPreflightNotes = (): string[] => {
-  if (!isWindows) return [];
-  const notes: string[] = [];
-  if (!commandExists('git')) {
-    notes.push('Windows: Git not found on PATH (install Git for Windows if npm needs it).');
-  }
-  return notes;
-};
-
-const buildWindowsInstallHints = (output: string): string[] => {
-  if (!isWindows) return [];
-  const lower = output.toLowerCase();
-  const hints = new Set<string>();
-  hints.add('Verify Node.js LTS and npm are on PATH, then reopen the terminal.');
-
-  if (
-    lower.includes('node-gyp') ||
-    lower.includes('gyp err') ||
-    lower.includes('msbuild') ||
-    lower.includes('visual studio')
-  ) {
-    hints.add('Install Visual Studio Build Tools (C++ workload) for node-gyp builds.');
+  const normArch = arch === 'x64' ? 'x64' : arch === 'arm64' ? 'arm64' : null;
+  if (!normArch) {
+    throw new Error(`Unsupported architecture: ${arch}`);
   }
 
-  if (lower.includes('spawn git') || lower.includes('fatal:') || lower.includes('git ') || lower.includes('git@')) {
-    hints.add('Install Git for Windows and reopen the terminal if git is missing.');
+  if (os === 'darwin') {
+    return `darwin-${normArch}`;
   }
-
-  if (lower.includes('eacces') || lower.includes('eperm')) {
-    hints.add('Permissions error: try a new terminal or choose a user-writable directory.');
-  }
-
-  if (
-    lower.includes('etimedout') ||
-    lower.includes('econnreset') ||
-    lower.includes('eai_again') ||
-    lower.includes('enotfound')
-  ) {
-    hints.add('Network error: retry, or configure npm proxy/registry settings.');
-  }
-
-  return Array.from(hints);
-};
-
-const formatInstallError = (pm: PackageManager, pkgSpec: string, output: string): string => {
-  const tail = output.length > 0 ? `\n${output}` : '';
-  const hints = buildWindowsInstallHints(output);
-  const hintText = hints.length > 0 ? `\n\nWindows tips:\n${hints.map((hint) => `- ${hint}`).join('\n')}` : '';
-  return `${pm} install failed for ${pkgSpec}.${tail}${hintText}`;
-};
-
-const ensureNpmManifest = (npmDir: string) => {
-  const manifestPath = path.join(npmDir, 'package.json');
-  if (!fs.existsSync(manifestPath)) {
-    fs.writeFileSync(manifestPath, JSON.stringify({ name: 'cc-mirror-variant', private: true }, null, 2), 'utf8');
-  }
-};
-
-/**
- * pnpm v11 refuses to run build scripts until each package is explicitly
- * listed under `allowBuilds` in pnpm-workspace.yaml. When the entry is left
- * unanswered pnpm writes a placeholder ("set this to true or false"), skips
- * install.cjs, and later reinstalls can leave bin/ without the native binary.
- * Pre-approve the Claude Code package so postinstall always runs.
- */
-export const ensurePnpmAllowBuilds = (npmDir: string, npmPackage: string): void => {
-  const workspacePath = path.join(npmDir, 'pnpm-workspace.yaml');
-  const entry = `  '${npmPackage}': true`;
-  if (!fs.existsSync(workspacePath)) {
-    fs.writeFileSync(workspacePath, `allowBuilds:\n${entry}\n`, 'utf8');
-    return;
-  }
-  const lines = fs.readFileSync(workspacePath, 'utf8').split('\n');
-  const pkgLine = new RegExp(`^\\s+['"]?${npmPackage.replace(/[.*+?^${}()|[\]\\/]/g, '\\$&')}['"]?:`);
-  const blockStart = lines.findIndex((line) => /^allowBuilds:\s*$/.test(line));
-  if (blockStart === -1) {
-    lines.unshift('allowBuilds:', entry);
-  } else {
-    let i = blockStart + 1;
-    let replaced = false;
-    for (; i < lines.length && /^\s+/.test(lines[i]); i++) {
-      if (pkgLine.test(lines[i])) {
-        lines[i] = entry;
-        replaced = true;
-      }
+  if (os === 'win32') {
+    if (normArch !== 'x64') {
+      throw new Error(`Unsupported Windows architecture: ${arch}`);
     }
-    if (!replaced) lines.splice(blockStart + 1, 0, entry);
+    return 'win32-x64';
   }
-  fs.writeFileSync(workspacePath, lines.join('\n'), 'utf8');
-};
-
-export const installNpmClaude = (params: {
-  npmDir: string;
-  npmPackage: string;
-  npmVersion: string;
-  stdio?: 'inherit' | 'pipe';
-}): { cliPath: string; packageManager: PackageManager } => {
-  const pm = detectPackageManager();
-  const stdio = params.stdio ?? 'inherit';
-  const pkgSpec = params.npmVersion ? `${params.npmPackage}@${params.npmVersion}` : params.npmPackage;
-
-  if (stdio === 'inherit') {
-    console.log(`Using ${pm} for installation...`);
+  if (os !== 'linux') {
+    throw new Error(`Unsupported platform: ${os}`);
   }
 
-  ensureNpmManifest(params.npmDir);
-  if (pm === 'pnpm') ensurePnpmAllowBuilds(params.npmDir, params.npmPackage);
-  const result = spawnSync(pm, getInstallArgs(pm, params.npmDir, pkgSpec), {
-    stdio: 'pipe',
-    encoding: 'utf8',
-    cwd: params.npmDir,
-    shell: process.platform === 'win32',
-  });
-
-  if (stdio === 'inherit') {
-    if (result.stdout) process.stdout.write(result.stdout);
-    if (result.stderr) process.stderr.write(result.stderr);
-  }
-
-  // A non-zero exit is not necessarily fatal: pnpm v11 exits non-zero when it
-  // *ignores* the package's build scripts (ERR_PNPM_IGNORED_BUILDS) even
-  // though the package itself was added successfully. The real authority on
-  // success is whether the native binary ends up on disk, so defer throwing
-  // until after the postinstall fallback has had a chance to recover it.
-  const installFailedOutput = result.status !== 0 ? `${result.stderr ?? ''}\n${result.stdout ?? ''}`.trim() : null;
-
-  const binaryPath = resolveClaudeBinaryPath(params.npmDir, params.npmPackage);
-  // Always invoke the postinstall fallback: the package ships with a small
-  // placeholder at bin/claude.exe that the real install.cjs replaces with the
-  // native binary. If the package manager skipped postinstall (pnpm v10/v11),
-  // the placeholder stays on disk and `fs.existsSync` returns true even though
-  // nothing runnable is there. install.cjs is idempotent — re-running it
-  // when the native binary is already in place just relinks the same file.
-  runPostinstallFallback(params.npmDir, params.npmPackage);
-  if (!fs.existsSync(binaryPath)) {
-    if (installFailedOutput !== null) {
-      throw new Error(formatInstallError(pm, pkgSpec, installFailedOutput));
-    }
-    throw new Error(`${pm} install succeeded but the Claude binary was not found at ${binaryPath}`);
-  }
-
-  return { cliPath: binaryPath, packageManager: pm };
-};
-
-/**
- * Async version of installNpmClaude - allows React to re-render between steps
- */
-export const installNpmClaudeAsync = (params: {
-  npmDir: string;
-  npmPackage: string;
-  npmVersion: string;
-  stdio?: 'inherit' | 'pipe';
-}): Promise<{ cliPath: string; packageManager: PackageManager }> => {
-  return new Promise((resolve, reject) => {
-    let pm: PackageManager;
+  // Detect musl on Linux (best-effort, no hard dependency on ldd).
+  const muslLibs =
+    (normArch === 'x64' && fs.existsSync('/lib/libc.musl-x86_64.so.1')) ||
+    (normArch === 'arm64' && fs.existsSync('/lib/libc.musl-aarch64.so.1'));
+  let isMusl = Boolean(muslLibs);
+  if (!isMusl && commandExists('ldd')) {
     try {
-      pm = detectPackageManager();
-    } catch (err) {
-      reject(err);
-      return;
+      const out = spawnSync('ldd', ['/bin/ls'], { encoding: 'utf8' });
+      isMusl = out.status === 0 && /musl/i.test(out.stdout + out.stderr);
+    } catch {
+      // ignore
     }
+  }
 
-    const stdio = params.stdio ?? 'inherit';
-    const pkgSpec = params.npmVersion ? `${params.npmPackage}@${params.npmVersion}` : params.npmPackage;
+  return isMusl ? `linux-${normArch}-musl` : `linux-${normArch}`;
+};
 
-    if (stdio === 'inherit') {
-      console.log(`Using ${pm} for installation...`);
-    }
+export const resolveNativeClaudePath = (nativeDir: string): string => {
+  const filename = process.platform === 'win32' ? 'claude.exe' : 'claude';
+  return path.join(nativeDir, filename);
+};
 
-    ensureNpmManifest(params.npmDir);
-    if (pm === 'pnpm') ensurePnpmAllowBuilds(params.npmDir, params.npmPackage);
-    const child = spawn(pm, getInstallArgs(pm, params.npmDir, pkgSpec), {
-      stdio: 'pipe',
-      cwd: params.npmDir,
-      shell: process.platform === 'win32',
-    });
+const fetchText = async (url: string): Promise<string> => {
+  if (typeof fetch !== 'function') {
+    throw new Error('Native installs require Node.js 18+ (global fetch).');
+  }
+  const res = await fetch(url);
+  if (!res.ok) {
+    throw new Error(`Failed to fetch ${url} (${res.status})`);
+  }
+  return await res.text();
+};
 
-    let stdout = '';
-    let stderr = '';
+const fetchJson = async <T>(url: string): Promise<T> => {
+  const text = await fetchText(url);
+  const parsed = safeJsonParse<T>(text);
+  if (!parsed) {
+    throw new Error(`Failed to parse JSON from ${url}`);
+  }
+  return parsed;
+};
 
-    child.stdout?.on('data', (data) => {
-      stdout += data.toString();
-      if (stdio === 'inherit') process.stdout.write(data);
-    });
+const downloadToFileWithSha256 = async (url: string, outPath: string): Promise<string> => {
+  if (typeof fetch !== 'function') {
+    throw new Error('Native installs require Node.js 18+ (global fetch).');
+  }
+  const res = await fetch(url);
+  if (!res.ok) {
+    throw new Error(`Download failed for ${url} (${res.status})`);
+  }
+  if (!res.body) {
+    throw new Error(`Download failed for ${url} (empty response body)`);
+  }
 
-    child.stderr?.on('data', (data) => {
-      stderr += data.toString();
-      if (stdio === 'inherit') process.stderr.write(data);
-    });
+  const tmpPath = `${outPath}.tmp-${Date.now()}`;
+  const file = fs.createWriteStream(tmpPath);
+  const hash = crypto.createHash('sha256');
 
-    child.on('close', (code) => {
-      // See note on sync path: a non-zero exit may just mean pnpm ignored the
-      // package's build scripts. Let the postinstall fallback run and treat the
-      // presence of the native binary as the real success signal.
-      const installFailedOutput = code !== 0 ? `${stderr}\n${stdout}`.trim() : null;
-
-      const binaryPath = resolveClaudeBinaryPath(params.npmDir, params.npmPackage);
-      // Always re-run install.cjs to replace the shipped placeholder with the
-      // platform-native binary.
-      runPostinstallFallback(params.npmDir, params.npmPackage);
-      if (!fs.existsSync(binaryPath)) {
-        if (installFailedOutput !== null) {
-          reject(new Error(formatInstallError(pm, pkgSpec, installFailedOutput)));
-          return;
-        }
-        reject(new Error(`${pm} install succeeded but the Claude binary was not found at ${binaryPath}`));
-        return;
+  try {
+    // TS: DOM ReadableStream (fetch) vs Node stream/web ReadableStream type mismatch.
+    // Runtime is fine on Node 18+; we just coerce for compilation.
+    const nodeStream = Readable.fromWeb(res.body as unknown as NodeReadableStream);
+    for await (const chunk of nodeStream) {
+      const buf = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk as Uint8Array);
+      hash.update(buf);
+      if (!file.write(buf)) {
+        await once(file, 'drain');
       }
+    }
+    file.end();
+    await finished(file);
 
-      resolve({ cliPath: binaryPath, packageManager: pm });
-    });
+    // Ensure atomic-ish replace (Windows can't overwrite existing targets).
+    try {
+      fs.rmSync(outPath, { force: true });
+    } catch {
+      // ignore
+    }
+    fs.renameSync(tmpPath, outPath);
+    return hash.digest('hex');
+  } catch (error) {
+    try {
+      file.destroy();
+    } catch {
+      // ignore
+    }
+    try {
+      fs.rmSync(tmpPath, { force: true });
+    } catch {
+      // ignore
+    }
+    throw error;
+  }
+};
 
-    child.on('error', (err) => {
-      reject(new Error(`Failed to spawn ${pm}: ${err.message}`));
-    });
-  });
+const sha256File = async (filePath: string): Promise<string> => {
+  const hash = crypto.createHash('sha256');
+  const stream = fs.createReadStream(filePath);
+  stream.on('data', (chunk) => hash.update(chunk));
+  await finished(stream);
+  return hash.digest('hex');
+};
+
+type ClaudeNativeManifest = {
+  version: string;
+  buildDate?: string;
+  platforms: Record<string, { binary?: string; checksum: string }>;
+};
+
+const resolveClaudeNativeVersion = async (versionSpec: string): Promise<string> => {
+  const trimmed = (versionSpec ?? '').trim();
+  assertValidClaudeVersion(trimmed);
+  if (trimmed === 'stable' || trimmed === 'latest') {
+    return (await fetchText(`${CLAUDE_NATIVE_RELEASES_URL}/${trimmed}`)).trim();
+  }
+  return trimmed;
+};
+
+export const installNativeClaudeAsync = async (params: {
+  nativeDir: string;
+  version: string;
+  cacheDir?: string;
+  stdio?: 'inherit' | 'pipe';
+}): Promise<{ binaryPath: string; resolvedVersion: string; platform: string }> => {
+  const versionSpec = (params.version ?? '').trim();
+  assertValidClaudeVersion(versionSpec);
+
+  const platform = resolveNativePlatformKey();
+  const resolvedVersion = await resolveClaudeNativeVersion(versionSpec);
+  const manifestUrl = `${CLAUDE_NATIVE_RELEASES_URL}/${resolvedVersion}/manifest.json`;
+  const manifest = await fetchJson<ClaudeNativeManifest>(manifestUrl);
+  const platformInfo = manifest.platforms?.[platform];
+  if (!platformInfo?.checksum) {
+    throw new Error(`Platform ${platform} not found in Claude Code manifest for ${resolvedVersion}`);
+  }
+
+  // Older manifests omit the binary filename; the installer scripts assume these defaults.
+  const defaultBinary = platform.startsWith('win32-') ? 'claude.exe' : 'claude';
+  const binaryName = platformInfo.binary?.trim() || defaultBinary;
+
+  const expected = platformInfo.checksum;
+  if (!/^[a-f0-9]{64}$/i.test(expected)) {
+    throw new Error(`Invalid checksum for ${platform} in manifest for ${resolvedVersion}`);
+  }
+
+  const binaryUrl = `${CLAUDE_NATIVE_RELEASES_URL}/${resolvedVersion}/${platform}/${binaryName}`;
+  const binaryPath = resolveNativeClaudePath(params.nativeDir);
+  const cacheRoot = params.cacheDir?.trim();
+  const cachePath = cacheRoot ? resolveNativeClaudePath(path.join(cacheRoot, resolvedVersion, platform)) : null;
+
+  if (cachePath && fs.existsSync(cachePath)) {
+    const cached = await sha256File(cachePath);
+    if (cached.toLowerCase() === expected.toLowerCase()) {
+      try {
+        fs.rmSync(binaryPath, { force: true });
+      } catch {
+        // ignore
+      }
+      fs.copyFileSync(cachePath, binaryPath);
+      if (process.platform !== 'win32') {
+        try {
+          fs.chmodSync(binaryPath, 0o755);
+        } catch {
+          // ignore
+        }
+      }
+      return { binaryPath, resolvedVersion, platform };
+    }
+    try {
+      fs.rmSync(cachePath, { force: true });
+    } catch {
+      // ignore
+    }
+  }
+
+  if (cachePath) {
+    fs.mkdirSync(path.dirname(cachePath), { recursive: true });
+  }
+
+  const downloadTarget = cachePath ?? binaryPath;
+  const actual = await downloadToFileWithSha256(binaryUrl, downloadTarget);
+  if (actual.toLowerCase() !== expected.toLowerCase()) {
+    try {
+      fs.rmSync(downloadTarget, { force: true });
+    } catch {
+      // ignore
+    }
+    throw new Error(`Checksum verification failed for ${binaryUrl}`);
+  }
+
+  if (cachePath) {
+    try {
+      fs.rmSync(binaryPath, { force: true });
+    } catch {
+      // ignore
+    }
+    fs.copyFileSync(cachePath, binaryPath);
+  }
+
+  if (process.platform !== 'win32') {
+    try {
+      fs.chmodSync(binaryPath, 0o755);
+    } catch {
+      // ignore
+    }
+  }
+
+  return { binaryPath, resolvedVersion, platform };
 };

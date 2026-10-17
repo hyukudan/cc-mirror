@@ -16,27 +16,6 @@ test('parseArgs handles --yes flag', () => {
   assert.equal(result.yes, true);
 });
 
-test('parseArgs handles --help flag', () => {
-  const result = parseArgs(['--help']);
-  assert.equal(result.help, true);
-});
-
-test('parseArgs handles -h flag', () => {
-  const result = parseArgs(['-h']);
-  assert.equal(result.help, true);
-  assert.equal(result.h, true);
-});
-
-test('parseArgs handles --version flag', () => {
-  const result = parseArgs(['--version']);
-  assert.equal(result.version, true);
-});
-
-test('parseArgs handles -v flag', () => {
-  const result = parseArgs(['-v']);
-  assert.equal(result.version, true);
-});
-
 test('parseArgs handles --no-tweak flag', () => {
   const result = parseArgs(['create', '--no-tweak']);
   assert.equal(result.noTweak, true);
@@ -60,11 +39,6 @@ test('parseArgs handles --quick flag', () => {
 test('parseArgs handles --simple as alias for --quick', () => {
   const result = parseArgs(['--simple']);
   assert.equal(result.quick, true);
-});
-
-test('parseArgs handles --enable-team-mode flag', () => {
-  const result = parseArgs(['--enable-team-mode']);
-  assert.equal(result['enable-team-mode'], true);
 });
 
 test('parseArgs handles --env=VALUE syntax', () => {
@@ -119,14 +93,14 @@ test('parseArgs handles mixed arguments', () => {
 
 test('parseArgs handles model override arguments', () => {
   const result = parseArgs([
-    '--model-sonnet=claude-sonnet-4-6',
-    '--model-opus=claude-opus-4-6',
-    '--model-haiku=claude-haiku-4-5-20251001',
+    '--model-sonnet=claude-3-5-sonnet-20241022',
+    '--model-opus=claude-3-opus-20240229',
+    '--model-haiku=claude-3-haiku-20240307',
   ]);
 
-  assert.equal(result['model-sonnet'], 'claude-sonnet-4-6');
-  assert.equal(result['model-opus'], 'claude-opus-4-6');
-  assert.equal(result['model-haiku'], 'claude-haiku-4-5-20251001');
+  assert.equal(result['model-sonnet'], 'claude-3-5-sonnet-20241022');
+  assert.equal(result['model-opus'], 'claude-3-opus-20240229');
+  assert.equal(result['model-haiku'], 'claude-3-haiku-20240307');
 });
 
 test('parseArgs ignores non-flag arguments starting with single dash', () => {
@@ -136,36 +110,8 @@ test('parseArgs ignores non-flag arguments starting with single dash', () => {
   assert.equal(result.provider, undefined);
 });
 
-test('parseArgs treats -- as the end of flags', () => {
-  const result = parseArgs(['my-variant', '--', '--version', '--foo=bar']);
-  assert.deepEqual(result._, ['my-variant', '--version', '--foo=bar']);
-  assert.equal(result.foo, undefined);
-});
-
 test('parseArgs handles empty array', () => {
   const result = parseArgs([]);
   assert.deepEqual(result._, []);
   assert.deepEqual(result.env, []);
-});
-
-test('parseArgs handles --prefix with value', () => {
-  const result = parseArgs(['create', '--prefix', 'team1']);
-  assert.equal(result.prefix, 'team1');
-});
-
-test('parseArgs handles --prefix=value syntax', () => {
-  const result = parseArgs(['create', '--prefix=dev']);
-  assert.equal(result.prefix, 'dev');
-});
-
-test('parseArgs handles --allow-collision flag', () => {
-  const result = parseArgs(['create', '--allow-collision']);
-  assert.equal(result['allow-collision'], true);
-});
-
-test('parseArgs handles --prefix and --allow-collision together', () => {
-  const result = parseArgs(['create', '--prefix', 'my', '--allow-collision', '--provider', 'zai']);
-  assert.equal(result.prefix, 'my');
-  assert.equal(result['allow-collision'], true);
-  assert.equal(result.provider, 'zai');
 });

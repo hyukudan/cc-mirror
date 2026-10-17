@@ -1,19 +1,14 @@
 import type { TweakccConfig } from './types.js';
 import { buildZaiTweakccConfig } from './zai.js';
 import { buildMinimaxTweakccConfig } from './minimax.js';
-import { buildGatewayZTweakccConfig } from './gatewayz.js';
-import { buildNanoGPTTweakccConfig } from './nanogpt.js';
+import { buildKimiTweakccConfig } from './kimi.js';
 import { buildOpenRouterTweakccConfig } from './openrouter.js';
 import { buildCCRouterTweakccConfig } from './ccrouter.js';
 import { buildMirrorTweakccConfig } from './mirror.js';
-import { buildKimiTweakccConfig } from './kimi.js';
-import { buildVercelTweakccConfig } from './vercel.js';
-import { buildPoeTweakccConfig } from './poe.js';
-import { buildVertexTweakccConfig } from './vertex.js';
-import { buildBedrockTweakccConfig } from './bedrock.js';
-import { buildFoundryTweakccConfig } from './foundry.js';
 import { buildOllamaTweakccConfig } from './ollama.js';
-import { buildAlibabaTweakccConfig } from './alibaba.js';
+import { buildGatewayzTweakccConfig } from './gatewayz.js';
+import { buildVercelTweakccConfig } from './vercel.js';
+import { buildNanoGPTTweakccConfig } from './nanogpt.js';
 
 export interface BrandPreset {
   key: string;
@@ -26,92 +21,62 @@ const BRAND_PRESETS: Record<string, BrandPreset> = {
   zai: {
     key: 'zai',
     label: 'Z.ai Carbon',
-    description: 'Dark carbon palette, gold + blue accents, Z.ai toolset label.',
+    description: 'Dark carbon palette, gold + blue accents',
     buildTweakccConfig: buildZaiTweakccConfig,
   },
   minimax: {
     key: 'minimax',
-    label: 'MiniMax Pulse',
-    description: 'Vibrant spectrum accents (red/orange/pink/violet) with MiniMax toolset label.',
+    label: 'MiniMax Nebula',
+    description: 'Electric violet + neon cyberpunk palette',
     buildTweakccConfig: buildMinimaxTweakccConfig,
   },
-  gatewayz: {
-    key: 'gatewayz',
-    label: 'GatewayZ Portal',
-    description: 'Dark portal palette with violet/purple accents and cyan highlights.',
-    buildTweakccConfig: buildGatewayZTweakccConfig,
+  kimi: {
+    key: 'kimi',
+    label: 'Kimi Teal',
+    description: 'Teal/cyan palette for Kimi Code.',
+    buildTweakccConfig: buildKimiTweakccConfig,
   },
   openrouter: {
     key: 'openrouter',
-    label: 'OpenRouter Teal',
-    description: 'Light UI with teal/cyan accents and OpenRouter toolset label.',
+    label: 'OpenRouter Chrome',
+    description: 'Silver/chrome palette with electric blue accents.',
     buildTweakccConfig: buildOpenRouterTweakccConfig,
-  },
-  nanogpt: {
-    key: 'nanogpt',
-    label: 'NanoGPT Violet',
-    description: 'Dark UI with purple/violet accents and NanoGPT toolset label.',
-    buildTweakccConfig: buildNanoGPTTweakccConfig,
   },
   ccrouter: {
     key: 'ccrouter',
     label: 'CCRouter Sky',
-    description: 'Airy sky-blue accents for Claude Code Router.',
+    description: 'Dark sky-blue palette for CC Router.',
     buildTweakccConfig: buildCCRouterTweakccConfig,
-  },
-  mirror: {
-    key: 'mirror',
-    label: 'Mirror Claude',
-    description: 'Reflective silver/chrome theme for pure Claude Code experience.',
-    buildTweakccConfig: buildMirrorTweakccConfig,
-  },
-  kimi: {
-    key: 'kimi',
-    label: 'Kimi Lunar',
-    description: 'Lunar indigo/silver theme for Moonshot AI Kimi models.',
-    buildTweakccConfig: buildKimiTweakccConfig,
-  },
-  vercel: {
-    key: 'vercel',
-    label: 'Vercel Edge',
-    description: 'Clean black/white theme for Vercel AI Gateway.',
-    buildTweakccConfig: buildVercelTweakccConfig,
-  },
-  poe: {
-    key: 'poe',
-    label: 'Poe Violet',
-    description: 'Mystical violet/purple theme for Poe API.',
-    buildTweakccConfig: buildPoeTweakccConfig,
-  },
-  vertex: {
-    key: 'vertex',
-    label: 'Vertex Cloud',
-    description: 'Google Cloud colors for Vertex AI.',
-    buildTweakccConfig: buildVertexTweakccConfig,
-  },
-  bedrock: {
-    key: 'bedrock',
-    label: 'Bedrock Ember',
-    description: 'AWS orange/ember theme for Bedrock.',
-    buildTweakccConfig: buildBedrockTweakccConfig,
-  },
-  foundry: {
-    key: 'foundry',
-    label: 'Foundry Azure',
-    description: 'Azure blue theme for AI Foundry.',
-    buildTweakccConfig: buildFoundryTweakccConfig,
   },
   ollama: {
     key: 'ollama',
-    label: 'Ollama Sandstone',
-    description: 'Warm sandstone theme for local Ollama models.',
+    label: 'Ollama Llama',
+    description: 'Warm sandstone palette with earthy llama tones.',
     buildTweakccConfig: buildOllamaTweakccConfig,
   },
-  alibaba: {
-    key: 'alibaba',
-    label: 'Alibaba Cloud',
-    description: 'Warm orange theme for Alibaba Cloud Coding Plan.',
-    buildTweakccConfig: buildAlibabaTweakccConfig,
+  gatewayz: {
+    key: 'gatewayz',
+    label: 'GatewayZ Violet',
+    description: 'Violet gradients for GatewayZ.',
+    buildTweakccConfig: buildGatewayzTweakccConfig,
+  },
+  vercel: {
+    key: 'vercel',
+    label: 'Vercel Mono',
+    description: 'Minimal monochrome palette with Vercel blue accents.',
+    buildTweakccConfig: buildVercelTweakccConfig,
+  },
+  nanogpt: {
+    key: 'nanogpt',
+    label: 'NanoGPT Aurora',
+    description: 'Aurora green + cyan accents for NanoGPT.',
+    buildTweakccConfig: buildNanoGPTTweakccConfig,
+  },
+  mirror: {
+    key: 'mirror',
+    label: 'Mirror',
+    description: 'Reflective silver/chrome theme for the mirror experience.',
+    buildTweakccConfig: buildMirrorTweakccConfig,
   },
 };
 

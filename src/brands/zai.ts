@@ -1,44 +1,59 @@
-/**
- * Z.ai brand theme and blocked tools configuration
- */
-
 import type { TweakccConfig, Theme } from './types.js';
 import { DEFAULT_THEMES } from './defaultThemes.js';
+import { buildBrandMiscConfig } from './miscDefaults.js';
+import { buildBrandSettingsDefaults } from './settingsDefaults.js';
+import { buildDiffPalette } from './diffPalette.js';
 import { formatUserMessage, getUserLabel } from './userLabel.js';
-import { mix, rgb, lighten } from './colorUtils.js';
 
-type Palette = {
-  base: string;
-  surface: string;
-  panel: string;
-  border: string;
-  borderStrong: string;
-  text: string;
-  textMuted: string;
-  textDim: string;
-  gold: string;
-  goldSoft: string;
-  goldDeep: string;
-  blue: string;
-  blueSoft: string;
-  blueDeep: string;
-  green: string;
-  red: string;
-  orange: string;
-  purple: string;
+type Rgb = { r: number; g: number; b: number };
+
+const clamp = (value: number) => Math.max(0, Math.min(255, Math.round(value)));
+
+const hexToRgb = (hex: string): Rgb => {
+  const normalized = hex.replace('#', '').trim();
+  if (normalized.length === 3) {
+    const [r, g, b] = normalized.split('');
+    return {
+      r: clamp(parseInt(r + r, 16)),
+      g: clamp(parseInt(g + g, 16)),
+      b: clamp(parseInt(b + b, 16)),
+    };
+  }
+  if (normalized.length !== 6) {
+    throw new Error(`Unsupported hex color: ${hex}`);
+  }
+  return {
+    r: clamp(parseInt(normalized.slice(0, 2), 16)),
+    g: clamp(parseInt(normalized.slice(2, 4), 16)),
+    b: clamp(parseInt(normalized.slice(4, 6), 16)),
+  };
 };
 
-const palette: Palette = {
-  base: '#1b1d1f',
-  surface: '#25272b',
-  panel: '#282a30',
-  border: '#353842',
-  borderStrong: '#484a58',
-  text: '#e8e8e8',
-  textMuted: '#c3c4cc',
-  textDim: '#8d8e99',
+const rgb = (hex: string) => {
+  const { r, g, b } = hexToRgb(hex);
+  return `rgb(${r},${g},${b})`;
+};
+
+const mix = (hexA: string, hexB: string, weight: number) => {
+  const a = hexToRgb(hexA);
+  const b = hexToRgb(hexB);
+  const w = Math.max(0, Math.min(1, weight));
+  return `rgb(${clamp(a.r + (b.r - a.r) * w)},${clamp(a.g + (b.g - a.g) * w)},${clamp(a.b + (b.b - a.b) * w)})`;
+};
+
+const lighten = (hex: string, weight: number) => mix(hex, '#ffffff', weight);
+
+const palette = {
+  base: '#191b1e',
+  surface: '#222529',
+  panel: '#292d33',
+  border: '#3e4350',
+  borderStrong: '#545a6a',
+  text: '#eff0f3',
+  textMuted: '#cdd0d8',
+  textDim: '#9a9daa',
   gold: '#ffd373',
-  goldSoft: '#ffdc8f',
+  goldSoft: '#ffe4a8',
   goldDeep: '#b2892e',
   blue: '#0080ff',
   blueSoft: '#66b3ff',
@@ -76,14 +91,7 @@ const theme: Theme = {
     error: rgb(palette.red),
     warning: rgb(palette.orange),
     warningShimmer: rgb(palette.goldSoft),
-    diffAdded: mix(palette.base, palette.green, 0.18),
-    diffRemoved: mix(palette.base, palette.red, 0.18),
-    diffAddedDimmed: mix(palette.base, palette.green, 0.1),
-    diffRemovedDimmed: mix(palette.base, palette.red, 0.1),
-    diffAddedWord: mix(palette.base, palette.green, 0.45),
-    diffRemovedWord: mix(palette.base, palette.red, 0.45),
-    diffAddedWordDimmed: mix(palette.base, palette.green, 0.3),
-    diffRemovedWordDimmed: mix(palette.base, palette.red, 0.3),
+    ...buildDiffPalette(),
     red_FOR_SUBAGENTS_ONLY: rgb(palette.red),
     blue_FOR_SUBAGENTS_ONLY: rgb(palette.blueDeep),
     green_FOR_SUBAGENTS_ONLY: rgb(palette.green),
@@ -109,9 +117,9 @@ const theme: Theme = {
     rainbow_violet_shimmer: lighten(palette.purple, 0.35),
     clawd_body: rgb(palette.gold),
     clawd_background: rgb(palette.base),
-    userMessageBackground: rgb(palette.panel),
-    bashMessageBackgroundColor: rgb(palette.surface),
-    memoryBackgroundColor: rgb(palette.panel),
+    userMessageBackground: mix('#383838', palette.gold, 0.12),
+    bashMessageBackgroundColor: mix('#404040', palette.gold, 0.08),
+    memoryBackgroundColor: mix('#383838', palette.blue, 0.1),
     rate_limit_fill: rgb(palette.gold),
     rate_limit_empty: rgb(palette.borderStrong),
   },
@@ -124,7 +132,7 @@ export const buildZaiTweakccConfig = (): TweakccConfig => ({
   changesApplied: false,
   hidePiebaldAnnouncement: true,
   settings: {
-    themes: [theme, ...DEFAULT_THEMES],
+    themes: [theme, ...DEFAULT_THEMES.filter((t) => t.id !== theme.id)],
     thinkingVerbs: {
       format: '{}... ',
       verbs: [
@@ -167,15 +175,7 @@ export const buildZaiTweakccConfig = (): TweakccConfig => ({
     inputBox: {
       removeBorder: true,
     },
-    misc: {
-      showTweakccVersion: false,
-      showPatchesApplied: false,
-      expandThinkingBlocks: true,
-      enableConversationTitle: true,
-      hideStartupBanner: true,
-      hideCtrlGToEditPrompt: true,
-      hideStartupClawd: true,
-      increaseFileReadLimit: true,
-    },
+    misc: buildBrandMiscConfig(),
+    ...buildBrandSettingsDefaults(),
   },
 });

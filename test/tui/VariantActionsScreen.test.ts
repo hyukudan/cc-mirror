@@ -10,8 +10,6 @@ import { VariantActionsScreen } from '../../src/tui/screens/VariantActionsScreen
 import { tick, send, KEYS } from '../helpers/index.js';
 
 test('VariantActionsScreen renders actions', async () => {
-  const originalPath = process.env.PATH;
-  process.env.PATH = '';
   const meta = {
     name: 'test-variant',
     provider: 'zai',
@@ -23,10 +21,8 @@ test('VariantActionsScreen renders actions', async () => {
   const app = render(
     React.createElement(VariantActionsScreen, {
       meta,
-      onLaunch: () => {},
       onUpdate: () => {},
-      onApplyPath: () => {},
-      onTweak: () => {},
+      onConfigureModels: () => {},
       onRemove: () => {},
       onBack: () => {},
     })
@@ -35,15 +31,12 @@ test('VariantActionsScreen renders actions', async () => {
   const frame = app.lastFrame() || '';
 
   assert.ok(frame.includes('test-variant'), 'Variant name should be visible');
-  assert.ok(frame.includes('Launch'), 'Launch action should be visible');
   assert.ok(frame.includes('Update'), 'Update action should be visible');
-  assert.ok(frame.includes('Apply PATH'), 'Apply PATH action should be visible');
-  assert.ok(frame.includes('Customize'), 'Customize action should be visible');
+  assert.ok(frame.includes('Configure Models'), 'Configure Models action should be visible');
   assert.ok(frame.includes('Remove'), 'Remove action should be visible');
   assert.ok(frame.includes('Back'), 'Back action should be visible');
 
   app.unmount();
-  process.env.PATH = originalPath;
 });
 
 test('VariantActionsScreen action selection', async () => {
@@ -62,7 +55,6 @@ test('VariantActionsScreen action selection', async () => {
       onUpdate: () => {
         updateCalled = true;
       },
-      onTweak: () => {},
       onRemove: () => {},
       onBack: () => {},
     })
@@ -74,130 +66,6 @@ test('VariantActionsScreen action selection', async () => {
   await send(app.stdin, KEYS.enter);
 
   assert.equal(updateCalled, true, 'Update should be called');
-
-  app.unmount();
-});
-
-test('VariantActionsScreen launch calls handler', async () => {
-  const meta = {
-    name: 'test-variant',
-    binaryPath: '/tmp/test',
-    configDir: '/tmp/test/config',
-    wrapperPath: '/tmp/bin/test',
-  };
-
-  let launchCalled = false;
-
-  const app = render(
-    React.createElement(VariantActionsScreen, {
-      meta,
-      onLaunch: () => {
-        launchCalled = true;
-      },
-      onUpdate: () => {},
-      onTweak: () => {},
-      onRemove: () => {},
-      onBack: () => {},
-    })
-  );
-
-  await tick();
-
-  // Launch is the first item when enabled
-  await send(app.stdin, KEYS.enter);
-
-  assert.equal(launchCalled, true, 'Launch should be called');
-
-  app.unmount();
-});
-
-test('VariantActionsScreen shows team mode toggle when handler provided', async () => {
-  const meta = {
-    name: 'test-variant',
-    binaryPath: '/tmp/test',
-    configDir: '/tmp/test/config',
-    wrapperPath: '/tmp/bin/test',
-    teamModeEnabled: false,
-  };
-
-  const app = render(
-    React.createElement(VariantActionsScreen, {
-      meta,
-      onUpdate: () => {},
-      onTweak: () => {},
-      onRemove: () => {},
-      onToggleTeamMode: () => {},
-      onBack: () => {},
-    })
-  );
-
-  const frame = app.lastFrame() || '';
-
-  assert.ok(frame.includes('Enable Team Mode'), 'Enable Team Mode should be visible when disabled');
-  assert.ok(frame.includes('Team Mode') && frame.includes('Disabled'), 'Team mode status should show Disabled');
-
-  app.unmount();
-});
-
-test('VariantActionsScreen shows disable option when team mode enabled', async () => {
-  const meta = {
-    name: 'test-variant',
-    binaryPath: '/tmp/test',
-    configDir: '/tmp/test/config',
-    wrapperPath: '/tmp/bin/test',
-    teamModeEnabled: true,
-  };
-
-  const app = render(
-    React.createElement(VariantActionsScreen, {
-      meta,
-      onUpdate: () => {},
-      onTweak: () => {},
-      onRemove: () => {},
-      onToggleTeamMode: () => {},
-      onBack: () => {},
-    })
-  );
-
-  const frame = app.lastFrame() || '';
-
-  assert.ok(frame.includes('Disable Team Mode'), 'Disable Team Mode should be visible when enabled');
-  assert.ok(frame.includes('Team Mode') && frame.includes('Enabled'), 'Team mode status should show Enabled');
-
-  app.unmount();
-});
-
-test('VariantActionsScreen team mode toggle calls handler', async () => {
-  const meta = {
-    name: 'test-variant',
-    binaryPath: '/tmp/test',
-    configDir: '/tmp/test/config',
-    wrapperPath: '/tmp/bin/test',
-    teamModeEnabled: false,
-  };
-
-  let toggleCalled = false;
-
-  const app = render(
-    React.createElement(VariantActionsScreen, {
-      meta,
-      onUpdate: () => {},
-      onTweak: () => {},
-      onRemove: () => {},
-      onToggleTeamMode: () => {
-        toggleCalled = true;
-      },
-      onBack: () => {},
-    })
-  );
-
-  await tick();
-
-  // Navigate down to team mode option (Update -> Team Mode)
-  await send(app.stdin, KEYS.down);
-  await send(app.stdin, KEYS.enter);
-
-  assert.equal(toggleCalled, true, 'Team mode toggle should be called');
 
   app.unmount();
 });

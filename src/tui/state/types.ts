@@ -3,11 +3,60 @@
  */
 
 import type { DoctorReportItem, VariantEntry, VariantMeta } from '../../core/types.js';
-import type { SyncItem } from '../../core/sync.js';
-import type { Screen } from '../router/types.js';
 
-// Re-export Screen type from router
-export type { Screen };
+/**
+ * All possible screens in the TUI
+ */
+export type Screen =
+  // Home and exit
+  | 'home'
+  | 'exit'
+  // Quick setup flow
+  | 'quick-provider'
+  | 'quick-intro'
+  | 'quick-ccrouter-url'
+  | 'quick-api-key'
+  | 'quick-models'
+  | 'quick-name'
+  | 'quick-review'
+  // Advanced create flow
+  | 'create-provider'
+  | 'create-intro'
+  | 'create-brand'
+  | 'create-name'
+  | 'create-ccrouter-url'
+  | 'create-base-url'
+  | 'create-api-key'
+  | 'create-models'
+  | 'create-prompt-pack'
+  | 'create-skill-install'
+  | 'create-shell-env'
+  | 'create-env-confirm'
+  | 'create-env-add'
+  | 'create-summary'
+  | 'create-running'
+  | 'create-done'
+  // Manage flow
+  | 'manage'
+  | 'manage-actions'
+  | 'manage-update'
+  | 'manage-update-done'
+  | 'manage-remove'
+  | 'manage-remove-done'
+  | 'manage-models'
+  | 'manage-models-saving'
+  | 'manage-models-done'
+  // Update all
+  | 'updateAll'
+  | 'updateAll-done'
+  // Settings
+  | 'settings-root'
+  | 'settings-bin'
+  // Doctor
+  | 'doctor'
+  // Content
+  | 'about'
+  | 'feedback';
 
 /**
  * Selected variant with wrapper path
@@ -60,11 +109,10 @@ export interface AppState {
   // Paths
   rootDir: string;
   binDir: string;
-  npmPackage: string;
 
   // Feature flags
+  useTweak: boolean;
   usePromptPack: boolean;
-  promptPackMode: 'minimal' | 'maximal';
   installSkill: boolean;
   shellEnv: boolean;
   skillUpdate: boolean;
@@ -83,17 +131,6 @@ export interface AppState {
 
   // Doctor
   doctorReport: DoctorReportItem[];
-
-  // UI state
-  nameError: string | null;
-
-  // Team mode
-  enableTeamMode: boolean;
-
-  // Sync flow
-  syncSourceVariant: string;
-  syncTargetVariants: string[];
-  syncItems: SyncItem[];
 }
 
 /**
@@ -120,11 +157,10 @@ export interface AppActions {
   // Paths
   setRootDir: (dir: string) => void;
   setBinDir: (dir: string) => void;
-  setNpmPackage: (pkg: string) => void;
 
   // Feature flags
+  setUseTweak: (value: boolean) => void;
   setUsePromptPack: (value: boolean) => void;
-  setPromptPackMode: (mode: 'minimal' | 'maximal') => void;
   setInstallSkill: (value: boolean) => void;
   setShellEnv: (value: boolean) => void;
   setSkillUpdate: (value: boolean) => void;
@@ -134,7 +170,7 @@ export interface AppActions {
   addExtraEnv: (entry: string) => void;
 
   // Progress and completion
-  setProgressLines: (updater: (prev: string[]) => string[]) => void;
+  setProgressLines: (lines: string[]) => void;
   addProgressLine: (line: string) => void;
   setDoneLines: (lines: string[]) => void;
   setCompletion: (data: CompletionData) => void;
@@ -145,17 +181,6 @@ export interface AppActions {
 
   // Doctor
   setDoctorReport: (report: DoctorReportItem[]) => void;
-
-  // UI state
-  setNameError: (error: string | null) => void;
-
-  // Team mode
-  setEnableTeamMode: (value: boolean) => void;
-
-  // Sync flow
-  setSyncSourceVariant: (variant: string) => void;
-  setSyncTargetVariants: (variants: string[]) => void;
-  setSyncItems: (items: SyncItem[]) => void;
 
   // Utility
   resetWizard: () => void;
@@ -174,7 +199,6 @@ export interface AppContextValue {
  */
 export interface ProviderDefaults {
   promptPack: boolean;
-  promptPackMode: 'minimal' | 'maximal';
   skillInstall: boolean;
   shellEnv: boolean;
 }

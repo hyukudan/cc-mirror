@@ -1,44 +1,23 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import { DEFAULT_BIN_DIR, DEFAULT_NPM_PACKAGE, DEFAULT_NPM_VERSION, DEFAULT_ROOT } from './constants.js';
+import { DEFAULT_BIN_DIR, DEFAULT_CLAUDE_VERSION, DEFAULT_CLAUDE_NATIVE_CACHE_DIR, DEFAULT_ROOT } from './constants.js';
 import { ensureDir } from './fs.js';
-import { expandTilde } from './paths.js';
+import { expandTilde, getWrapperPath, getWrapperScriptPath, isWindows } from './paths.js';
 import { ensureTweakccConfig, launchTweakccUi } from './tweakcc.js';
 import { formatTweakccFailure } from './errors.js';
 import { listVariants as listVariantsImpl, loadVariantMeta } from './variants.js';
-import { assertValidVariantName } from './validation.js';
 import { VariantBuilder, VariantUpdater } from './variant-builder/index.js';
-import { runDoctorCheck } from './doctor.js';
 import type {
   CreateVariantParams,
   CreateVariantResult,
-  DoctorOptions,
   DoctorReportItem,
   UpdateVariantOptions,
   UpdateVariantResult,
   VariantEntry,
 } from './types.js';
 
-export { DEFAULT_ROOT, DEFAULT_BIN_DIR, DEFAULT_NPM_PACKAGE, DEFAULT_NPM_VERSION };
-export { expandTilde, detectCommandCollision } from './paths.js';
-export type { CommandCollisionCheck } from './paths.js';
-export { ensureWindowsUserPath } from './windows-path.js';
-export type { WindowsPathResult } from './windows-path.js';
-export { syncVariants, syncVariantsAsync, createConfigBackup, restoreConfigBackup, computeSyncDiff } from './sync.js';
-export type { SyncItem, SyncOptions, SyncResult, SyncItemResult, SyncDiff, DiffEntry } from './sync.js';
-export { exportVariant, importVariant, readExportArchive, writeExportArchive } from './export.js';
-export type {
-  ExportArchive,
-  ExportItem,
-  ExportItemResult,
-  ExportResult,
-  ImportItemResult,
-  ImportResult,
-} from './export.js';
-
-// Re-export from doctor for external use
-export { checkMcpServerHealth } from './doctor.js';
-export type { McpServerStatus } from './types.js';
+export { DEFAULT_ROOT, DEFAULT_BIN_DIR, DEFAULT_CLAUDE_VERSION, DEFAULT_CLAUDE_NATIVE_CACHE_DIR };
+export { expandTilde } from './paths.js';
 
 export const createVariant = (params: CreateVariantParams): CreateVariantResult => {
   return new VariantBuilder(false).build(params);
@@ -67,15 +46,28 @@ export const updateVariant = (rootDir: string, name: string, opts: UpdateVariant
 };
 
 export const removeVariant = (rootDir: string, name: string) => {
-  const safeName = assertValidVariantName(name);
   const resolvedRoot = expandTilde(rootDir || DEFAULT_ROOT) ?? rootDir;
-  const variantDir = path.join(resolvedRoot, safeName);
-  if (!fs.existsSync(variantDir)) throw new Error(`Variant not found: ${safeName}`);
+  const variantDir = path.join(resolvedRoot, name);
+  if (!fs.existsSync(variantDir)) throw new Error(`Variant not found: ${name}`);
   fs.rmSync(variantDir, { recursive: true, force: true });
 };
 
-export const doctor = (rootDir: string, binDir: string, opts: DoctorOptions = {}): DoctorReportItem[] => {
-  return runDoctorCheck(rootDir, binDir, opts);
+export const doctor = (rootDir: string, binDir: string): DoctorReportItem[] => {
+  const resolvedRoot = expandTilde(rootDir || DEFAULT_ROOT) ?? rootDir;
+  const resolvedBin = expandTilde(binDir || DEFAULT_BIN_DIR) ?? binDir;
+  const variants = listVariantsImpl(resolvedRoot);
+  return variants.map(({ name, meta }) => {
+    const wrapperPath = getWrapperPath(resolvedBin, name);
+    const wrapperOk = fs.existsSync(wrapperPath);
+    const scriptOk = !isWindows || fs.existsSync(getWrapperScriptPath(resolvedBin, name));
+    const ok = Boolean(meta && fs.existsSync(meta.binaryPath) && wrapperOk && scriptOk);
+    return {
+      name,
+      ok,
+      binaryPath: meta?.binaryPath,
+      wrapperPath,
+    };
+  });
 };
 
 export const listVariants = (rootDir: string): VariantEntry[] => {
@@ -84,11 +76,10 @@ export const listVariants = (rootDir: string): VariantEntry[] => {
 };
 
 export const tweakVariant = (rootDir: string, name: string): void => {
-  const safeName = assertValidVariantName(name);
   const resolvedRoot = expandTilde(rootDir || DEFAULT_ROOT) ?? rootDir;
-  const variantDir = path.join(resolvedRoot, safeName);
+  const variantDir = path.join(resolvedRoot, name);
   const meta = loadVariantMeta(variantDir);
-  if (!meta) throw new Error(`Variant not found: ${safeName}`);
+  if (!meta) throw new Error(`Variant not found: ${name}`);
   ensureDir(meta.tweakDir);
   const brandKey = meta.brand ?? null;
   ensureTweakccConfig(meta.tweakDir, brandKey);

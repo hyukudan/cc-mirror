@@ -2,7 +2,7 @@
  * Model override utilities for CLI
  */
 
-import { getProvider } from '../../providers/index.js';
+import { providerRequiresModelMapping } from '../../providers/index.js';
 import type { ModelOverrides } from '../../providers/index.js';
 import type { ParsedArgs } from '../args.js';
 import { requirePrompt } from './requirePrompt.js';
@@ -11,23 +11,36 @@ import { requirePrompt } from './requirePrompt.js';
  * Extract model overrides from parsed CLI arguments
  */
 export function getModelOverridesFromArgs(opts: ParsedArgs): ModelOverrides {
-  return {
-    sonnet: typeof opts['model-sonnet'] === 'string' ? (opts['model-sonnet'] as string) : undefined,
-    opus: typeof opts['model-opus'] === 'string' ? (opts['model-opus'] as string) : undefined,
-    haiku: typeof opts['model-haiku'] === 'string' ? (opts['model-haiku'] as string) : undefined,
-    smallFast: typeof opts['model-small-fast'] === 'string' ? (opts['model-small-fast'] as string) : undefined,
-    defaultModel: typeof opts['model-default'] === 'string' ? (opts['model-default'] as string) : undefined,
-    subagentModel: typeof opts['model-subagent'] === 'string' ? (opts['model-subagent'] as string) : undefined,
-  };
-}
+  const overrides: ModelOverrides = {};
 
-const PROVIDER_MODEL_DEFAULTS: Record<string, { sonnet: string; opus: string; haiku: string }> = {
-  gatewayz: {
-    sonnet: 'claude-sonnet-4-6',
-    opus: 'claude-opus-4-6',
-    haiku: 'claude-haiku-4-5-20251001',
-  },
-};
+  // Convenience: set the 3 main tiers at once.
+  if (typeof opts.model === 'string') {
+    const value = opts.model.trim();
+    if (value) {
+      overrides.sonnet = value;
+      overrides.opus = value;
+      overrides.haiku = value;
+    }
+  }
+
+  // Explicit tier flags override --model when provided.
+  if (typeof opts['model-sonnet'] === 'string') overrides.sonnet = (opts['model-sonnet'] as string).trim();
+  if (typeof opts['model-opus'] === 'string') overrides.opus = (opts['model-opus'] as string).trim();
+  if (typeof opts['model-haiku'] === 'string') overrides.haiku = (opts['model-haiku'] as string).trim();
+  if (typeof opts['model-small-fast'] === 'string') overrides.smallFast = (opts['model-small-fast'] as string).trim();
+  if (typeof opts['model-default'] === 'string') overrides.defaultModel = (opts['model-default'] as string).trim();
+  if (typeof opts['model-subagent'] === 'string') overrides.subagentModel = (opts['model-subagent'] as string).trim();
+
+  // Avoid writing empty-string overrides into settings.json.
+  for (const key of Object.keys(overrides) as Array<keyof ModelOverrides>) {
+    const value = overrides[key];
+    if (typeof value === 'string' && value.trim().length === 0) {
+      delete overrides[key];
+    }
+  }
+
+  return overrides;
+}
 
 /**
  * Ensure model mapping for providers that require it (e.g., OpenRouter, LiteLLM)
@@ -38,27 +51,21 @@ export async function ensureModelMapping(
   opts: ParsedArgs,
   overrides: ModelOverrides
 ): Promise<ModelOverrides> {
-  const provider = getProvider(providerKey);
-  if (!provider?.requiresModelMapping) return overrides;
-  const defaults = PROVIDER_MODEL_DEFAULTS[providerKey];
-  if (defaults) {
-    if (!overrides.sonnet?.trim()) overrides.sonnet = defaults.sonnet;
-    if (!overrides.opus?.trim()) overrides.opus = defaults.opus;
-    if (!overrides.haiku?.trim()) overrides.haiku = defaults.haiku;
-  }
+  if (!providerRequiresModelMapping(providerKey)) return overrides;
   const missing = {
     sonnet: (overrides.sonnet ?? '').trim().length === 0,
     opus: (overrides.opus ?? '').trim().length === 0,
     haiku: (overrides.haiku ?? '').trim().length === 0,
   };
   if (opts.yes && (missing.sonnet || missing.opus || missing.haiku)) {
-    const label = provider?.label || providerKey;
-    throw new Error(`${label} requires --model-sonnet/--model-opus/--model-haiku`);
+    throw new Error(
+      'This provider requires --model-sonnet/--model-opus/--model-haiku for Balanced/Primary/Fast slots.'
+    );
   }
   if (!opts.yes) {
-    if (missing.sonnet) overrides.sonnet = await requirePrompt('Default Sonnet model', overrides.sonnet);
-    if (missing.opus) overrides.opus = await requirePrompt('Default Opus model', overrides.opus);
-    if (missing.haiku) overrides.haiku = await requirePrompt('Default Haiku model', overrides.haiku);
+    if (missing.sonnet) overrides.sonnet = await requirePrompt('Balanced model slot', overrides.sonnet);
+    if (missing.opus) overrides.opus = await requirePrompt('Primary model slot', overrides.opus);
+    if (missing.haiku) overrides.haiku = await requirePrompt('Fast model slot', overrides.haiku);
   }
   return overrides;
 }

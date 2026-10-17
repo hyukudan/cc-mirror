@@ -1,5 +1,8 @@
 import type { TweakccConfig, Theme } from './types.js';
 import { DEFAULT_THEMES } from './defaultThemes.js';
+import { buildBrandMiscConfig } from './miscDefaults.js';
+import { buildBrandSettingsDefaults } from './settingsDefaults.js';
+import { buildDiffPalette } from './diffPalette.js';
 import { formatUserMessage, getUserLabel } from './userLabel.js';
 
 type Rgb = { r: number; g: number; b: number };
@@ -40,91 +43,97 @@ const mix = (hexA: string, hexB: string, weight: number) => {
 
 const lighten = (hex: string, weight: number) => mix(hex, '#ffffff', weight);
 
+// OpenRouter Chrome palette: silver/chrome with electric blue accents
+// Ported from Mirror Claude theme — polished mirror surface aesthetic
 const palette = {
-  base: '#eef1f4',
-  surface: '#f5f7f9',
-  panel: '#e5e9ee',
-  border: '#b0d4d4',
-  borderStrong: '#7ec4c4',
-  text: '#1f2430',
-  textMuted: '#475569',
-  textDim: '#6b7280',
-  // Teal/cyan palette matching ASCII art colors
-  teal: '#00a896', // Primary teal (matches ANSI 43)
-  tealBright: '#00d4aa', // Bright teal (matches ANSI 49)
-  tealDeep: '#008080', // Deep teal (matches ANSI 37)
-  tealMuted: '#5fb3a8', // Softer teal for accents
-  cyan: '#20b2aa',
-  green: '#2f9b6d',
-  red: '#d04b5a',
-  orange: '#d28a3c',
-  purple: '#6a5ad6',
+  // Base surfaces - near-black with metallic sheen
+  base: '#0d0f12',
+  surface: '#14161a',
+  panel: '#1a1d22',
+  elevated: '#22262d',
+  // Borders - subtle silver
+  border: '#3a3f48',
+  borderStrong: '#4a5058',
+  borderGlow: '#6a7078',
+  // Text
+  text: '#e8eaed',
+  textMuted: '#b0b5bc',
+  textDim: '#7a8088',
+  // Primary: Silver/Chrome
+  silver: '#c0c0c0',
+  chrome: '#a0a0a0',
+  platinum: '#e5e4e2',
+  // Accent: Electric blue
+  electric: '#00d4ff',
+  electricSoft: '#4de1ff',
+  electricDeep: '#00a3cc',
+  // Secondary: Deep purple
+  purple: '#6b5b95',
+  purpleSoft: '#8a7ab4',
+  // Semantic
+  green: '#4ade80',
+  red: '#f87171',
+  orange: '#fb923c',
+  cyan: '#22d3ee',
 };
 
 const theme: Theme = {
-  name: 'OpenRouter Teal',
+  name: 'OpenRouter Chrome',
   id: 'dark',
   colors: {
     autoAccept: rgb(palette.green),
-    bashBorder: rgb(palette.teal),
-    claude: rgb(palette.tealDeep),
-    claudeShimmer: lighten(palette.teal, 0.35),
-    claudeBlue_FOR_SYSTEM_SPINNER: rgb(palette.teal),
-    claudeBlueShimmer_FOR_SYSTEM_SPINNER: lighten(palette.tealMuted, 0.2),
-    permission: rgb(palette.cyan),
-    permissionShimmer: lighten(palette.cyan, 0.25),
-    planMode: rgb(palette.tealDeep),
-    ide: rgb(palette.tealMuted),
+    bashBorder: rgb(palette.electric),
+    claude: rgb(palette.silver),
+    claudeShimmer: rgb(palette.platinum),
+    claudeBlue_FOR_SYSTEM_SPINNER: rgb(palette.electric),
+    claudeBlueShimmer_FOR_SYSTEM_SPINNER: lighten(palette.electric, 0.2),
+    permission: rgb(palette.electricSoft),
+    permissionShimmer: lighten(palette.electricSoft, 0.25),
+    planMode: rgb(palette.purple),
+    ide: rgb(palette.cyan),
     promptBorder: rgb(palette.border),
-    promptBorderShimmer: rgb(palette.borderStrong),
+    promptBorderShimmer: rgb(palette.borderGlow),
     text: rgb(palette.text),
     inverseText: rgb(palette.base),
     inactive: rgb(palette.textDim),
-    subtle: mix(palette.base, palette.tealMuted, 0.12),
-    suggestion: rgb(palette.tealMuted),
-    remember: rgb(palette.tealDeep),
+    subtle: mix(palette.base, palette.chrome, 0.08),
+    suggestion: rgb(palette.electricSoft),
+    remember: rgb(palette.purple),
     background: rgb(palette.base),
     success: rgb(palette.green),
     error: rgb(palette.red),
     warning: rgb(palette.orange),
     warningShimmer: lighten(palette.orange, 0.28),
-    diffAdded: mix(palette.base, palette.green, 0.2),
-    diffRemoved: mix(palette.base, palette.red, 0.2),
-    diffAddedDimmed: mix(palette.base, palette.green, 0.12),
-    diffRemovedDimmed: mix(palette.base, palette.red, 0.12),
-    diffAddedWord: mix(palette.base, palette.green, 0.42),
-    diffRemovedWord: mix(palette.base, palette.red, 0.42),
-    diffAddedWordDimmed: mix(palette.base, palette.green, 0.28),
-    diffRemovedWordDimmed: mix(palette.base, palette.red, 0.28),
+    ...buildDiffPalette(),
     red_FOR_SUBAGENTS_ONLY: rgb(palette.red),
-    blue_FOR_SUBAGENTS_ONLY: rgb(palette.tealDeep),
+    blue_FOR_SUBAGENTS_ONLY: rgb(palette.electric),
     green_FOR_SUBAGENTS_ONLY: rgb(palette.green),
     yellow_FOR_SUBAGENTS_ONLY: rgb(palette.orange),
     purple_FOR_SUBAGENTS_ONLY: rgb(palette.purple),
     orange_FOR_SUBAGENTS_ONLY: rgb(palette.orange),
     pink_FOR_SUBAGENTS_ONLY: lighten(palette.purple, 0.32),
     cyan_FOR_SUBAGENTS_ONLY: rgb(palette.cyan),
-    professionalBlue: rgb(palette.teal),
+    professionalBlue: rgb(palette.electric),
     rainbow_red: rgb(palette.red),
     rainbow_orange: rgb(palette.orange),
     rainbow_yellow: lighten(palette.orange, 0.18),
     rainbow_green: rgb(palette.green),
-    rainbow_blue: rgb(palette.tealMuted),
-    rainbow_indigo: rgb(palette.tealDeep),
+    rainbow_blue: rgb(palette.electricSoft),
+    rainbow_indigo: rgb(palette.electricDeep),
     rainbow_violet: rgb(palette.purple),
     rainbow_red_shimmer: lighten(palette.red, 0.35),
     rainbow_orange_shimmer: lighten(palette.orange, 0.35),
     rainbow_yellow_shimmer: lighten(palette.orange, 0.3),
     rainbow_green_shimmer: lighten(palette.green, 0.35),
-    rainbow_blue_shimmer: lighten(palette.tealMuted, 0.35),
-    rainbow_indigo_shimmer: lighten(palette.tealDeep, 0.35),
+    rainbow_blue_shimmer: lighten(palette.electricSoft, 0.35),
+    rainbow_indigo_shimmer: lighten(palette.electricDeep, 0.35),
     rainbow_violet_shimmer: lighten(palette.purple, 0.35),
-    clawd_body: rgb(palette.tealDeep),
+    clawd_body: rgb(palette.silver),
     clawd_background: rgb(palette.base),
-    userMessageBackground: rgb(palette.panel),
-    bashMessageBackgroundColor: rgb(palette.surface),
-    memoryBackgroundColor: mix(palette.panel, palette.tealMuted, 0.12),
-    rate_limit_fill: rgb(palette.teal),
+    userMessageBackground: mix('#383838', palette.silver, 0.12),
+    bashMessageBackgroundColor: mix('#404040', palette.silver, 0.08),
+    memoryBackgroundColor: mix('#383838', palette.electric, 0.1),
+    rate_limit_fill: rgb(palette.electric),
     rate_limit_empty: rgb(palette.borderStrong),
   },
 };
@@ -136,7 +145,7 @@ export const buildOpenRouterTweakccConfig = (): TweakccConfig => ({
   changesApplied: false,
   hidePiebaldAnnouncement: true,
   settings: {
-    themes: [theme, ...DEFAULT_THEMES],
+    themes: [theme, ...DEFAULT_THEMES.filter((t) => t.id !== theme.id)],
     thinkingVerbs: {
       format: '{}... ',
       verbs: [
@@ -144,7 +153,6 @@ export const buildOpenRouterTweakccConfig = (): TweakccConfig => ({
         'Switchboarding',
         'Proxying',
         'Negotiating',
-        'Handshake',
         'Bridging',
         'Mapping',
         'Tunneling',
@@ -154,20 +162,21 @@ export const buildOpenRouterTweakccConfig = (): TweakccConfig => ({
         'Indexing',
         'Synchronizing',
         'Aligning',
+        'Reflecting',
       ],
     },
     thinkingStyle: {
-      updateInterval: 120,
-      phases: ['·', '•', '◦', '•'],
-      reverseMirror: false,
+      updateInterval: 100,
+      phases: ['◇', '◆', '◇', '◈'],
+      reverseMirror: true,
     },
     userMessageDisplay: {
       format: formatUserMessage(getUserLabel()),
       styling: ['bold'],
-      foregroundColor: 'default',
-      backgroundColor: 'default',
-      borderStyle: 'topBottomSingle',
-      borderColor: rgb(palette.teal),
+      foregroundColor: rgb(palette.platinum),
+      backgroundColor: rgb(palette.panel),
+      borderStyle: 'topBottomDouble',
+      borderColor: rgb(palette.silver),
       paddingX: 1,
       paddingY: 0,
       fitBoxToContent: true,
@@ -175,15 +184,7 @@ export const buildOpenRouterTweakccConfig = (): TweakccConfig => ({
     inputBox: {
       removeBorder: true,
     },
-    misc: {
-      showTweakccVersion: false,
-      showPatchesApplied: false,
-      expandThinkingBlocks: true,
-      enableConversationTitle: true,
-      hideStartupBanner: true,
-      hideCtrlGToEditPrompt: true,
-      hideStartupClawd: true,
-      increaseFileReadLimit: true,
-    },
+    misc: buildBrandMiscConfig(),
+    ...buildBrandSettingsDefaults(),
   },
 });

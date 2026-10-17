@@ -4,18 +4,88 @@
 
 import { getBrandThemeId } from '../../../brands/index.js';
 import {
+  ensureAuthTokenCredentialSettings,
   ensureApiKeyApproval,
-  ensureEnabledPlugins,
-  ensureMinimaxMcpServer,
+  ensureClaudeConfigUiSuppressions,
+  ensureManagedMcpServers,
   ensureOnboardingState,
-  ensureSettingsEnvDefaults,
   ensureSettingsEnvOverrides,
+  ensureSettingsModel,
+  ensureSettingsModelMigration,
   ensureSettingsPermissionsDeny,
-  MINIMAX_DENY_TOOLS,
-  ZAI_DENY_TOOLS,
+  syncSettingsManagedEnv,
+  syncSettingsManagedDefaults,
 } from '../../claude-config.js';
-import { getProvider } from '../../../providers/index.js';
+import {
+  buildManagedClaudeSettings,
+  buildEnv,
+  getManagedSettingsEnvKeys,
+  getProvider,
+  getProviderCapability,
+  resolveModelAliases,
+  resolveStartupModelSetting,
+  type ProviderCapabilityProfile,
+} from '../../../providers/index.js';
 import type { UpdateContext, UpdateStep } from '../types.js';
+
+const normalizeUrl = (value?: string) => (value ?? '').trim();
+
+const resolveManagedBaseUrl = (profile: ProviderCapabilityProfile, current?: string): string | undefined => {
+  if (!profile.endpoint.managed) return normalizeUrl(current) || undefined;
+  const trimmed = normalizeUrl(current);
+  const defaultBaseUrl = profile.endpoint.defaultBaseUrl;
+  if (!trimmed) return defaultBaseUrl;
+  const staleBaseUrls = new Set([defaultBaseUrl, ...(profile.endpoint.staleBaseUrls ?? [])].filter(Boolean));
+  return staleBaseUrls.has(trimmed) ? defaultBaseUrl : trimmed;
+};
+
+const getCredentialKeys = (profile: ProviderCapabilityProfile): string[] => {
+  const keys = [
+    profile.auth.credentialEnv,
+    ...(profile.auth.derivedCredentialEnv ?? []),
+    profile.auth.authTokenAlsoSetsApiKey ? 'ANTHROPIC_API_KEY' : undefined,
+  ].filter(Boolean) as string[];
+  return profile.auth.emptyApiKey ? keys.filter((key) => key !== 'ANTHROPIC_API_KEY') : keys;
+};
+
+const hasExplicitCredentialUpdate = (profile: ProviderCapabilityProfile, opts: UpdateContext['opts']): boolean => {
+  if ((opts.apiKey ?? '').trim().length > 0) return true;
+  const credentialKeys = new Set(getCredentialKeys(profile));
+  return (opts.extraEnv ?? []).some((entry) => {
+    const idx = entry.indexOf('=');
+    if (idx === -1) return false;
+    return credentialKeys.has(entry.slice(0, idx).trim());
+  });
+};
+
+const USER_OWNED_MODEL_KEYS = new Set([
+  'ANTHROPIC_DEFAULT_OPUS_MODEL',
+  'ANTHROPIC_DEFAULT_SONNET_MODEL',
+  'ANTHROPIC_DEFAULT_HAIKU_MODEL',
+  'ANTHROPIC_DEFAULT_OPUS_MODEL_NAME',
+  'ANTHROPIC_DEFAULT_SONNET_MODEL_NAME',
+  'ANTHROPIC_DEFAULT_HAIKU_MODEL_NAME',
+  'ANTHROPIC_DEFAULT_OPUS_MODEL_DESCRIPTION',
+  'ANTHROPIC_DEFAULT_SONNET_MODEL_DESCRIPTION',
+  'ANTHROPIC_DEFAULT_HAIKU_MODEL_DESCRIPTION',
+  'ANTHROPIC_DEFAULT_OPUS_MODEL_SUPPORTED_CAPABILITIES',
+  'ANTHROPIC_DEFAULT_SONNET_MODEL_SUPPORTED_CAPABILITIES',
+  'ANTHROPIC_DEFAULT_HAIKU_MODEL_SUPPORTED_CAPABILITIES',
+  'ANTHROPIC_CUSTOM_MODEL_OPTION',
+  'ANTHROPIC_CUSTOM_MODEL_OPTION_NAME',
+  'ANTHROPIC_CUSTOM_MODEL_OPTION_DESCRIPTION',
+  'ANTHROPIC_CUSTOM_MODEL_OPTION_SUPPORTED_CAPABILITIES',
+  'ANTHROPIC_SMALL_FAST_MODEL',
+  'CLAUDE_CODE_SUBAGENT_MODEL',
+]);
+
+const getManagedEnvKeysForUpdate = (profile: ProviderCapabilityProfile, existingKeys: string[] = []): string[] => {
+  const keys = [...existingKeys, ...getManagedSettingsEnvKeys(profile)];
+  if (profile.models.policy === 'required' || profile.models.policy === 'external') {
+    return keys.filter((key) => !USER_OWNED_MODEL_KEYS.has(key));
+  }
+  return keys;
+};
 
 export class ConfigUpdateStep implements UpdateStep {
   name = 'Config';
@@ -32,77 +102,112 @@ export class ConfigUpdateStep implements UpdateStep {
 
   private async updateConfig(ctx: UpdateContext, isAsync: boolean): Promise<void> {
     const { opts, meta, state } = ctx;
+    const profile = getProviderCapability(meta.provider);
+    const providerLabel = getProvider(meta.provider)?.label ?? meta.provider;
+    if (!profile) {
+      state.notes.push(`No capability profile found for ${meta.provider}; preserving existing settings.`);
+      return;
+    }
 
     ensureApiKeyApproval(meta.configDir);
-    ensureEnabledPlugins(meta.configDir);
 
-    // MiniMax MCP server
-    if (meta.provider === 'minimax') {
+    if (profile.auth.mode === 'authToken') {
+      const authUpdated = ensureAuthTokenCredentialSettings(meta.configDir, {
+        derivedCredentialEnv: profile.auth.derivedCredentialEnv,
+        emptyApiKey: profile.auth.emptyApiKey,
+        authTokenAlsoSetsApiKey: profile.auth.authTokenAlsoSetsApiKey,
+        fallbackToken: profile.auth.fallbackToken,
+      });
+      if (authUpdated) {
+        state.notes.push(`Updated ${providerLabel} auth settings.`);
+      }
+    }
+
+    const baseUrl = resolveManagedBaseUrl(profile, meta.baseUrl);
+    if (baseUrl && baseUrl !== meta.baseUrl) {
+      meta.baseUrl = baseUrl;
+    }
+
+    const envDefaults = buildEnv({
+      providerKey: meta.provider,
+      baseUrl,
+      apiKey: opts.apiKey,
+      extraEnv: opts.extraEnv,
+      modelOverrides: opts.modelOverrides,
+    });
+    envDefaults.TWEAKCC_CONFIG_DIR = meta.tweakDir;
+    envDefaults.DISABLE_INSTALLATION_CHECKS = '1';
+
+    const envDefaultsUpdated = syncSettingsManagedEnv(meta.configDir, {
+      desiredEnv: envDefaults,
+      managedKeys: [
+        ...getManagedEnvKeysForUpdate(profile, meta.managed?.settingsEnvKeys),
+        'DISABLE_AUTO_MIGRATE_TO_NATIVE',
+        'CLAUDE_CODE_ENABLE_PROMPT_SUGGESTION',
+        'ANTHROPIC_MODEL',
+      ],
+      credentialKeys: getCredentialKeys(profile),
+      removeKeys: ['DISABLE_AUTO_MIGRATE_TO_NATIVE', 'CLAUDE_CODE_ENABLE_PROMPT_SUGGESTION', 'ANTHROPIC_MODEL'],
+      preserveCredentials: !hasExplicitCredentialUpdate(profile, opts),
+    });
+    const startupModelUpdated = ensureSettingsModel(
+      meta.configDir,
+      resolveStartupModelSetting(profile, opts.modelOverrides)
+    );
+    const managedSettingsUpdated = syncSettingsManagedDefaults(
+      meta.configDir,
+      buildManagedClaudeSettings(profile, opts.modelOverrides)
+    );
+
+    const aliases = resolveModelAliases(profile, opts.modelOverrides);
+    if (profile.models.staleModels && aliases.opus && aliases.sonnet && aliases.haiku) {
+      const staleModelsUpdated = ensureSettingsModelMigration(meta.configDir, {
+        staleModels: profile.models.staleModels,
+        replacements: {
+          opus: aliases.opus,
+          sonnet: aliases.sonnet,
+          haiku: aliases.haiku,
+        },
+      });
+      if (staleModelsUpdated) {
+        state.notes.push(`Updated stale ${providerLabel} model mapping.`);
+      }
+    }
+
+    if (profile.claudeConfig.mcpServers.length > 0) {
       if (isAsync) {
-        await ctx.report('Configuring MiniMax MCP server...');
+        await ctx.report(`Configuring ${meta.provider} MCP servers...`);
       } else {
-        ctx.report('Configuring MiniMax MCP server...');
+        ctx.report(`Configuring ${meta.provider} MCP servers...`);
       }
-      ensureMinimaxMcpServer(meta.configDir);
-    }
-
-    // Z.ai MCP deny
-    if (meta.provider === 'zai') {
-      const denied = ensureSettingsPermissionsDeny(meta.configDir, ZAI_DENY_TOOLS);
-      if (denied) {
-        state.notes.push('Blocked Z.ai-injected MCP tools in settings.json.');
+      const mcpUpdated = ensureManagedMcpServers(meta.configDir, profile.claudeConfig.mcpServers);
+      if (mcpUpdated) {
+        state.notes.push(`Configured ${providerLabel} MCP servers.`);
       }
     }
 
-    // MiniMax MCP deny
-    if (meta.provider === 'minimax') {
-      const denied = ensureSettingsPermissionsDeny(meta.configDir, MINIMAX_DENY_TOOLS);
-      if (denied) {
-        state.notes.push('Blocked MiniMax-injected MCP tools in settings.json.');
-      }
+    if (profile.auth.mode === 'apiKey') {
+      ensureSettingsEnvOverrides(meta.configDir, { CC_MIRROR_UNSET_AUTH_TOKEN: '1' });
     }
+
+    ensureApiKeyApproval(meta.configDir);
 
     // Onboarding and theme
     const brandThemeId = !opts.noTweak && state.brandKey ? getBrandThemeId(state.brandKey) : null;
     const onboarding = ensureOnboardingState(meta.configDir, {
       themeId: brandThemeId ?? 'dark',
       forceTheme: Boolean(brandThemeId),
+      skipOnboardingFlag: profile.claudeConfig.onboarding === 'skip',
     });
+    const uiSuppressionsUpdated = ensureClaudeConfigUiSuppressions(meta.configDir);
 
-    // Env defaults
-    const envDefaults: Record<string, string | number> = {
-      TWEAKCC_CONFIG_DIR: meta.tweakDir,
-      DISABLE_AUTOUPDATER: '1',
-      CLAUDE_CODE_ENABLE_PROMPT_SUGGESTION: '1',
-      CLAUDE_CODE_CONTEXT_LIMIT: '200000',
-    };
-    // Mirrors buildEnv(): first-party providers must keep nonessential traffic enabled,
-    // otherwise every update would re-disable feature flags and break Remote Control.
-    if (!getProvider(meta.provider)?.firstParty) {
-      envDefaults.CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC = '1';
-    }
-    const envDefaultsUpdated = ensureSettingsEnvDefaults(meta.configDir, envDefaults);
-
-    if (Array.isArray(opts.extraEnv) && opts.extraEnv.length > 0) {
-      const overrides: Record<string, string | number> = {};
-      for (const entry of opts.extraEnv) {
-        const idx = entry.indexOf('=');
-        if (idx === -1) continue;
-        const key = entry.slice(0, idx).trim();
-        const value = entry.slice(idx + 1).trim();
-        if (!key) continue;
-        overrides[key] = value;
-      }
-      if (Object.keys(overrides).length > 0) {
-        const envOverridesUpdated = ensureSettingsEnvOverrides(meta.configDir, overrides);
-        if (envOverridesUpdated) {
-          state.notes.push('Updated environment overrides in settings.json.');
-        }
-      }
+    const denied = ensureSettingsPermissionsDeny(meta.configDir, profile.tools.deny);
+    if (denied) {
+      state.notes.push(`Applied ${providerLabel} required tool deny rules.`);
     }
 
-    if (envDefaultsUpdated) {
-      state.notes.push('Disabled Claude Code auto-updater (DISABLE_AUTOUPDATER=1).');
+    if (envDefaultsUpdated || startupModelUpdated || managedSettingsUpdated || uiSuppressionsUpdated) {
+      state.notes.push('Refreshed managed runtime settings (updates/install checks/privacy/model/UI defaults).');
     }
     if (onboarding.themeChanged) {
       state.notes.push(`Default theme set to ${brandThemeId ?? 'dark'}.`);

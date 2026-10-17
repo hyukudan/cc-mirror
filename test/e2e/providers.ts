@@ -17,15 +17,15 @@ export const PROVIDERS = [
     apiKey: 'test-minimax-key',
     expectedThemeId: 'dark',
     expectedSplashStyle: 'minimax',
-    colorCode: '\\x1b[38;5;203m', // Coral/salmon red
+    colorCode: '\\x1b[38;5;135m', // Electric violet
   },
   {
-    key: 'gatewayz',
-    name: 'GatewayZ',
-    apiKey: 'test-gatewayz-key',
+    key: 'kimi',
+    name: 'Kimi Code',
+    apiKey: 'test-kimi-key',
     expectedThemeId: 'dark',
-    expectedSplashStyle: 'gatewayz',
-    colorCode: '\\x1b[38;5;135m', // Violet
+    expectedSplashStyle: 'kimi',
+    colorCode: '\\x1b[38;5;81m', // Neon cyan
   },
   {
     key: 'openrouter',
@@ -33,19 +33,11 @@ export const PROVIDERS = [
     apiKey: 'test-openrouter-key',
     expectedThemeId: 'dark',
     expectedSplashStyle: 'openrouter',
-    colorCode: '\\x1b[38;5;43m', // Teal
-  },
-  {
-    key: 'nanogpt',
-    name: 'NanoGPT',
-    apiKey: 'test-nanogpt-key',
-    expectedThemeId: 'dark',
-    expectedSplashStyle: 'nanogpt',
-    colorCode: '\\x1b[38;5;135m', // Violet
+    colorCode: '\\x1b[38;5;252m', // Silver/Chrome
   },
   {
     key: 'ccrouter',
-    name: 'Claude Code Router',
+    name: 'CC Router',
     apiKey: '', // Optional for ccrouter
     expectedThemeId: 'dark',
     expectedSplashStyle: 'ccrouter',
@@ -57,6 +49,30 @@ export const PROVIDERS = [
     apiKey: 'ollama',
     expectedThemeId: 'dark',
     expectedSplashStyle: 'ollama',
-    colorCode: '\\x1b[38;5;180m', // Warm sandstone
+    colorCode: '\\x1b[38;5;180m', // Tan/sorrel
+  },
+  {
+    key: 'gatewayz',
+    name: 'GatewayZ',
+    apiKey: 'test-gatewayz-key',
+    expectedThemeId: 'dark',
+    expectedSplashStyle: 'gatewayz',
+    colorCode: '\\x1b[38;5;141m', // Violet
+  },
+  {
+    key: 'vercel',
+    name: 'Vercel AI Gateway',
+    apiKey: 'test-vercel-key',
+    expectedThemeId: 'dark',
+    expectedSplashStyle: 'vercel',
+    colorCode: '\\x1b[38;5;250m', // Light gray
+  },
+  {
+    key: 'nanogpt',
+    name: 'NanoGPT',
+    apiKey: 'test-nanogpt-key',
+    expectedThemeId: 'dark',
+    expectedSplashStyle: 'nanogpt',
+    colorCode: '\\x1b[38;5;120m', // Spring green
   },
 ];

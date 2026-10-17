@@ -1,6 +1,7 @@
 import type { ProviderEnv } from '../providers/index.js';
 
 export interface VariantMeta {
+  schemaVersion?: 1 | 2;
   name: string;
   provider: string;
   baseUrl?: string;
@@ -17,12 +18,70 @@ export interface VariantMeta {
   skillInstall?: boolean;
   shellEnv?: boolean;
   binDir?: string;
-  installType?: 'native' | 'npm';
-  npmDir?: string;
-  npmPackage?: string;
-  npmVersion?: string;
-  /** Whether team mode is enabled (native Task tools + orchestrator/task-manager skills) */
-  teamModeEnabled?: boolean;
+  nativeDir?: string;
+  nativeVersion?: string;
+  /**
+   * Whether nativeVersion was user-pinned or should follow the project default.
+   * - pinned: keep using nativeVersion unless overridden by --claude-version
+   * - default: ignore nativeVersion on update and follow DEFAULT_CLAUDE_VERSION
+   */
+  nativeVersionSource?: 'default' | 'pinned';
+  nativePlatform?: string;
+  providerProfile?: {
+    key: string;
+    version: number;
+    fingerprint: string;
+  };
+  capabilities?: {
+    auth?: {
+      mode: string;
+      required: boolean;
+      envKeys: string[];
+    };
+    endpoint?: {
+      managed: boolean;
+      baseUrl?: string;
+    };
+    models?: {
+      policy: string;
+      aliases?: Record<string, string>;
+      display?: Record<string, { name: string; description?: string; supportedCapabilities?: string[] }>;
+      startup?: string;
+      smallFast?: string;
+    };
+    promptPack?: {
+      supported: boolean;
+      enabled: boolean;
+    };
+    shellEnv?: {
+      supported: boolean;
+      enabled: boolean;
+      exports: string[];
+    };
+    skills?: {
+      browser: boolean;
+    };
+    tools?: {
+      webMode: string;
+      denied: string[];
+    };
+    mcp?: {
+      servers: string[];
+    };
+    runtime?: {
+      updatePolicy: string;
+      nonessentialTraffic: string;
+    };
+    tweakcc?: {
+      enabled: boolean;
+      profile: string;
+    };
+  };
+  managed?: {
+    settingsEnvKeys: string[];
+    permissionsDeny: string[];
+    mcpServerIds: string[];
+  };
 }
 
 export interface VariantEntry {
@@ -39,6 +98,8 @@ export interface CreateVariantParams {
   baseUrl?: string;
   apiKey?: string;
   extraEnv?: string[];
+  /** Claude Code version or channel: stable | latest | x.y.z */
+  claudeVersion?: string;
   modelOverrides?: {
     sonnet?: string;
     opus?: string;
@@ -47,10 +108,12 @@ export interface CreateVariantParams {
     defaultModel?: string;
     subagentModel?: string;
   };
+  runtimeProfile?: 'recommended' | 'privacy' | 'vanilla' | 'compat';
+  tweakccProfile?: 'recommended' | 'conservative' | 'experimental';
+  browserSkill?: boolean;
+  capabilitiesOnly?: boolean;
   rootDir?: string;
   binDir?: string;
-  npmPackage?: string;
-  npmVersion?: string;
   brand?: string;
   noTweak?: boolean;
   promptPack?: boolean;
@@ -58,24 +121,21 @@ export interface CreateVariantParams {
   shellEnv?: boolean;
   skillUpdate?: boolean;
   tweakccStdio?: 'pipe' | 'inherit';
-  /** Enable team mode by patching cli.js */
-  enableTeamMode?: boolean;
-  /** Skip bundled team skills (orchestrator, task-manager) even when team mode is enabled */
-  noTeamSkills?: boolean;
-  /** Allow creating a wrapper even if it collides with an existing command */
-  allowCollision?: boolean;
   /** Callback for progress updates during installation */
   onProgress?: ProgressCallback;
 }
 
 export interface UpdateVariantOptions {
   binDir?: string;
-  npmPackage?: string;
-  npmVersion?: string;
+  /** Replace the provider credential during update. */
+  apiKey?: string;
+  /** Extra KEY=VALUE env entries to write during update. */
+  extraEnv?: string[];
+  /** Claude Code version or channel: stable | latest | x.y.z */
+  claudeVersion?: string;
   brand?: string;
   noTweak?: boolean;
-  extraEnv?: string[];
-  /** Skip npm package reinstall - for settings-only updates (models, env) */
+  /** Skip Claude Code reinstall - for settings-only updates (models, env) */
   settingsOnly?: boolean;
   promptPack?: boolean;
   skillInstall?: boolean;
@@ -90,22 +150,12 @@ export interface UpdateVariantOptions {
     defaultModel?: string;
     subagentModel?: string;
   };
-  /** Enable team mode (native Task tools + orchestrator/task-manager skills) */
-  enableTeamMode?: boolean;
-  /** Disable team mode (unset env vars, remove skills + team-pack prompts) */
-  disableTeamMode?: boolean;
-  /** Skip bundled team skills (orchestrator, task-manager) even when team mode is enabled */
-  noTeamSkills?: boolean;
+  runtimeProfile?: 'recommended' | 'privacy' | 'vanilla' | 'compat';
+  tweakccProfile?: 'recommended' | 'conservative' | 'experimental';
+  browserSkill?: boolean;
+  capabilitiesOnly?: boolean;
   /** Callback for progress updates during update */
   onProgress?: ProgressCallback;
-}
-
-export interface McpServerStatus {
-  name: string;
-  status: 'ok' | 'error' | 'unchecked';
-  command?: string;
-  error?: string;
-  tools?: string[];
 }
 
 export interface DoctorReportItem {
@@ -113,20 +163,6 @@ export interface DoctorReportItem {
   ok: boolean;
   binaryPath?: string;
   wrapperPath: string;
-  issues?: string[];
-  warnings?: string[];
-  fixes?: string[];
-  // Extended info (when strict mode)
-  claudeCodeVersion?: string;
-  claudeCodeLatest?: string;
-  mcpServers?: McpServerStatus[];
-}
-
-export interface DoctorOptions {
-  strict?: boolean;
-  checkMcp?: boolean; // Check MCP server connectivity
-  latestVersion?: string; // Pre-fetched latest version (to avoid multiple npm calls)
-  fix?: boolean; // Auto-fix repairable issues (implies strict)
 }
 
 export interface CreateVariantResult {
@@ -144,8 +180,19 @@ export interface UpdateVariantResult {
 
 export interface VariantConfig {
   env: ProviderEnv;
+  model?: string;
+  availableModels?: string[];
+  companyAnnouncements?: string[];
+  spinnerTipsEnabled?: boolean;
+  feedbackSurveyRate?: number;
+  includeCoAuthoredBy?: boolean;
+  attribution?: {
+    commit?: string;
+    pr?: string;
+  };
   permissions?: {
     allow?: string[];
+    ask?: string[];
     deny?: string[];
   };
 }
@@ -156,4 +203,7 @@ export interface TweakResult {
   stdout?: string;
   tweakccSpec?: string;
   fallbackFromTweakccSpec?: string;
+  validationStatus?: 'passed' | 'failed' | 'skipped';
+  validationError?: string;
+  warnings?: string[];
 }

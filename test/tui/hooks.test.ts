@@ -11,11 +11,9 @@ import { buildUpdateSummary, buildUpdateNextSteps } from '../../src/tui/hooks/us
 test('buildCreateSummary includes all expected fields', () => {
   const summary = buildCreateSummary({
     providerLabel: 'Zai Cloud',
-    npmPackage: '@anthropic-ai/claude-code',
-    npmVersion: '2.1.63',
+    install: 'Install: native stable (v2.1.25)',
     usePromptPack: true,
     installSkill: true,
-    enableTeamMode: true,
     modelOverrides: { sonnet: 'model-a', opus: 'model-b', haiku: 'model-c' },
     providerKey: 'zai',
     shellEnv: true,
@@ -23,11 +21,9 @@ test('buildCreateSummary includes all expected fields', () => {
   });
 
   assert.ok(summary.some((line) => line.includes('Zai Cloud')));
-  assert.ok(summary.some((line) => line.includes('@anthropic-ai/claude-code')));
+  assert.ok(summary.some((line) => line.includes('Install: native')));
   assert.ok(summary.some((line) => line.includes('Prompt pack: on (zai-cli routing)')));
   assert.ok(summary.some((line) => line.includes('dev-browser skill: on')));
-  assert.ok(summary.some((line) => line.includes('Team mode: on')));
-  assert.ok(summary.some((line) => line.includes('orchestrator + task-manager skills')));
   assert.ok(summary.some((line) => line.includes('Models:')));
   assert.ok(summary.some((line) => line.includes('Shell env:')));
   assert.ok(summary.some((line) => line.includes('Note 1')));
@@ -36,11 +32,9 @@ test('buildCreateSummary includes all expected fields', () => {
 test('buildCreateSummary omits models when not set', () => {
   const summary = buildCreateSummary({
     providerLabel: 'OpenRouter',
-    npmPackage: '@anthropic-ai/claude-code',
-    npmVersion: '2.1.63',
+    install: 'Install: npm @anthropic-ai/claude-code@stable',
     usePromptPack: false,
     installSkill: false,
-    enableTeamMode: false,
     modelOverrides: {},
     providerKey: 'openrouter',
     shellEnv: false,
@@ -48,17 +42,14 @@ test('buildCreateSummary omits models when not set', () => {
 
   assert.ok(!summary.some((line) => line.includes('Models:')));
   assert.ok(!summary.some((line) => line.includes('Shell env:')));
-  assert.ok(summary.some((line) => line.includes('Team mode: off')));
 });
 
 test('buildCreateSummary shows prompt pack off when disabled', () => {
   const summary = buildCreateSummary({
     providerLabel: 'Custom',
-    npmPackage: '@anthropic-ai/claude-code',
-    npmVersion: '2.1.63',
+    install: 'Install: native stable (v2.1.25)',
     usePromptPack: false,
     installSkill: false,
-    enableTeamMode: false,
     modelOverrides: {},
     providerKey: 'custom',
     shellEnv: false,
@@ -71,11 +62,9 @@ test('buildCreateSummary shows provider-specific prompt pack routing', () => {
   // MiniMax should show MCP routing
   const minimaxSummary = buildCreateSummary({
     providerLabel: 'MiniMax',
-    npmPackage: '@anthropic-ai/claude-code',
-    npmVersion: '2.1.63',
+    install: 'Install: native stable (v2.1.25)',
     usePromptPack: true,
     installSkill: false,
-    enableTeamMode: false,
     modelOverrides: {},
     providerKey: 'minimax',
     shellEnv: false,
@@ -85,14 +74,13 @@ test('buildCreateSummary shows provider-specific prompt pack routing', () => {
 });
 
 test('buildCreateNextSteps includes variant name and paths', () => {
-  const steps = buildCreateNextSteps('my-variant', '/home/user/.cc-mirror');
+  const rootDir = path.join(path.sep, 'home', 'user', '.cc-mirror');
+  const steps = buildCreateNextSteps('my-variant', rootDir);
 
   assert.ok(steps.some((line) => line.includes('Run: my-variant')));
   assert.ok(steps.some((line) => line.includes('Update: cc-mirror update my-variant')));
-  assert.ok(steps.some((line) => line.includes('Tweak: cc-mirror tweak my-variant')));
   assert.ok(steps.some((line) => line.includes('Config:')));
-  const expectedConfigPath = path.join('/home/user/.cc-mirror', 'my-variant', 'config', 'settings.json');
-  assert.ok(steps.some((line) => line.includes(expectedConfigPath)));
+  assert.ok(steps.some((line) => line.includes(rootDir)));
 });
 
 test('buildHelpLines returns standard help commands', () => {
@@ -110,10 +98,8 @@ function makeTestMeta(
     name: string;
     provider: string;
     promptPack: boolean;
-    promptPackMode: 'minimal' | 'maximal';
     skillInstall: boolean;
     shellEnv: boolean;
-    teamModeEnabled: boolean;
   }>
 ) {
   return {
@@ -133,10 +119,8 @@ test('buildUpdateSummary includes provider info', () => {
     makeTestMeta({
       provider: 'zai',
       promptPack: true,
-      promptPackMode: 'maximal',
       skillInstall: true,
       shellEnv: true,
-      teamModeEnabled: true,
     }),
     ['Update note']
   );
@@ -144,8 +128,6 @@ test('buildUpdateSummary includes provider info', () => {
   assert.ok(summary.some((line) => line.includes('Provider: zai')));
   assert.ok(summary.some((line) => line.includes('Prompt pack: on (zai-cli routing)')));
   assert.ok(summary.some((line) => line.includes('dev-browser skill: on')));
-  assert.ok(summary.some((line) => line.includes('Team mode: on')));
-  assert.ok(summary.some((line) => line.includes('orchestrator + task-manager skills')));
   assert.ok(summary.some((line) => line.includes('Shell env:')));
   assert.ok(summary.some((line) => line.includes('Update note')));
 });
@@ -157,19 +139,18 @@ test('buildUpdateSummary omits shell env for non-zai providers', () => {
       promptPack: true,
       skillInstall: false,
       shellEnv: false,
-      teamModeEnabled: false,
-    })
+    }),
+    undefined
   );
 
   assert.ok(!summary.some((line) => line.includes('Shell env:')));
   assert.ok(summary.some((line) => line.includes('Prompt pack: on (MCP routing)')));
-  assert.ok(summary.some((line) => line.includes('Team mode: off')));
 });
 
 test('buildUpdateNextSteps includes variant operations', () => {
-  const steps = buildUpdateNextSteps('my-variant', '/home/user/.cc-mirror');
+  const rootDir = path.join(path.sep, 'home', 'user', '.cc-mirror');
+  const steps = buildUpdateNextSteps('my-variant', rootDir);
 
   assert.ok(steps.some((line) => line.includes('Run: my-variant')));
-  assert.ok(steps.some((line) => line.includes('Tweak: cc-mirror tweak my-variant')));
   assert.ok(steps.some((line) => line.includes('Config:')));
 });

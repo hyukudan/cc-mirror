@@ -4,18 +4,17 @@
  */
 
 import { useEffect, useRef } from 'react';
-import type { Screen } from '../router/types.js';
 import path from 'node:path';
-import { detectCommandCollision } from '../../core/paths.js';
 import type { CoreModule } from '../app.js';
 import type { CreateVariantParams, CompletionResult, ModelOverrides } from './types.js';
+import { describePromptPack, describeShellEnv, getTuiProviderCapabilities } from '../providerCapabilities.js';
 
 export interface UseVariantCreateOptions {
   screen: string;
   params: CreateVariantParams;
   core: CoreModule;
   setProgressLines: (updater: (prev: string[]) => string[]) => void;
-  setScreen: (screen: Screen) => void;
+  setScreen: (screen: string) => void;
   onComplete: (result: CompletionResult) => void;
 }
 
@@ -24,55 +23,28 @@ export interface UseVariantCreateOptions {
  */
 export function buildCreateSummary(params: {
   providerLabel: string;
-  npmPackage: string;
-  npmVersion: string;
+  install: string;
   usePromptPack: boolean;
   installSkill: boolean;
-  enableTeamMode: boolean;
   modelOverrides: ModelOverrides;
   providerKey: string;
   shellEnv: boolean;
   notes?: string[];
 }): string[] {
-  const {
-    providerLabel,
-    npmPackage,
-    npmVersion,
-    usePromptPack,
-    installSkill,
-    enableTeamMode,
-    modelOverrides,
-    providerKey,
-    shellEnv,
-    notes,
-  } = params;
-
-  // Build prompt pack description with provider-specific routing info
-  const getPromptPackDescription = (): string => {
-    if (!usePromptPack) return 'off';
-    if (providerKey === 'zai') return 'on (zai-cli routing)';
-    if (providerKey === 'minimax') return 'on (MCP routing)';
-    return 'on';
-  };
-
-  // Build team mode description
-  const getTeamModeDescription = (): string => {
-    if (!enableTeamMode) return 'off';
-    return 'on (orchestrator + task-manager skills, TodoWrite blocked)';
-  };
+  const { providerLabel, install, usePromptPack, installSkill, modelOverrides, providerKey, shellEnv, notes } = params;
+  const capabilities = getTuiProviderCapabilities(providerKey);
 
   return [
     `Provider: ${providerLabel}`,
-    `Install: npm ${npmPackage}@${npmVersion}`,
-    `Prompt pack: ${getPromptPackDescription()}`,
+    install,
+    `Prompt pack: ${describePromptPack(usePromptPack, capabilities)}`,
     `dev-browser skill: ${installSkill ? 'on' : 'off'}`,
-    `Team mode: ${getTeamModeDescription()}`,
     ...(modelOverrides.sonnet || modelOverrides.opus || modelOverrides.haiku
       ? [
-          `Models: sonnet=${modelOverrides.sonnet || '-'}, opus=${modelOverrides.opus || '-'}, haiku=${modelOverrides.haiku || '-'}`,
+          `Models: balanced=${modelOverrides.sonnet || '-'}, primary=${modelOverrides.opus || '-'}, fast=${modelOverrides.haiku || '-'}`,
         ]
       : []),
-    ...(providerKey === 'zai' ? [`Shell env: ${shellEnv ? 'write Z_AI_API_KEY' : 'manual'}`] : []),
+    ...(capabilities.shellEnv.configurable ? [`Shell env: ${describeShellEnv(shellEnv, capabilities)}`] : []),
     ...(notes || []),
   ];
 }
@@ -84,7 +56,6 @@ export function buildCreateNextSteps(name: string, rootDir: string): string[] {
   return [
     `Run: ${name}`,
     `Update: cc-mirror update ${name}`,
-    `Tweak: cc-mirror tweak ${name}`,
     `Config: ${path.join(rootDir, name, 'config', 'settings.json')}`,
   ];
 }
@@ -115,42 +86,22 @@ export function useVariantCreate(options: UseVariantCreateOptions): void {
     const runCreate = async () => {
       try {
         setProgressLines(() => []);
-
-        // Collision guard: prevent wrapper from shadowing existing system commands
-        const collision = detectCommandCollision(params.name, params.binDir);
-        if (collision.hasCollision) {
-          const messages: string[] = [];
-          if (collision.existingWrapper) {
-            messages.push(`A wrapper named "${params.name}" already exists in ${params.binDir}`);
-          }
-          if (collision.pathConflict) {
-            messages.push(
-              `"${params.name}" resolves to ${collision.resolvedPath} on PATH — creating a wrapper would shadow it`
-            );
-          }
-          throw new Error(
-            `Command collision detected:\n${messages.join('\n')}\n\n` +
-              `Choose a different name to avoid shadowing an existing command.`
-          );
-        }
-
         const createParams = {
           name: params.name,
           providerKey: params.providerKey || 'zai',
           baseUrl: params.baseUrl,
           apiKey: params.apiKey,
           extraEnv: params.extraEnv,
+          claudeVersion: params.claudeVersion,
           modelOverrides: params.modelOverrides,
           brand: params.brandKey,
           rootDir: params.rootDir,
           binDir: params.binDir,
-          npmPackage: params.npmPackage,
           noTweak: false, // Always apply tweakcc patches
           promptPack: params.usePromptPack,
           skillInstall: params.installSkill,
           shellEnv: params.shellEnv,
           skillUpdate: params.skillUpdate,
-          enableTeamMode: params.enableTeamMode,
           tweakccStdio: 'pipe' as const,
           onProgress: (step: string) => setProgressLines((prev) => [...prev, step]),
         };
@@ -162,13 +113,12 @@ export function useVariantCreate(options: UseVariantCreateOptions): void {
         if (cancelled) return;
 
         const providerLabel = params.provider?.label || params.providerKey || 'Provider';
+        const installLine = `Install: native ${result.meta.nativeVersion || params.claudeVersion} (${result.meta.claudeOrig.replace('native:', 'v')})`;
         const summary = buildCreateSummary({
           providerLabel,
-          npmPackage: params.npmPackage,
-          npmVersion: params.npmVersion,
+          install: installLine,
           usePromptPack: params.usePromptPack,
           installSkill: params.installSkill,
-          enableTeamMode: params.enableTeamMode,
           modelOverrides: params.modelOverrides,
           providerKey: params.providerKey,
           shellEnv: params.shellEnv,

@@ -20,17 +20,25 @@ export const COMPLETION_HAIKUS: Record<string, HaikuLines[]> = {
     ['Many paths, one door—', 'OpenRouter finds the way.', 'Models at your core.'],
     ['Routes converge as one,', 'your choice echoes through the wire.', 'The journey begun.'],
   ],
-  gatewayz: [
-    ['Portal lights ignite,', 'GatewayZ opens the route.', 'Models stream in light.'],
-    ['Violet tunnels hum,', 'signals cross the quiet span.', 'Your answers arrive.'],
-  ],
-  nanogpt: [
-    ['Nano sparks ignite,', 'vast models at your command.', 'Code takes its first flight.'],
-    ['Violet streams flow,', 'NanoGPT powers your dreams.', 'Watch your projects grow.'],
-  ],
   ccrouter: [
     ['Local models shine,', "routed through the mirror's edge.", 'Your code, your design.'],
     ['Proxied through the night,', 'your models stand at the ready.', 'Code takes its first flight.'],
+  ],
+  ollama: [
+    ['Ember glow within,', 'local herds begin to roam.', 'Your code walks the path.'],
+    ['Clouds and clay align,', 'warm requests cross quiet hills.', 'Ollama replies.'],
+  ],
+  gatewayz: [
+    ['Many gates align,', 'your routes converge in violet.', 'Paths intertwine.'],
+    ['Bridges hum in sync,', 'one gateway, many bright roads.', 'Ideas link.'],
+  ],
+  vercel: [
+    ['Black lines, green light glows,', 'gateways stream with steady pulse.', 'Deploying flows.'],
+    ['Edges softly breathe,', 'requests arc through silent nodes.', 'Signals weave.'],
+  ],
+  nanogpt: [
+    ['Neon currents rise,', 'small sparks ignite the dark grid.', 'Swift replies.'],
+    ['Tiny waves collide,', 'blue and pink in quiet code.', 'Systems glide.'],
   ],
   default: [
     ['Mirror reflects true,', 'your variant is ready now.', 'Go build something new.'],

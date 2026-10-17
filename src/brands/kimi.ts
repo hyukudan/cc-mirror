@@ -1,121 +1,128 @@
 import type { TweakccConfig, Theme } from './types.js';
 import { DEFAULT_THEMES } from './defaultThemes.js';
+import { buildBrandMiscConfig } from './miscDefaults.js';
+import { buildBrandSettingsDefaults } from './settingsDefaults.js';
+import { buildDiffPalette } from './diffPalette.js';
 import { formatUserMessage, getUserLabel } from './userLabel.js';
-import { rgb, mix, lighten } from './colorUtils.js';
 
-type Palette = {
-  base: string;
-  surface: string;
-  panel: string;
-  border: string;
-  borderStrong: string;
-  text: string;
-  textMuted: string;
-  textDim: string;
-  core: string;
-  deep: string;
-  orange: string;
-  yellow: string;
-  cyan: string;
-  blue: string;
-  green: string;
-  red: string;
-};
+type Rgb = { r: number; g: number; b: number };
 
-// Kimi/Moonshot AI brand colors - lunar blue/silver theme
-const KIMI_CORE = '#6366f1'; // Indigo - Moonshot's primary
+const clamp = (value: number) => Math.max(0, Math.min(255, Math.round(value)));
 
-const palette: Palette = {
-  base: '#0a0a12',
-  surface: '#12121c',
-  panel: '#1a1a28',
-  border: '#2a2a3c',
-  borderStrong: '#3a3a50',
-  text: '#f4f4f8',
-  textMuted: '#c8c8d4',
-  textDim: '#8888a0',
-  core: KIMI_CORE,
-  deep: '#4f46e5',
-  orange: '#f59e0b',
-  yellow: '#eab308',
-  cyan: '#22d3ee',
-  blue: '#3b82f6',
-  green: '#10b981',
-  red: '#ef4444',
-};
-
-const makeTheme = (): Theme => {
-  const tint = (hex: string, weight: number) => mix(palette.base, hex, weight);
+const hexToRgb = (hex: string): Rgb => {
+  const normalized = hex.replace('#', '').trim();
+  if (normalized.length === 3) {
+    const [r, g, b] = normalized.split('');
+    return {
+      r: clamp(parseInt(r + r, 16)),
+      g: clamp(parseInt(g + g, 16)),
+      b: clamp(parseInt(b + b, 16)),
+    };
+  }
+  if (normalized.length !== 6) {
+    throw new Error(`Unsupported hex color: ${hex}`);
+  }
   return {
-    name: 'Kimi Lunar',
-    id: 'dark',
-    colors: {
-      autoAccept: rgb(palette.green),
-      bashBorder: rgb(palette.core),
-      claude: rgb(palette.core),
-      claudeShimmer: lighten(palette.core, 0.28),
-      claudeBlue_FOR_SYSTEM_SPINNER: rgb(palette.blue),
-      claudeBlueShimmer_FOR_SYSTEM_SPINNER: lighten(palette.blue, 0.3),
-      permission: rgb(palette.orange),
-      permissionShimmer: lighten(palette.orange, 0.25),
-      planMode: rgb(palette.deep),
-      ide: rgb(palette.cyan),
-      promptBorder: rgb(palette.border),
-      promptBorderShimmer: rgb(palette.borderStrong),
-      text: rgb(palette.text),
-      inverseText: rgb(palette.base),
-      inactive: rgb(palette.textDim),
-      subtle: tint(palette.core, 0.18),
-      suggestion: rgb(palette.deep),
-      remember: rgb(palette.core),
-      background: rgb(palette.base),
-      success: rgb(palette.green),
-      error: rgb(palette.red),
-      warning: rgb(palette.yellow),
-      warningShimmer: lighten(palette.yellow, 0.2),
-      diffAdded: mix(palette.base, palette.green, 0.18),
-      diffRemoved: mix(palette.base, palette.red, 0.18),
-      diffAddedDimmed: mix(palette.base, palette.green, 0.1),
-      diffRemovedDimmed: mix(palette.base, palette.red, 0.1),
-      diffAddedWord: mix(palette.base, palette.green, 0.45),
-      diffRemovedWord: mix(palette.base, palette.red, 0.45),
-      diffAddedWordDimmed: mix(palette.base, palette.green, 0.3),
-      diffRemovedWordDimmed: mix(palette.base, palette.red, 0.3),
-      red_FOR_SUBAGENTS_ONLY: rgb(palette.red),
-      blue_FOR_SUBAGENTS_ONLY: rgb(palette.blue),
-      green_FOR_SUBAGENTS_ONLY: rgb(palette.green),
-      yellow_FOR_SUBAGENTS_ONLY: rgb(palette.yellow),
-      purple_FOR_SUBAGENTS_ONLY: rgb(palette.deep),
-      orange_FOR_SUBAGENTS_ONLY: rgb(palette.orange),
-      pink_FOR_SUBAGENTS_ONLY: lighten(palette.core, 0.2),
-      cyan_FOR_SUBAGENTS_ONLY: rgb(palette.cyan),
-      professionalBlue: rgb(palette.blue),
-      rainbow_red: rgb(palette.red),
-      rainbow_orange: rgb(palette.orange),
-      rainbow_yellow: rgb(palette.yellow),
-      rainbow_green: rgb(palette.green),
-      rainbow_blue: rgb(palette.cyan),
-      rainbow_indigo: rgb(palette.core),
-      rainbow_violet: rgb(palette.deep),
-      rainbow_red_shimmer: lighten(palette.red, 0.35),
-      rainbow_orange_shimmer: lighten(palette.orange, 0.35),
-      rainbow_yellow_shimmer: lighten(palette.yellow, 0.25),
-      rainbow_green_shimmer: lighten(palette.green, 0.35),
-      rainbow_blue_shimmer: lighten(palette.cyan, 0.35),
-      rainbow_indigo_shimmer: lighten(palette.core, 0.35),
-      rainbow_violet_shimmer: lighten(palette.deep, 0.35),
-      clawd_body: rgb(palette.core),
-      clawd_background: rgb(palette.base),
-      userMessageBackground: rgb(palette.panel),
-      bashMessageBackgroundColor: rgb(palette.surface),
-      memoryBackgroundColor: tint(palette.panel, 0.2),
-      rate_limit_fill: rgb(palette.core),
-      rate_limit_empty: rgb(palette.borderStrong),
-    },
+    r: clamp(parseInt(normalized.slice(0, 2), 16)),
+    g: clamp(parseInt(normalized.slice(2, 4), 16)),
+    b: clamp(parseInt(normalized.slice(4, 6), 16)),
   };
 };
 
-const kimiTheme = makeTheme();
+const rgb = (hex: string) => {
+  const { r, g, b } = hexToRgb(hex);
+  return `rgb(${r},${g},${b})`;
+};
+
+const mix = (hexA: string, hexB: string, weight: number) => {
+  const a = hexToRgb(hexA);
+  const b = hexToRgb(hexB);
+  const w = Math.max(0, Math.min(1, weight));
+  return `rgb(${clamp(a.r + (b.r - a.r) * w)},${clamp(a.g + (b.g - a.g) * w)},${clamp(a.b + (b.b - a.b) * w)})`;
+};
+
+const lighten = (hex: string, weight: number) => mix(hex, '#ffffff', weight);
+
+// Kimi Code: dark base with teal/cyan accents.
+const palette = {
+  base: '#0c1520',
+  surface: '#111d2b',
+  panel: '#142231',
+  border: '#1e3448',
+  borderStrong: '#2a4a64',
+  text: '#e8f0f8',
+  textMuted: '#b8cad8',
+  textDim: '#6b8aa0',
+  teal: '#22d3ee',
+  tealBright: '#67e8f9',
+  tealDeep: '#0891b2',
+  aqua: '#06b6d4',
+  green: '#34d399',
+  red: '#fb7185',
+  orange: '#f59e0b',
+  purple: '#8b5cf6',
+};
+
+const theme: Theme = {
+  name: 'Kimi Teal',
+  id: 'dark',
+  colors: {
+    autoAccept: rgb(palette.green),
+    bashBorder: rgb(palette.teal),
+    claude: rgb(palette.teal),
+    claudeShimmer: lighten(palette.tealBright, 0.2),
+    claudeBlue_FOR_SYSTEM_SPINNER: rgb(palette.aqua),
+    claudeBlueShimmer_FOR_SYSTEM_SPINNER: lighten(palette.tealBright, 0.2),
+    permission: rgb(palette.aqua),
+    permissionShimmer: lighten(palette.aqua, 0.25),
+    planMode: rgb(palette.tealDeep),
+    ide: rgb(palette.tealBright),
+    promptBorder: rgb(palette.border),
+    promptBorderShimmer: rgb(palette.borderStrong),
+    text: rgb(palette.text),
+    inverseText: rgb(palette.base),
+    inactive: rgb(palette.textDim),
+    subtle: mix(palette.base, palette.teal, 0.15),
+    suggestion: rgb(palette.tealBright),
+    remember: rgb(palette.teal),
+    background: rgb(palette.base),
+    success: rgb(palette.green),
+    error: rgb(palette.red),
+    warning: rgb(palette.orange),
+    warningShimmer: lighten(palette.orange, 0.2),
+    ...buildDiffPalette(),
+    red_FOR_SUBAGENTS_ONLY: rgb(palette.red),
+    blue_FOR_SUBAGENTS_ONLY: rgb(palette.tealDeep),
+    green_FOR_SUBAGENTS_ONLY: rgb(palette.green),
+    yellow_FOR_SUBAGENTS_ONLY: rgb(palette.orange),
+    purple_FOR_SUBAGENTS_ONLY: rgb(palette.purple),
+    orange_FOR_SUBAGENTS_ONLY: rgb(palette.orange),
+    pink_FOR_SUBAGENTS_ONLY: lighten(palette.tealBright, 0.3),
+    cyan_FOR_SUBAGENTS_ONLY: rgb(palette.tealBright),
+    professionalBlue: rgb(palette.aqua),
+    rainbow_red: rgb(palette.red),
+    rainbow_orange: rgb(palette.orange),
+    rainbow_yellow: lighten(palette.orange, 0.18),
+    rainbow_green: rgb(palette.green),
+    rainbow_blue: rgb(palette.tealBright),
+    rainbow_indigo: rgb(palette.tealDeep),
+    rainbow_violet: rgb(palette.purple),
+    rainbow_red_shimmer: lighten(palette.red, 0.35),
+    rainbow_orange_shimmer: lighten(palette.orange, 0.35),
+    rainbow_yellow_shimmer: lighten(palette.orange, 0.25),
+    rainbow_green_shimmer: lighten(palette.green, 0.35),
+    rainbow_blue_shimmer: lighten(palette.tealBright, 0.35),
+    rainbow_indigo_shimmer: lighten(palette.tealDeep, 0.35),
+    rainbow_violet_shimmer: lighten(palette.purple, 0.35),
+    clawd_body: rgb(palette.teal),
+    clawd_background: rgb(palette.base),
+    userMessageBackground: mix('#383838', palette.teal, 0.12),
+    bashMessageBackgroundColor: mix('#404040', palette.teal, 0.08),
+    memoryBackgroundColor: mix('#383838', palette.aqua, 0.1),
+    rate_limit_fill: rgb(palette.teal),
+    rate_limit_empty: rgb(palette.borderStrong),
+  },
+};
 
 export const buildKimiTweakccConfig = (): TweakccConfig => ({
   ccVersion: '',
@@ -124,29 +131,27 @@ export const buildKimiTweakccConfig = (): TweakccConfig => ({
   changesApplied: false,
   hidePiebaldAnnouncement: true,
   settings: {
-    themes: [kimiTheme, ...DEFAULT_THEMES],
+    themes: [theme, ...DEFAULT_THEMES.filter((t) => t.id !== theme.id)],
     thinkingVerbs: {
       format: '{}... ',
       verbs: [
-        'Orbiting',
-        'Reflecting',
-        'Illuminating',
-        'Phasing',
-        'Aligning',
-        'Charting',
-        'Projecting',
-        'Calibrating',
-        'Crystallizing',
-        'Resonating',
+        'Sparking',
+        'Glinting',
+        'Flowing',
+        'Weaving',
+        'Indexing',
         'Synthesizing',
-        'Converging',
-        'Ascending',
-        'Transmitting',
+        'Refining',
+        'Composing',
+        'Routing',
+        'Resolving',
+        'Calibrating',
+        'Compiling',
       ],
     },
     thinkingStyle: {
-      updateInterval: 85,
-      phases: ['◐', '◓', '◑', '◒'],
+      updateInterval: 95,
+      phases: ['·', '•', '◦', '•'],
       reverseMirror: false,
     },
     userMessageDisplay: {
@@ -154,8 +159,8 @@ export const buildKimiTweakccConfig = (): TweakccConfig => ({
       styling: ['bold'],
       foregroundColor: 'default',
       backgroundColor: 'default',
-      borderStyle: 'topBottomDouble',
-      borderColor: rgb(palette.core),
+      borderStyle: 'topBottomBold',
+      borderColor: rgb(palette.teal),
       paddingX: 1,
       paddingY: 0,
       fitBoxToContent: true,
@@ -163,15 +168,7 @@ export const buildKimiTweakccConfig = (): TweakccConfig => ({
     inputBox: {
       removeBorder: true,
     },
-    misc: {
-      showTweakccVersion: false,
-      showPatchesApplied: false,
-      expandThinkingBlocks: true,
-      enableConversationTitle: true,
-      hideStartupBanner: true,
-      hideCtrlGToEditPrompt: true,
-      hideStartupClawd: true,
-      increaseFileReadLimit: true,
-    },
+    misc: buildBrandMiscConfig(),
+    ...buildBrandSettingsDefaults(),
   },
 });

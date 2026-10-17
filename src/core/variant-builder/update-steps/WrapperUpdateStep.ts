@@ -3,10 +3,9 @@
  */
 
 import { ensureDir } from '../../fs.js';
-import { expandTilde } from '../../paths.js';
-import { getWrapperPath, writeWrapperForPlatform, type WrapperOptions } from '../../wrapper.js';
+import { expandTilde, getWrapperPath } from '../../paths.js';
+import { writeWrapper } from '../../wrapper.js';
 import { ensureWindowsUserPath } from '../../windows-path.js';
-import { getProvider } from '../../../providers/index.js';
 import type { UpdateContext, UpdateStep } from '../types.js';
 
 export class WrapperUpdateStep implements UpdateStep {
@@ -32,21 +31,14 @@ export class WrapperUpdateStep implements UpdateStep {
     if (resolvedBin) {
       ensureDir(resolvedBin);
       const wrapperPath = getWrapperPath(resolvedBin, name);
-
-      // Check if provider requires translation
-      const provider = getProvider(meta.provider);
-      const options: WrapperOptions = {
-        requiresTranslation: provider?.requiresTranslation,
-      };
-
-      writeWrapperForPlatform(wrapperPath, meta.configDir, meta.binaryPath, options);
-      if (process.platform === 'win32') {
-        const pathResult = ensureWindowsUserPath(resolvedBin);
-        if (pathResult.added) {
-          ctx.report(`Added ${resolvedBin} to Windows user PATH`);
-        }
-      }
+      writeWrapper(wrapperPath, meta.configDir, meta.binaryPath, 'native');
       meta.binDir = resolvedBin;
+      const pathResult = ensureWindowsUserPath(resolvedBin);
+      if (pathResult.status === 'updated') {
+        ctx.state.notes.push(pathResult.message);
+      } else if (pathResult.status === 'failed') {
+        ctx.state.notes.push(`Windows PATH update failed: ${pathResult.message}`);
+      }
     }
   }
 }

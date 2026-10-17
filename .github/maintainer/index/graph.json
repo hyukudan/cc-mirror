@@ -1,0 +1,351 @@
+{
+  "generatedAt": "2026-05-29T20:26:33.002Z",
+  "nodes": [
+    {
+      "id": "issue:50",
+      "type": "issue",
+      "title": "[Bug] Bun v1.3.11 affecting cc-mirror",
+      "priorityScore": 36,
+      "actionability": "ready"
+    },
+    {
+      "id": "issue:27",
+      "type": "issue",
+      "title": "[Bug] EJ.has is not a function",
+      "priorityScore": 16,
+      "actionability": "stale"
+    },
+    {
+      "id": "issue:52",
+      "type": "issue",
+      "title": "[Bug]",
+      "priorityScore": 12,
+      "actionability": "ready"
+    },
+    {
+      "id": "issue:35",
+      "type": "issue",
+      "title": "[Bug] Cannot Enter PLAN MODE",
+      "priorityScore": 9,
+      "actionability": "needs-info"
+    },
+    {
+      "id": "issue:49",
+      "type": "issue",
+      "title": "[Feature] Support for cerebras or other custom providers",
+      "priorityScore": 0,
+      "actionability": "stale"
+    },
+    {
+      "id": "issue:48",
+      "type": "issue",
+      "title": "[Feature] Support for gstack",
+      "priorityScore": 0,
+      "actionability": "stale"
+    },
+    {
+      "id": "issue:42",
+      "type": "issue",
+      "title": "[Feature] OpenCode Zen and free models support",
+      "priorityScore": 0,
+      "actionability": "stale"
+    },
+    {
+      "id": "issue:39",
+      "type": "issue",
+      "title": "[Security] Unsafe JSON parsing allows prototype pollution",
+      "priorityScore": 0,
+      "actionability": "stale"
+    },
+    {
+      "id": "issue:37",
+      "type": "issue",
+      "title": "[Bug] No binary is created in windows. Path is not workgin",
+      "priorityScore": 0,
+      "actionability": "stale"
+    },
+    {
+      "id": "issue:36",
+      "type": "issue",
+      "title": "do you remove the nerf injections from cc?",
+      "priorityScore": 0,
+      "actionability": "stale"
+    },
+    {
+      "id": "issue:34",
+      "type": "issue",
+      "title": "[Bug] orchestration gets hung waiting indefinitely for subagent to  finish, even when task complete",
+      "priorityScore": 0,
+      "actionability": "stale"
+    },
+    {
+      "id": "issue:29",
+      "type": "issue",
+      "title": "[Bug] Unable to compact",
+      "priorityScore": 0,
+      "actionability": "stale"
+    },
+    {
+      "id": "issue:10",
+      "type": "issue",
+      "title": "support Zhipu z.AI Chinese endpoint",
+      "priorityScore": 0,
+      "actionability": "stale"
+    },
+    {
+      "id": "issue:24",
+      "type": "issue",
+      "title": "[Bug] When using a system with multiple users, a permission conflict occurs due to the use of a fixed path of /tmp/claude.",
+      "priorityScore": 0,
+      "actionability": "stale"
+    },
+    {
+      "id": "issue:23",
+      "type": "issue",
+      "title": "[Feature] Add support for Claude via cloud providers",
+      "priorityScore": 0,
+      "actionability": "stale"
+    },
+    {
+      "id": "issue:19",
+      "type": "issue",
+      "title": "[Bug] team-pack overrides not working",
+      "priorityScore": 0,
+      "actionability": "stale"
+    },
+    {
+      "id": "issue:16",
+      "type": "issue",
+      "title": "MCP Servers",
+      "priorityScore": 0,
+      "actionability": "stale"
+    },
+    {
+      "id": "issue:14",
+      "type": "issue",
+      "title": "[Bug] Doesn't work with IPV6",
+      "priorityScore": 0,
+      "actionability": "stale"
+    },
+    {
+      "id": "issue:12",
+      "type": "issue",
+      "title": "Feedback + small UX improvement opportunity",
+      "priorityScore": 0,
+      "actionability": "stale"
+    },
+    {
+      "id": "issue:8",
+      "type": "issue",
+      "title": "feat: Add Sync Variants feature to copy config between variants",
+      "priorityScore": 0,
+      "actionability": "stale"
+    },
+    {
+      "id": "pr:9",
+      "type": "pr",
+      "title": "feat: add Sync Variants feature to copy config between variants",
+      "priorityScore": 8,
+      "implementationScore": 13,
+      "actionability": "stale"
+    },
+    {
+      "id": "pr:53",
+      "type": "pr",
+      "title": "Replace tweakcc CLI with in-repo binary patcher (recent CC, macOS + Linux)",
+      "priorityScore": 0,
+      "implementationScore": 0,
+      "actionability": "stale"
+    },
+    {
+      "id": "pr:51",
+      "type": "pr",
+      "title": "Update Minimax to 2.7",
+      "priorityScore": 0,
+      "implementationScore": 0,
+      "actionability": "stale"
+    },
+    {
+      "id": "pr:47",
+      "type": "pr",
+      "title": "feat: add Alibaba Cloud Coding Plan provider",
+      "priorityScore": 0,
+      "implementationScore": 0,
+      "actionability": "stale"
+    },
+    {
+      "id": "pr:46",
+      "type": "pr",
+      "title": "feat: add DeepSeek provider with Anthropic-compatible API",
+      "priorityScore": 0,
+      "implementationScore": 0,
+      "actionability": "stale"
+    },
+    {
+      "id": "pr:44",
+      "type": "pr",
+      "title": "feat: prevent wrapper command collisions + add --prefix (non-breaking)",
+      "priorityScore": 0,
+      "implementationScore": 0,
+      "actionability": "stale"
+    },
+    {
+      "id": "pr:41",
+      "type": "pr",
+      "title": "feat: Support for Amazon Bedrock",
+      "priorityScore": 0,
+      "implementationScore": 0,
+      "actionability": "stale"
+    },
+    {
+      "id": "pr:22",
+      "type": "pr",
+      "title": "feat: add --no-skills flag to skip bundled skill installation",
+      "priorityScore": 0,
+      "implementationScore": 11,
+      "actionability": "stale"
+    },
+    {
+      "id": "pr:38",
+      "type": "pr",
+      "title": "feat(providers): add Poe provider integration",
+      "priorityScore": 0,
+      "implementationScore": 0,
+      "actionability": "stale"
+    },
+    {
+      "id": "pr:20",
+      "type": "pr",
+      "title": "feat: Integrate ccstatusline as a top-level menu option",
+      "priorityScore": 0,
+      "implementationScore": 2,
+      "actionability": "stale"
+    },
+    {
+      "id": "pr:4",
+      "type": "pr",
+      "title": "feat: add GatewayZ provider with Anthropic API support",
+      "priorityScore": 0,
+      "implementationScore": 3,
+      "actionability": "stale"
+    },
+    {
+      "id": "pr:5",
+      "type": "pr",
+      "title": "feat: add NanoGPT as a provider",
+      "priorityScore": 0,
+      "implementationScore": 1,
+      "actionability": "stale"
+    },
+    {
+      "id": "pr:21",
+      "type": "pr",
+      "title": "feat: add Vercel AI Gateway provider",
+      "priorityScore": 0,
+      "implementationScore": 2,
+      "actionability": "stale"
+    }
+  ],
+  "edges": [
+    {
+      "from": "issue:50",
+      "to": "issue:52",
+      "type": "possible_duplicate"
+    },
+    {
+      "from": "issue:27",
+      "to": "issue:28",
+      "type": "mentions"
+    },
+    {
+      "from": "issue:52",
+      "to": "issue:50",
+      "type": "possible_duplicate"
+    },
+    {
+      "from": "issue:52",
+      "to": "issue:35",
+      "type": "possible_duplicate"
+    },
+    {
+      "from": "issue:52",
+      "to": "issue:37",
+      "type": "possible_duplicate"
+    },
+    {
+      "from": "issue:52",
+      "to": "issue:34",
+      "type": "possible_duplicate"
+    },
+    {
+      "from": "issue:52",
+      "to": "issue:27",
+      "type": "possible_duplicate"
+    },
+    {
+      "from": "issue:52",
+      "to": "issue:29",
+      "type": "possible_duplicate"
+    },
+    {
+      "from": "issue:52",
+      "to": "issue:24",
+      "type": "possible_duplicate"
+    },
+    {
+      "from": "issue:52",
+      "to": "issue:19",
+      "type": "possible_duplicate"
+    },
+    {
+      "from": "issue:52",
+      "to": "issue:14",
+      "type": "possible_duplicate"
+    },
+    {
+      "from": "issue:48",
+      "to": "issue:49",
+      "type": "possible_duplicate"
+    },
+    {
+      "from": "issue:48",
+      "to": "issue:42",
+      "type": "possible_duplicate"
+    },
+    {
+      "from": "issue:48",
+      "to": "issue:23",
+      "type": "possible_duplicate"
+    },
+    {
+      "from": "issue:9",
+      "to": "issue:8",
+      "type": "mentioned_by"
+    },
+    {
+      "from": "pr:9",
+      "to": "issue:8",
+      "type": "mentions"
+    },
+    {
+      "from": "pr:5",
+      "to": "pr:47",
+      "type": "possible_duplicate"
+    },
+    {
+      "from": "pr:5",
+      "to": "pr:46",
+      "type": "possible_duplicate"
+    },
+    {
+      "from": "pr:5",
+      "to": "pr:4",
+      "type": "possible_duplicate"
+    },
+    {
+      "from": "pr:5",
+      "to": "pr:21",
+      "type": "possible_duplicate"
+    }
+  ]
+}

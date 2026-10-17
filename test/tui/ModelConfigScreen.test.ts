@@ -13,7 +13,7 @@ import assert from 'node:assert/strict';
 import React from 'react';
 import { render } from 'ink-testing-library';
 import { ModelConfigScreen } from '../../src/tui/screens/ModelConfigScreen.js';
-import { tick, send, KEYS } from '../helpers/index.js';
+import { tick, send, waitFor, KEYS } from '../helpers/index.js';
 
 test('ModelConfigScreen renders all three model fields', async () => {
   const app = render(
@@ -31,9 +31,9 @@ test('ModelConfigScreen renders all three model fields', async () => {
   await tick();
   const output = app.lastFrame() ?? '';
 
-  assert.ok(output.includes('Opus'), 'Should show Opus field');
-  assert.ok(output.includes('Sonnet'), 'Should show Sonnet field');
-  assert.ok(output.includes('Haiku'), 'Should show Haiku field');
+  assert.ok(output.includes('Primary'), 'Should show Primary field');
+  assert.ok(output.includes('Balanced'), 'Should show Balanced field');
+  assert.ok(output.includes('Fast'), 'Should show Fast field');
 
   app.unmount();
 });
@@ -128,9 +128,8 @@ test('ModelConfigScreen enter submits when all fields filled', async () => {
 
   // Press enter
   await send(app.stdin, KEYS.enter);
-  await tick();
-
-  assert.ok(completed, 'Should call onComplete when all fields are filled');
+  const completedOk = await waitFor(() => completed);
+  assert.ok(completedOk, 'Should call onComplete when all fields are filled');
 
   app.unmount();
 });
@@ -157,9 +156,8 @@ test('ModelConfigScreen escape calls onBack', async () => {
 
   // Press escape
   await send(app.stdin, KEYS.escape);
-  await tick();
-
-  assert.ok(backCalled, 'Should call onBack on escape');
+  const backOk = await waitFor(() => backCalled);
+  assert.ok(backOk, 'Should call onBack on escape');
 
   app.unmount();
 });
@@ -181,9 +179,9 @@ test('ModelConfigScreen shows placeholder for provider', async () => {
   await tick();
   const output = app.lastFrame() ?? '';
 
-  // OpenRouter placeholders should mention anthropic
+  // OpenRouter placeholders should stay provider-neutral.
   assert.ok(
-    output.includes('anthropic') || output.includes('placeholder'),
+    output.includes('provider/primary-coding-model') || output.includes('provider/balanced-coding-model'),
     'Should show provider-specific placeholder'
   );
 

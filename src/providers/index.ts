@@ -1,4 +1,44 @@
-export const DEFAULT_TIMEOUT_MS = '300000';
+import {
+  buildCapabilityEnv,
+  DEFAULT_PROVIDER_TIMEOUT_MS,
+  getProviderCapability,
+  KIMI_DEFAULT_MODEL,
+  KIMI_CUSTOM_HEADERS,
+  MINIMAX_DEFAULT_MODEL,
+  NANOGPT_DEFAULT_MODELS,
+  OLLAMA_DEFAULT_MODEL,
+  PROVIDER_CAPABILITIES,
+  resolveModelAliases,
+  ZAI_DEFAULT_MODELS,
+} from './capabilities.js';
+
+export {
+  buildCapabilityEnv,
+  buildManagedClaudeSettings,
+  buildCapabilityMetadata,
+  getProviderCapability,
+  MINIMAX_DEFAULT_MODEL,
+  MINIMAX_DENY_TOOLS,
+  MINIMAX_MCP_SERVER,
+  MINIMAX_STALE_MODELS,
+  NANOGPT_DEFAULT_MODELS,
+  NANOGPT_DEFAULT_MODEL,
+  OLLAMA_DEFAULT_MODEL,
+  PROVIDER_CAPABILITIES,
+  getManagedSettingsEnvKeys,
+  resolveModelAliases,
+  resolveAvailableModelsSetting,
+  resolveStartupModelSetting,
+  type ManagedClaudeSettings,
+  type ProviderCapabilityProfile,
+  type ProviderClass,
+  type ManagedMcpServer,
+  ZAI_DEFAULT_MODELS,
+  ZAI_DENY_TOOLS,
+  ZAI_STALE_MODELS,
+} from './capabilities.js';
+
+export const DEFAULT_TIMEOUT_MS = DEFAULT_PROVIDER_TIMEOUT_MS;
 
 export type ProviderEnv = Record<string, string | number>;
 
@@ -16,21 +56,14 @@ export interface ProviderTemplate {
   credentialOptional?: boolean;
   /** Mark as experimental/coming soon - hidden from main provider list */
   experimental?: boolean;
-  /** Auto-enable team mode patch for this provider */
-  enablesTeamMode?: boolean;
   /** Skip prompt pack overlays (pure Claude experience) */
   noPromptPack?: boolean;
-  /** Provider targets local models (Ollama, LM Studio, etc.) — disables KV-cache-breaking headers */
-  localModel?: boolean;
-  /** Provider targets Anthropic's own backend — keeps nonessential traffic on so feature-flag
-   *  evaluation (and with it Remote Control / cloud agents) keeps working */
-  firstParty?: boolean;
-  /** Provider uses OpenAI-compatible API, requires translation proxy */
-  requiresTranslation?: boolean;
-  /** Target URL for translation proxy (OpenAI-compatible endpoint) */
-  translationTargetUrl?: string;
-  /** When true, keep ANTHROPIC_API_KEY even for authToken providers */
+  /** Require empty ANTHROPIC_API_KEY (for authToken providers like Vercel AI Gateway) */
+  requiresEmptyApiKey?: boolean;
+  /** Keep ANTHROPIC_API_KEY alongside auth token (e.g., Ollama compatibility) */
   authTokenAlsoSetsApiKey?: boolean;
+  /** Default variant/CLI name when --name is omitted (avoids shadowing real CLIs) */
+  defaultVariantName?: string;
 }
 
 export interface ModelOverrides {
@@ -42,63 +75,126 @@ export interface ModelOverrides {
   subagentModel?: string;
 }
 
-const CCROUTER_AUTH_FALLBACK = 'ccrouter-proxy';
+export const buildZaiModelEnv = (): ProviderEnv => ({
+  ANTHROPIC_DEFAULT_HAIKU_MODEL: ZAI_DEFAULT_MODELS.haiku,
+  ANTHROPIC_DEFAULT_SONNET_MODEL: ZAI_DEFAULT_MODELS.sonnet,
+  ANTHROPIC_DEFAULT_OPUS_MODEL: ZAI_DEFAULT_MODELS.opus,
+  ANTHROPIC_SMALL_FAST_MODEL: ZAI_DEFAULT_MODELS.haiku,
+});
+
+export const buildKimiModelEnv = (): ProviderEnv => ({
+  ANTHROPIC_MODEL: KIMI_DEFAULT_MODEL,
+  ANTHROPIC_DEFAULT_HAIKU_MODEL: KIMI_DEFAULT_MODEL,
+  ANTHROPIC_DEFAULT_SONNET_MODEL: KIMI_DEFAULT_MODEL,
+  ANTHROPIC_DEFAULT_OPUS_MODEL: KIMI_DEFAULT_MODEL,
+  ANTHROPIC_SMALL_FAST_MODEL: KIMI_DEFAULT_MODEL,
+});
+
+export const buildMinimaxModelEnv = (): ProviderEnv => ({
+  ANTHROPIC_MODEL: MINIMAX_DEFAULT_MODEL,
+  ANTHROPIC_SMALL_FAST_MODEL: MINIMAX_DEFAULT_MODEL,
+  ANTHROPIC_DEFAULT_SONNET_MODEL: MINIMAX_DEFAULT_MODEL,
+  ANTHROPIC_DEFAULT_OPUS_MODEL: MINIMAX_DEFAULT_MODEL,
+  ANTHROPIC_DEFAULT_HAIKU_MODEL: MINIMAX_DEFAULT_MODEL,
+});
+
+export const buildNanoGptModelEnv = (): ProviderEnv => ({
+  ANTHROPIC_SMALL_FAST_MODEL: NANOGPT_DEFAULT_MODELS.haiku,
+  ANTHROPIC_DEFAULT_SONNET_MODEL: NANOGPT_DEFAULT_MODELS.sonnet,
+  ANTHROPIC_DEFAULT_OPUS_MODEL: NANOGPT_DEFAULT_MODELS.opus,
+  ANTHROPIC_DEFAULT_HAIKU_MODEL: NANOGPT_DEFAULT_MODELS.haiku,
+});
+
+// Canonical provider display order for CLI/TUI and docs-facing flows.
+// Any provider not listed here is appended after these entries.
+export const PROVIDER_DISPLAY_ORDER = [
+  'kimi',
+  'minimax',
+  'zai',
+  'openrouter',
+  'vercel',
+  'ollama',
+  'nanogpt',
+  'ccrouter',
+  'mirror',
+  'gatewayz',
+  'custom',
+] as const;
+
+const PROVIDER_DISPLAY_ORDER_INDEX = new Map<string, number>(PROVIDER_DISPLAY_ORDER.map((key, index) => [key, index]));
 
 const PROVIDERS: Record<string, ProviderTemplate> = {
+  mirror: {
+    key: 'mirror',
+    label: 'Mirror',
+    description: 'Isolated first-party runtime with clean defaults',
+    baseUrl: '',
+    env: {
+      CC_MIRROR_SPLASH: 1,
+      CC_MIRROR_PROVIDER_LABEL: 'Mirror',
+      CC_MIRROR_SPLASH_STYLE: 'mirror',
+    },
+    apiKeyLabel: '',
+    authMode: 'none',
+    credentialOptional: true,
+    noPromptPack: true,
+    experimental: true,
+  },
   zai: {
     key: 'zai',
     label: 'Zai Cloud',
-    description: 'GLM Coding Plan via Anthropic-compatible endpoint',
+    description: 'GLM-5.1/5-Turbo/4.5-Air via Z.ai Coding Plan',
     baseUrl: 'https://api.z.ai/api/anthropic',
     env: {
       API_TIMEOUT_MS: DEFAULT_TIMEOUT_MS,
-      ANTHROPIC_DEFAULT_HAIKU_MODEL: 'glm-4.5-air',
-      ANTHROPIC_DEFAULT_SONNET_MODEL: 'glm-4.7',
-      ANTHROPIC_DEFAULT_OPUS_MODEL: 'glm-4.7',
+      ...buildZaiModelEnv(),
       CC_MIRROR_SPLASH: 1,
       CC_MIRROR_PROVIDER_LABEL: 'Zai Cloud',
       CC_MIRROR_SPLASH_STYLE: 'zai',
     },
     apiKeyLabel: 'Zai API key',
+    authMode: 'authToken',
+    requiresEmptyApiKey: true,
   },
   minimax: {
     key: 'minimax',
     label: 'MiniMax Cloud',
-    description: 'MiniMax-M2.1 via Anthropic-compatible endpoint',
+    description: 'MiniMax-M2.7 via MiniMax Token Plan',
     baseUrl: 'https://api.minimax.io/anthropic',
     env: {
       API_TIMEOUT_MS: DEFAULT_TIMEOUT_MS,
       CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC: 1,
-      ANTHROPIC_MODEL: 'MiniMax-M2.1',
-      ANTHROPIC_SMALL_FAST_MODEL: 'MiniMax-M2.1',
-      ANTHROPIC_DEFAULT_SONNET_MODEL: 'MiniMax-M2.1',
-      ANTHROPIC_DEFAULT_OPUS_MODEL: 'MiniMax-M2.1',
-      ANTHROPIC_DEFAULT_HAIKU_MODEL: 'MiniMax-M2.1',
+      ...buildMinimaxModelEnv(),
       CC_MIRROR_SPLASH: 1,
       CC_MIRROR_PROVIDER_LABEL: 'MiniMax Cloud',
       CC_MIRROR_SPLASH_STYLE: 'minimax',
     },
     apiKeyLabel: 'MiniMax API key',
+    authMode: 'authToken',
+    requiresEmptyApiKey: true,
   },
-  gatewayz: {
-    key: 'gatewayz',
-    label: 'GatewayZ',
-    description: 'OneRouter-compatible gateway for Anthropic API requests',
-    baseUrl: 'https://api.gatewayz.ai/v1',
+  kimi: {
+    key: 'kimi',
+    label: 'Kimi Code',
+    description: 'Kimi For Coding via Kimi Code',
+    baseUrl: 'https://api.kimi.com/coding',
     env: {
       API_TIMEOUT_MS: DEFAULT_TIMEOUT_MS,
+      ANTHROPIC_CUSTOM_HEADERS: KIMI_CUSTOM_HEADERS,
+      ...buildKimiModelEnv(),
+      CLAUDE_CODE_SUBAGENT_MODEL: KIMI_DEFAULT_MODEL,
       CC_MIRROR_SPLASH: 1,
-      CC_MIRROR_PROVIDER_LABEL: 'GatewayZ',
-      CC_MIRROR_SPLASH_STYLE: 'gatewayz',
+      CC_MIRROR_PROVIDER_LABEL: 'Kimi Code',
+      CC_MIRROR_SPLASH_STYLE: 'kimi',
     },
-    apiKeyLabel: 'GatewayZ API key',
+    apiKeyLabel: 'Kimi API key',
     authMode: 'authToken',
-    requiresModelMapping: true,
+    requiresEmptyApiKey: true,
   },
   openrouter: {
     key: 'openrouter',
     label: 'OpenRouter',
-    description: 'OpenRouter gateway for Anthropic-compatible requests',
+    description: '100+ models via OpenRouter gateway',
     baseUrl: 'https://openrouter.ai/api',
     env: {
       API_TIMEOUT_MS: DEFAULT_TIMEOUT_MS,
@@ -110,98 +206,65 @@ const PROVIDERS: Record<string, ProviderTemplate> = {
     authMode: 'authToken',
     requiresModelMapping: true,
   },
-  nanogpt: {
-    key: 'nanogpt',
-    label: 'NanoGPT',
-    description: 'NanoGPT gateway for OpenAI-compatible requests',
-    baseUrl: 'https://nano-gpt.com/api',
-    env: {
-      API_TIMEOUT_MS: DEFAULT_TIMEOUT_MS,
-      CC_MIRROR_SPLASH: 1,
-      CC_MIRROR_PROVIDER_LABEL: 'NanoGPT',
-      CC_MIRROR_SPLASH_STYLE: 'nanogpt',
-    },
-    apiKeyLabel: 'NanoGPT API key',
-    authMode: 'authToken',
-    requiresModelMapping: true,
-  },
   ccrouter: {
     key: 'ccrouter',
-    label: 'Claude Code Router',
-    description: 'Route requests to any model via Claude Code Router',
+    label: 'CC Router',
+    description: 'Local LLMs via CC Router',
     baseUrl: 'http://127.0.0.1:3456',
     env: {
       API_TIMEOUT_MS: DEFAULT_TIMEOUT_MS,
       CC_MIRROR_SPLASH: 1,
-      CC_MIRROR_PROVIDER_LABEL: 'Claude Code Router',
+      CC_MIRROR_PROVIDER_LABEL: 'CC Router',
       CC_MIRROR_SPLASH_STYLE: 'ccrouter',
     },
     apiKeyLabel: 'Router URL',
     authMode: 'authToken',
     requiresModelMapping: false, // Models configured in ~/.claude-code-router/config.json
     credentialOptional: true, // No API key needed - CCRouter handles auth
-    localModel: true,
   },
-  mirror: {
-    key: 'mirror',
-    label: 'Mirror Claude',
-    description: 'Pure Claude Code with advanced features (team mode, custom theme)',
-    baseUrl: '', // Empty = use Claude Code defaults (no ANTHROPIC_BASE_URL override)
-    env: {
-      // Only cosmetic settings - no auth or model overrides
-      // Use Haiku 4.5 for compaction to avoid "Conversation too long" errors (#29)
-      ANTHROPIC_SMALL_FAST_MODEL: 'claude-haiku-4-5-20251001',
-      CC_MIRROR_SPLASH: 1,
-      CC_MIRROR_PROVIDER_LABEL: 'Mirror Claude',
-      CC_MIRROR_SPLASH_STYLE: 'mirror',
-    },
-    apiKeyLabel: '', // Empty = skip API key prompt
-    authMode: 'none', // No auth handling - user authenticates via normal Claude flow
-    credentialOptional: true, // No credentials required at create time
-    enablesTeamMode: true, // Auto-enable team mode patch
-    noPromptPack: true, // Skip prompt pack (pure Claude experience)
-    firstParty: true, // Talks to Anthropic directly - keep nonessential traffic enabled
-  },
-  kimi: {
-    key: 'kimi',
-    label: 'Kimi Code',
-    description: 'Kimi Code via Anthropic-compatible API (kimi.com)',
-    baseUrl: 'https://api.kimi.com/coding/',
+  ollama: {
+    key: 'ollama',
+    label: 'Ollama',
+    description: 'Local + cloud models via Ollama',
+    defaultVariantName: 'ccollama',
+    baseUrl: 'http://localhost:11434',
     env: {
       API_TIMEOUT_MS: DEFAULT_TIMEOUT_MS,
-      // Kimi Code uses its own model internally
+      ANTHROPIC_SMALL_FAST_MODEL: OLLAMA_DEFAULT_MODEL,
+      ANTHROPIC_AUTH_TOKEN: 'ollama',
+      ANTHROPIC_API_KEY: 'ollama',
+      ANTHROPIC_DEFAULT_SONNET_MODEL: OLLAMA_DEFAULT_MODEL,
+      ANTHROPIC_DEFAULT_OPUS_MODEL: OLLAMA_DEFAULT_MODEL,
+      ANTHROPIC_DEFAULT_HAIKU_MODEL: OLLAMA_DEFAULT_MODEL,
       CC_MIRROR_SPLASH: 1,
-      CC_MIRROR_PROVIDER_LABEL: 'Kimi Code',
-      CC_MIRROR_SPLASH_STYLE: 'kimi',
+      CC_MIRROR_PROVIDER_LABEL: 'Ollama',
+      CC_MIRROR_SPLASH_STYLE: 'ollama',
     },
-    apiKeyLabel: 'Kimi Code API key (from kimi.com membership)',
-    authMode: 'apiKey',
-    // No translation needed - Kimi Code is already Anthropic-compatible
+    apiKeyLabel: 'Ollama API key (use "ollama" for local)',
+    authMode: 'authToken',
+    authTokenAlsoSetsApiKey: true,
+    requiresModelMapping: true,
   },
-  deepseek: {
-    key: 'deepseek',
-    label: 'DeepSeek',
-    description: 'DeepSeek models via integrated OpenAI→Anthropic translator',
-    baseUrl: '', // Set dynamically by translator proxy
+  gatewayz: {
+    key: 'gatewayz',
+    label: 'GatewayZ',
+    description: 'GatewayZ AI Gateway',
+    baseUrl: 'https://api.gatewayz.ai',
     env: {
       API_TIMEOUT_MS: DEFAULT_TIMEOUT_MS,
-      ANTHROPIC_DEFAULT_SONNET_MODEL: 'deepseek-chat',
-      ANTHROPIC_DEFAULT_OPUS_MODEL: 'deepseek-reasoner',
-      ANTHROPIC_DEFAULT_HAIKU_MODEL: 'deepseek-chat',
-      ANTHROPIC_SMALL_FAST_MODEL: 'deepseek-chat',
       CC_MIRROR_SPLASH: 1,
-      CC_MIRROR_PROVIDER_LABEL: 'DeepSeek',
-      CC_MIRROR_SPLASH_STYLE: 'deepseek',
+      CC_MIRROR_PROVIDER_LABEL: 'GatewayZ',
+      CC_MIRROR_SPLASH_STYLE: 'gatewayz',
     },
-    apiKeyLabel: 'DeepSeek API key',
-    authMode: 'apiKey',
-    requiresTranslation: true,
-    translationTargetUrl: 'https://api.deepseek.com',
+    apiKeyLabel: 'GatewayZ API key',
+    authMode: 'authToken',
+    requiresModelMapping: true,
   },
   vercel: {
     key: 'vercel',
     label: 'Vercel AI Gateway',
-    description: 'Vercel AI Gateway for multi-provider model access',
+    description: 'Vercel AI Gateway',
+    defaultVariantName: 'ccvercel',
     baseUrl: 'https://ai-gateway.vercel.sh',
     env: {
       API_TIMEOUT_MS: DEFAULT_TIMEOUT_MS,
@@ -212,109 +275,23 @@ const PROVIDERS: Record<string, ProviderTemplate> = {
     apiKeyLabel: 'Vercel AI Gateway API key',
     authMode: 'authToken',
     requiresModelMapping: true,
+    requiresEmptyApiKey: true,
   },
-  poe: {
-    key: 'poe',
-    label: 'Poe',
-    description: 'Poe API for Claude access via Quora',
-    baseUrl: 'https://api.poe.com/api',
+  nanogpt: {
+    key: 'nanogpt',
+    label: 'NanoGPT',
+    description: '400+ models via NanoGPT gateway',
+    baseUrl: 'https://nano-gpt.com/api/v1',
     env: {
-      API_TIMEOUT_MS: DEFAULT_TIMEOUT_MS,
+      API_TIMEOUT_MS: '600000',
+      ...buildNanoGptModelEnv(),
       CC_MIRROR_SPLASH: 1,
-      CC_MIRROR_PROVIDER_LABEL: 'Poe',
-      CC_MIRROR_SPLASH_STYLE: 'poe',
+      CC_MIRROR_PROVIDER_LABEL: 'NanoGPT',
+      CC_MIRROR_SPLASH_STYLE: 'nanogpt',
     },
-    apiKeyLabel: 'Poe API key',
+    apiKeyLabel: 'NanoGPT API key',
     authMode: 'authToken',
     requiresModelMapping: true,
-  },
-  vertex: {
-    key: 'vertex',
-    label: 'Google Vertex AI',
-    description: 'Claude via Google Cloud Vertex AI',
-    baseUrl: '', // No base URL - uses CLAUDE_CODE_USE_VERTEX
-    env: {
-      API_TIMEOUT_MS: DEFAULT_TIMEOUT_MS,
-      CLAUDE_CODE_USE_VERTEX: '1',
-      CLOUD_ML_REGION: 'global',
-      CC_MIRROR_SPLASH: 1,
-      CC_MIRROR_PROVIDER_LABEL: 'Vertex AI',
-      CC_MIRROR_SPLASH_STYLE: 'vertex',
-    },
-    apiKeyLabel: 'Vertex Project ID',
-    authMode: 'none',
-    noPromptPack: true, // Pure Claude experience
-  },
-  bedrock: {
-    key: 'bedrock',
-    label: 'AWS Bedrock',
-    description: 'Claude via AWS Bedrock',
-    baseUrl: '', // No base URL - uses CLAUDE_CODE_USE_BEDROCK
-    env: {
-      API_TIMEOUT_MS: DEFAULT_TIMEOUT_MS,
-      CLAUDE_CODE_USE_BEDROCK: '1',
-      CC_MIRROR_SPLASH: 1,
-      CC_MIRROR_PROVIDER_LABEL: 'AWS Bedrock',
-      CC_MIRROR_SPLASH_STYLE: 'bedrock',
-    },
-    apiKeyLabel: 'AWS Region (e.g., us-east-1)',
-    authMode: 'none',
-    noPromptPack: true, // Pure Claude experience
-  },
-  foundry: {
-    key: 'foundry',
-    label: 'Azure AI Foundry',
-    description: 'Claude via Azure AI Foundry',
-    baseUrl: '', // No base URL - uses CLAUDE_CODE_USE_FOUNDRY
-    env: {
-      API_TIMEOUT_MS: DEFAULT_TIMEOUT_MS,
-      CLAUDE_CODE_USE_FOUNDRY: '1',
-      CC_MIRROR_SPLASH: 1,
-      CC_MIRROR_PROVIDER_LABEL: 'Azure Foundry',
-      CC_MIRROR_SPLASH_STYLE: 'foundry',
-    },
-    apiKeyLabel: 'Foundry Resource Name',
-    authMode: 'none',
-    noPromptPack: true, // Pure Claude experience
-  },
-  alibaba: {
-    key: 'alibaba',
-    label: 'Alibaba Cloud',
-    description: 'Qwen/Kimi Coding Plan via Anthropic-compatible DashScope',
-    baseUrl: 'https://coding-intl.dashscope.aliyuncs.com/apps/anthropic',
-    env: {
-      API_TIMEOUT_MS: DEFAULT_TIMEOUT_MS,
-      CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC: 1,
-      ANTHROPIC_MODEL: 'qwen3.5-plus',
-      ANTHROPIC_SMALL_FAST_MODEL: 'qwen3.5-plus',
-      ANTHROPIC_DEFAULT_SONNET_MODEL: 'qwen3.5-plus',
-      ANTHROPIC_DEFAULT_OPUS_MODEL: 'kimi-k2.5',
-      ANTHROPIC_DEFAULT_HAIKU_MODEL: 'qwen3.5-plus',
-      CC_MIRROR_SPLASH: 1,
-      CC_MIRROR_PROVIDER_LABEL: 'Alibaba Cloud',
-      CC_MIRROR_SPLASH_STYLE: 'alibaba',
-    },
-    apiKeyLabel: 'DashScope Coding Plan API key (sk-sp-...)',
-    authMode: 'authToken',
-  },
-  ollama: {
-    key: 'ollama',
-    label: 'Ollama',
-    description: 'Local models via Ollama / LM Studio',
-    baseUrl: 'http://localhost:11434',
-    env: {
-      API_TIMEOUT_MS: DEFAULT_TIMEOUT_MS,
-      ANTHROPIC_AUTH_TOKEN: 'ollama',
-      CC_MIRROR_TRANSLATION_API_KEY: 'ollama',
-      CC_MIRROR_SPLASH: 1,
-      CC_MIRROR_PROVIDER_LABEL: 'Ollama',
-      CC_MIRROR_SPLASH_STYLE: 'ollama',
-    },
-    apiKeyLabel: 'API key (use "ollama" for local)',
-    authMode: 'authToken',
-    credentialOptional: true,
-    requiresTranslation: true,
-    localModel: true,
   },
   custom: {
     key: 'custom',
@@ -336,11 +313,14 @@ export const getProvider = (key: string): ProviderTemplate | undefined => PROVID
  * @param includeExperimental - Set to true to include experimental/coming soon providers
  */
 export const listProviders = (includeExperimental = false): ProviderTemplate[] => {
-  const providers = Object.values(PROVIDERS);
-  if (includeExperimental) {
-    return providers;
-  }
-  return providers.filter((p) => !p.experimental);
+  const providers = Object.values(PROVIDERS).filter((p) => includeExperimental || !p.experimental);
+  return providers.sort((a, b) => {
+    const aOrder = PROVIDER_DISPLAY_ORDER_INDEX.get(a.key) ?? Number.MAX_SAFE_INTEGER;
+    const bOrder = PROVIDER_DISPLAY_ORDER_INDEX.get(b.key) ?? Number.MAX_SAFE_INTEGER;
+    if (aOrder !== bOrder) return aOrder - bOrder;
+    if (a.experimental !== b.experimental) return a.experimental ? 1 : -1;
+    return a.label.localeCompare(b.label);
+  });
 };
 
 export interface BuildEnvParams {
@@ -355,19 +335,11 @@ const normalizeModelValue = (value?: string) => (value ?? '').trim();
 
 const applyModelOverrides = (env: ProviderEnv, overrides?: ModelOverrides) => {
   if (!overrides) return;
-  // If only sonnet is set, use it for all model slots
-  const sonnet = normalizeModelValue(overrides.sonnet);
-  if (sonnet && !normalizeModelValue(overrides.opus) && !normalizeModelValue(overrides.haiku)) {
-    overrides.opus = sonnet;
-    overrides.haiku = sonnet;
-    if (!normalizeModelValue(overrides.smallFast)) overrides.smallFast = sonnet;
-  }
   const entries: Array<[string, string | undefined]> = [
     ['ANTHROPIC_DEFAULT_SONNET_MODEL', overrides.sonnet],
     ['ANTHROPIC_DEFAULT_OPUS_MODEL', overrides.opus],
     ['ANTHROPIC_DEFAULT_HAIKU_MODEL', overrides.haiku],
     ['ANTHROPIC_SMALL_FAST_MODEL', overrides.smallFast],
-    ['ANTHROPIC_MODEL', overrides.defaultModel],
     ['CLAUDE_CODE_SUBAGENT_MODEL', overrides.subagentModel],
   ];
   for (const [key, value] of entries) {
@@ -378,123 +350,53 @@ const applyModelOverrides = (env: ProviderEnv, overrides?: ModelOverrides) => {
   }
 };
 
+const getEnvModelValue = (env: ProviderEnv, key: string): string => {
+  const raw = env[key];
+  if (typeof raw === 'string') return normalizeModelValue(raw);
+  if (typeof raw === 'number') return normalizeModelValue(String(raw));
+  return '';
+};
+
+const syncCompatibilityModelDefaults = (env: ProviderEnv, skipSmallFastSync = false) => {
+  // Keep legacy small-fast setting aligned with Haiku alias unless explicitly overridden.
+  if (!skipSmallFastSync) {
+    const haiku = getEnvModelValue(env, 'ANTHROPIC_DEFAULT_HAIKU_MODEL');
+    if (haiku) {
+      env.ANTHROPIC_SMALL_FAST_MODEL = haiku;
+    }
+  }
+};
+
 export const buildEnv = ({ providerKey, baseUrl, apiKey, extraEnv, modelOverrides }: BuildEnvParams): ProviderEnv => {
   const provider = getProvider(providerKey);
   if (!provider) {
     throw new Error(`Unknown provider: ${providerKey}`);
   }
-
-  const env: ProviderEnv = { ...provider.env };
-  const authMode = provider.authMode ?? 'apiKey';
-
-  // Baseline defaults applied to every provider (including authMode=none), unless noted
-  // CLAUDE_CODE_CONTEXT_LIMIT: CLI 2.1.x has a bug where undefined results in NaN,
-  // breaking autocompact and causing sessions to grow unbounded until they crash.
-  if (!Object.hasOwn(env, 'CLAUDE_CODE_CONTEXT_LIMIT')) {
-    env.CLAUDE_CODE_CONTEXT_LIMIT = '200000';
-  }
-  // Third-party endpoints must not phone home to Anthropic. First-party providers are
-  // exempt: there the flag turns off GrowthBook feature-flag evaluation, which silently
-  // disables Remote Control and cloud agents.
-  if (!provider.firstParty && !Object.hasOwn(env, 'CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC')) {
-    env.CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC = '1';
+  const profile = getProviderCapability(providerKey);
+  if (!profile) {
+    throw new Error(`Unknown provider capability profile: ${providerKey}`);
   }
 
-  // Local model optimizations: disable attribution header that invalidates KV cache
-  // (causes up to 90% slower inference). See: https://unsloth.ai/docs/basics/claude-code
-  if (provider.localModel) {
-    if (!Object.hasOwn(env, 'CLAUDE_CODE_ATTRIBUTION_HEADER')) {
-      env.CLAUDE_CODE_ATTRIBUTION_HEADER = '0';
-    }
-    if (!Object.hasOwn(env, 'CLAUDE_CODE_ENABLE_TELEMETRY')) {
-      env.CLAUDE_CODE_ENABLE_TELEMETRY = '0';
-    }
-  }
+  const env = buildCapabilityEnv({
+    profile,
+    baseEnv: provider.env,
+    baseUrl,
+    apiKey,
+    extraEnv,
+    modelOverrides,
+  });
 
-  // For 'none' authMode, only apply cosmetic env vars - no auth or base URL
-  if (authMode === 'none') {
-    // Still allow extraEnv for user customization
-    if (Array.isArray(extraEnv)) {
-      for (const entry of extraEnv) {
-        const idx = entry.indexOf('=');
-        if (idx === -1) continue;
-        const key = entry.slice(0, idx).trim();
-        const value = entry.slice(idx + 1).trim();
-        if (!key) continue;
-        env[key] = value;
-      }
-    }
-    return env;
-  }
-
-  if (!Object.hasOwn(env, 'DISABLE_AUTOUPDATER')) {
-    env.DISABLE_AUTOUPDATER = '1';
-  }
-  if (!Object.hasOwn(env, 'CLAUDE_CODE_ENABLE_PROMPT_SUGGESTION')) {
-    env.CLAUDE_CODE_ENABLE_PROMPT_SUGGESTION = '1';
-  }
-  const normalizedBaseUrl = typeof baseUrl === 'string' ? baseUrl.trim() : '';
-  if (normalizedBaseUrl) {
-    env.ANTHROPIC_BASE_URL = normalizedBaseUrl;
-  } else if (baseUrl === undefined) {
-    const envZaiBaseUrl = providerKey === 'zai' ? process.env.Z_AI_BASE_URL?.trim() : undefined;
-    const fallbackBaseUrl = envZaiBaseUrl || provider.baseUrl;
-    if (fallbackBaseUrl) env.ANTHROPIC_BASE_URL = fallbackBaseUrl;
-  } else if (provider.baseUrl) {
-    env.ANTHROPIC_BASE_URL = provider.baseUrl;
-  }
-  if (authMode === 'authToken') {
-    const trimmed = normalizeModelValue(apiKey);
-    if (trimmed) {
-      env.ANTHROPIC_AUTH_TOKEN = trimmed;
-    } else if (providerKey === 'ccrouter') {
-      env.ANTHROPIC_AUTH_TOKEN = CCROUTER_AUTH_FALLBACK;
-    }
-    if (!provider.authTokenAlsoSetsApiKey && Object.hasOwn(env, 'ANTHROPIC_API_KEY')) {
-      delete env.ANTHROPIC_API_KEY;
-    }
-  } else if (apiKey) {
-    env.ANTHROPIC_API_KEY = apiKey;
-    env.CC_MIRROR_UNSET_AUTH_TOKEN = '1';
-    if (providerKey === 'zai') {
-      env.Z_AI_API_KEY = apiKey;
-    }
-  } else if (authMode === 'apiKey') {
-    env.CC_MIRROR_UNSET_AUTH_TOKEN = '1';
-  }
-
+  // Keep older public helpers behaving as before when callers use them directly.
   applyModelOverrides(env, modelOverrides);
-
-  if (Array.isArray(extraEnv)) {
-    for (const entry of extraEnv) {
-      const idx = entry.indexOf('=');
-      if (idx === -1) continue;
-      const key = entry.slice(0, idx).trim();
-      const value = entry.slice(idx + 1).trim();
-      if (!key) continue;
-      env[key] = value;
-    }
-  }
-
-  if (authMode === 'authToken' && !provider.authTokenAlsoSetsApiKey && Object.hasOwn(env, 'ANTHROPIC_API_KEY')) {
-    delete env.ANTHROPIC_API_KEY;
-  }
-  if (authMode !== 'authToken' && Object.hasOwn(env, 'ANTHROPIC_AUTH_TOKEN')) {
-    delete env.ANTHROPIC_AUTH_TOKEN;
-  }
-
-  // For translation providers, add the target URL
-  // The launcher will read this to configure the proxy
-  if (provider.requiresTranslation) {
-    const targetUrl = provider.translationTargetUrl || env.ANTHROPIC_BASE_URL || provider.baseUrl;
-    if (targetUrl) {
-      env.CC_MIRROR_TRANSLATION_TARGET_URL = targetUrl;
-      // Remove ANTHROPIC_BASE_URL as the proxy will set this dynamically
-      delete env.ANTHROPIC_BASE_URL;
-    }
-  }
+  syncCompatibilityModelDefaults(env, normalizeModelValue(modelOverrides?.smallFast).length > 0);
 
   return env;
 };
+
+export const providerRequiresModelMapping = (providerKey: string): boolean =>
+  getProviderCapability(providerKey)?.models.policy === 'required';
+
+export const getProviderModelDefaults = (providerKey: string): Partial<Record<'opus' | 'sonnet' | 'haiku', string>> =>
+  resolveModelAliases(getProviderCapability(providerKey) ?? PROVIDER_CAPABILITIES.custom);
 
 export const PROVIDER_TEMPLATES = PROVIDERS;

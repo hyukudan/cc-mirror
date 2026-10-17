@@ -6,26 +6,15 @@
  */
 
 import path from 'node:path';
-import { getProvider } from '../../providers/index.js';
-import { DEFAULT_BIN_DIR, DEFAULT_ROOT } from '../constants.js';
-import { getWrapperPath } from '../wrapper.js';
-import { expandTilde, detectCommandCollision } from '../paths.js';
-import { assertValidVariantName } from '../validation.js';
+import { getProvider, getProviderCapability } from '../../providers/index.js';
+import { DEFAULT_BIN_DIR, DEFAULT_CLAUDE_VERSION, DEFAULT_ROOT } from '../constants.js';
+import { assertValidVariantName, expandTilde, getWrapperPath } from '../paths.js';
 import type { CreateVariantParams, CreateVariantResult } from '../types.js';
 import type { BuildContext, BuildPaths, BuildPreferences, BuildState, BuildStep, ReportFn } from './types.js';
-import {
-  normalizeNpmPackage,
-  normalizeNpmVersion,
-  shouldEnablePromptPack,
-  shouldInstallSkills,
-  shouldEnableShellEnv,
-  yieldToEventLoop,
-} from './utils.js';
 
 // Import steps (will be created incrementally)
 import { PrepareDirectoriesStep } from './steps/PrepareDirectoriesStep.js';
-import { InstallNpmStep } from './steps/InstallNpmStep.js';
-import { TeamModeStep } from './steps/TeamModeStep.js';
+import { InstallNativeStep } from './steps/InstallNativeStep.js';
 import { WriteConfigStep } from './steps/WriteConfigStep.js';
 import { BrandThemeStep } from './steps/BrandThemeStep.js';
 import { TweakccStep } from './steps/TweakccStep.js';
@@ -33,6 +22,24 @@ import { WrapperStep } from './steps/WrapperStep.js';
 import { ShellEnvStep } from './steps/ShellEnvStep.js';
 import { SkillInstallStep } from './steps/SkillInstallStep.js';
 import { FinalizeStep } from './steps/FinalizeStep.js';
+
+// Helper functions
+const normalizeClaudeVersion = (value?: string) => {
+  const trimmed = (value ?? '').trim();
+  return trimmed.length > 0 ? trimmed : DEFAULT_CLAUDE_VERSION;
+};
+
+const shouldEnablePromptPack = (providerKey: string) =>
+  getProviderCapability(providerKey)?.features.promptPack.defaultEnabled ?? false;
+
+const shouldInstallSkills = (providerKey: string) =>
+  getProviderCapability(providerKey)?.features.browserSkill.defaultEnabled ?? false;
+
+const shouldEnableShellEnv = (providerKey: string) =>
+  getProviderCapability(providerKey)?.features.shellEnv.defaultEnabled ?? false;
+
+// Helper to yield to event loop (for async mode)
+const yieldToEventLoop = () => new Promise<void>((resolve) => setImmediate(resolve));
 
 /**
  * Builds variants using composable steps
@@ -44,10 +51,9 @@ export class VariantBuilder {
     // Register steps in execution order
     this.steps = [
       new PrepareDirectoriesStep(),
-      new InstallNpmStep(),
+      new InstallNativeStep(),
       new WriteConfigStep(),
       new BrandThemeStep(), // Creates tweakcc/config.json
-      new TeamModeStep(), // Patches cli.js and configures team toolset (needs config.json)
       new TweakccStep(),
       new WrapperStep(),
       new ShellEnvStep(),
@@ -63,38 +69,18 @@ export class VariantBuilder {
     const provider = getProvider(params.providerKey);
     if (!provider) throw new Error(`Unknown provider: ${params.providerKey}`);
     if (!params.name) throw new Error('Variant name is required');
-    const safeName = assertValidVariantName(params.name);
+    assertValidVariantName(params.name);
 
     const rootDir = params.rootDir ?? DEFAULT_ROOT;
     const binDir = params.binDir ?? DEFAULT_BIN_DIR;
     const resolvedRoot = expandTilde(rootDir) ?? rootDir;
     const resolvedBin = expandTilde(binDir) ?? binDir;
 
-    // Collision guard: prevent wrapper from shadowing existing system commands
-    if (!params.allowCollision) {
-      const collision = detectCommandCollision(safeName, resolvedBin);
-      if (collision.hasCollision) {
-        const messages: string[] = [];
-        if (collision.existingWrapper) {
-          messages.push(`A wrapper named "${safeName}" already exists in ${resolvedBin}`);
-        }
-        if (collision.pathConflict) {
-          messages.push(
-            `"${safeName}" resolves to ${collision.resolvedPath} on PATH — creating a wrapper would shadow it`
-          );
-        }
-        throw new Error(
-          `Command collision detected:\n${messages.join('\n')}\n\n` +
-            `Use --allow-collision to override, or choose a different name with --name <name>`
-        );
-      }
-    }
-
-    const variantDir = path.join(resolvedRoot, safeName);
+    const variantDir = path.join(resolvedRoot, params.name);
     const configDir = path.join(variantDir, 'config');
     const tweakDir = path.join(variantDir, 'tweakcc');
-    const wrapperPath = getWrapperPath(resolvedBin, safeName);
-    const npmDir = path.join(variantDir, 'npm');
+    const wrapperPath = getWrapperPath(resolvedBin, params.name);
+    const nativeDir = path.join(variantDir, 'native');
 
     const paths: BuildPaths = {
       resolvedRoot,
@@ -103,12 +89,11 @@ export class VariantBuilder {
       configDir,
       tweakDir,
       wrapperPath,
-      npmDir,
+      nativeDir,
     };
 
-    const resolvedNpmPackage = normalizeNpmPackage(params.npmPackage);
-    const resolvedNpmVersion = normalizeNpmVersion(params.npmVersion);
-    const promptPackPreference = params.promptPack ?? shouldEnablePromptPack(params.providerKey, provider);
+    const resolvedClaudeVersion = normalizeClaudeVersion(params.claudeVersion);
+    const promptPackPreference = params.promptPack ?? shouldEnablePromptPack(params.providerKey);
     const promptPackEnabled = !params.noTweak && promptPackPreference;
     const skillInstallEnabled = params.skillInstall ?? shouldInstallSkills(params.providerKey);
     const shellEnvEnabled = params.shellEnv ?? shouldEnableShellEnv(params.providerKey);
@@ -116,8 +101,7 @@ export class VariantBuilder {
     const commandStdio = params.tweakccStdio ?? 'inherit';
 
     const prefs: BuildPreferences = {
-      resolvedNpmPackage,
-      resolvedNpmVersion,
+      resolvedClaudeVersion,
       promptPackPreference,
       promptPackEnabled,
       skillInstallEnabled,

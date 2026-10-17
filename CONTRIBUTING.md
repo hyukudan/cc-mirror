@@ -2,6 +2,12 @@
 
 Thanks for your interest in contributing!
 
+## Contribution Policy
+
+cc-mirror is currently maintained as issues-first. External pull requests are not accepted or merged because provider compatibility, binary patching, and release safety need to be implemented directly by the maintainer.
+
+Please open an issue instead with the problem, provider docs, reproduction steps, expected behavior, and any patch notes or branch links you want considered as reference.
+
 ## Development Setup
 
 ```bash
@@ -66,17 +72,6 @@ npm test
 npm test -- test/core.test.ts
 ```
 
-## Updating dev-browser Pin
-
-The dev-browser skill is pinned to a specific commit and checksum. To update it:
-
-```bash
-npm run update:dev-browser-pin
-```
-
-This updates `DEV_BROWSER_REF` and `DEV_BROWSER_ARCHIVE_SHA256` in `src/core/skills.ts`.
-Review the changes, run tests, and include the update in your PR.
-
 ## Commits
 
 Use conventional commits:
@@ -90,10 +85,7 @@ Use conventional commits:
 
 ## Pull Requests
 
-1. Fork and create a branch
-2. Make your changes
-3. Run tests and type check
-4. Submit PR with clear description
+External pull requests may be closed automatically. If you already have code, link it from an issue so it can be reviewed as reference material.
 
 ## Questions?
 

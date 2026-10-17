@@ -4,7 +4,6 @@
 
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import path from 'node:path';
 import {
   buildShareUrl,
   getModelOverridesFromArgs,
@@ -62,18 +61,18 @@ test('buildShareUrl includes minimal mode', () => {
 // getModelOverridesFromArgs tests
 test('getModelOverridesFromArgs extracts all model overrides', () => {
   const opts = createOpts({
-    'model-sonnet': 'claude-sonnet-4-6',
-    'model-opus': 'claude-opus-4-6',
-    'model-haiku': 'claude-haiku-4-5-20251001',
-    'model-small-fast': 'claude-haiku-4-5-20251001',
+    'model-sonnet': 'claude-3-sonnet-v2',
+    'model-opus': 'claude-3-opus',
+    'model-haiku': 'claude-3-haiku',
+    'model-small-fast': 'claude-3-5-haiku',
     'model-default': 'default-model',
     'model-subagent': 'subagent-model',
   });
   const overrides = getModelOverridesFromArgs(opts);
-  assert.equal(overrides.sonnet, 'claude-sonnet-4-6');
-  assert.equal(overrides.opus, 'claude-opus-4-6');
-  assert.equal(overrides.haiku, 'claude-haiku-4-5-20251001');
-  assert.equal(overrides.smallFast, 'claude-haiku-4-5-20251001');
+  assert.equal(overrides.sonnet, 'claude-3-sonnet-v2');
+  assert.equal(overrides.opus, 'claude-3-opus');
+  assert.equal(overrides.haiku, 'claude-3-haiku');
+  assert.equal(overrides.smallFast, 'claude-3-5-haiku');
   assert.equal(overrides.defaultModel, 'default-model');
   assert.equal(overrides.subagentModel, 'subagent-model');
 });
@@ -93,6 +92,22 @@ test('getModelOverridesFromArgs ignores non-string values', () => {
   assert.equal(overrides.opus, undefined);
 });
 
+test('getModelOverridesFromArgs supports --model convenience flag', () => {
+  const opts = createOpts({ model: 'anthropic/claude-3.5-sonnet' as unknown as string });
+  const overrides = getModelOverridesFromArgs(opts);
+  assert.equal(overrides.sonnet, 'anthropic/claude-3.5-sonnet');
+  assert.equal(overrides.opus, 'anthropic/claude-3.5-sonnet');
+  assert.equal(overrides.haiku, 'anthropic/claude-3.5-sonnet');
+});
+
+test('getModelOverridesFromArgs prefers explicit tier flags over --model', () => {
+  const opts = createOpts({ model: 'all', 'model-sonnet': 'sonnet-only' });
+  const overrides = getModelOverridesFromArgs(opts);
+  assert.equal(overrides.sonnet, 'sonnet-only');
+  assert.equal(overrides.opus, 'all');
+  assert.equal(overrides.haiku, 'all');
+});
+
 // formatModelNote tests
 test('formatModelNote returns null for empty overrides', () => {
   const result = formatModelNote({});
@@ -100,29 +115,29 @@ test('formatModelNote returns null for empty overrides', () => {
 });
 
 test('formatModelNote formats single override', () => {
-  const result = formatModelNote({ sonnet: 'claude-sonnet-4-6' });
-  assert.equal(result, 'Model mapping: sonnet=claude-sonnet-4-6');
+  const result = formatModelNote({ sonnet: 'claude-3-sonnet' });
+  assert.equal(result, 'Model mapping: sonnet=claude-3-sonnet');
 });
 
 test('formatModelNote formats multiple overrides', () => {
   const result = formatModelNote({
-    sonnet: 'claude-sonnet-4-6',
-    opus: 'claude-opus-4-6',
-    haiku: 'claude-haiku-4-5-20251001',
+    sonnet: 'claude-3-sonnet',
+    opus: 'claude-3-opus',
+    haiku: 'claude-3-haiku',
   });
-  assert.ok(result?.includes('sonnet=claude-sonnet-4-6'));
-  assert.ok(result?.includes('opus=claude-opus-4-6'));
-  assert.ok(result?.includes('haiku=claude-haiku-4-5-20251001'));
+  assert.ok(result?.includes('sonnet=claude-3-sonnet'));
+  assert.ok(result?.includes('opus=claude-3-opus'));
+  assert.ok(result?.includes('haiku=claude-3-haiku'));
 });
 
 test('formatModelNote ignores empty string values', () => {
-  const result = formatModelNote({ sonnet: '', opus: 'claude-opus-4-6' });
-  assert.equal(result, 'Model mapping: opus=claude-opus-4-6');
+  const result = formatModelNote({ sonnet: '', opus: 'claude-3-opus' });
+  assert.equal(result, 'Model mapping: opus=claude-3-opus');
 });
 
 test('formatModelNote ignores whitespace-only values', () => {
-  const result = formatModelNote({ sonnet: '   ', opus: 'claude-opus-4-6' });
-  assert.equal(result, 'Model mapping: opus=claude-opus-4-6');
+  const result = formatModelNote({ sonnet: '   ', opus: 'claude-3-opus' });
+  assert.equal(result, 'Model mapping: opus=claude-3-opus');
 });
 
 // parsePromptPackMode tests
@@ -182,21 +197,6 @@ test('buildExtraEnv ignores empty timeout', () => {
 test('buildExtraEnv ignores whitespace timeout', () => {
   const result = buildExtraEnv(createOpts({ 'timeout-ms': '   ' }));
   assert.deepEqual(result, []);
-});
-
-test('buildExtraEnv adds prefer-ipv4 flag', () => {
-  const result = buildExtraEnv(createOpts({ 'prefer-ipv4': true }));
-  assert.deepEqual(result, ['CC_MIRROR_PREFER_IPV4=1']);
-});
-
-test('buildExtraEnv skips prefer-ipv4 when NODE_OPTIONS is set', () => {
-  const result = buildExtraEnv(createOpts({ 'prefer-ipv4': true, env: ['NODE_OPTIONS=--max-old-space-size=4096'] }));
-  assert.deepEqual(result, ['NODE_OPTIONS=--max-old-space-size=4096']);
-});
-
-test('buildExtraEnv skips prefer-ipv4 when CC_MIRROR_PREFER_IPV4 is set', () => {
-  const result = buildExtraEnv(createOpts({ 'prefer-ipv4': true, env: ['CC_MIRROR_PREFER_IPV4=0'] }));
-  assert.deepEqual(result, ['CC_MIRROR_PREFER_IPV4=0']);
 });
 
 // printSummary tests (capture console output)
@@ -295,46 +295,6 @@ test('printSummary prints wrapper path when provided', () => {
     console.log = originalLog;
   }
 });
-
-test('printSummary suggests path command when wrapper not in PATH', () => {
-  const logs: string[] = [];
-  const originalLog = console.log;
-  const originalPath = process.env.PATH;
-  const originalShell = process.env.SHELL;
-  console.log = (...args: unknown[]) => logs.push(args.join(' '));
-
-  try {
-    process.env.PATH = '/usr/bin';
-    process.env.SHELL = '/bin/bash';
-    printSummary({
-      action: 'Created',
-      meta: createMeta(),
-      wrapperPath: '/tmp/bin/test',
-    });
-
-    const expected = getExpectedPathCommand();
-    assert.ok(logs.some((line) => line.includes(expected)));
-  } finally {
-    console.log = originalLog;
-    if (originalPath === undefined) {
-      delete process.env.PATH;
-    } else {
-      process.env.PATH = originalPath;
-    }
-    if (originalShell === undefined) {
-      delete process.env.SHELL;
-    } else {
-      process.env.SHELL = originalShell;
-    }
-  }
-});
-
-function getExpectedPathCommand(): string {
-  if (process.platform === 'win32') return 'npx cc-mirror path --apply';
-  const shellName = path.basename(process.env.SHELL || '');
-  if (shellName === 'fish') return 'npx cc-mirror path';
-  return 'npx cc-mirror path --apply';
-}
 
 test('printSummary prints skill install status', () => {
   const logs: string[] = [];

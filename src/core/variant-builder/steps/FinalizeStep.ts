@@ -4,6 +4,8 @@
 
 import path from 'node:path';
 import { writeJson } from '../../fs.js';
+import { DEFAULT_CLAUDE_VERSION } from '../../constants.js';
+import { buildCapabilityMetadata, getProviderCapability } from '../../../providers/index.js';
 import type { VariantMeta } from '../../types.js';
 import type { BuildContext, BuildStep } from '../types.js';
 
@@ -21,12 +23,23 @@ export class FinalizeStep implements BuildStep {
   }
 
   private finalize(ctx: BuildContext): void {
-    const { params, paths, prefs, state, provider } = ctx;
-
-    // Check if team mode was enabled (via params OR provider defaults)
-    const teamModeEnabled = Boolean(params.enableTeamMode) || Boolean(provider.enablesTeamMode);
+    const { params, paths, prefs, state } = ctx;
+    const profile = getProviderCapability(params.providerKey);
+    if (!profile) {
+      throw new Error(`Unknown provider capability profile: ${params.providerKey}`);
+    }
+    const capabilityMetadata = buildCapabilityMetadata({
+      profile,
+      baseUrl: params.baseUrl,
+      env: state.env,
+      promptPackEnabled: prefs.promptPackPreference,
+      shellEnvEnabled: prefs.shellEnvEnabled,
+      skillInstallEnabled: prefs.skillInstallEnabled,
+      tweakccEnabled: !params.noTweak && state.tweakResult?.status === 0,
+    });
 
     const meta: VariantMeta = {
+      schemaVersion: 2,
       name: params.name,
       provider: params.providerKey,
       baseUrl: params.baseUrl,
@@ -40,12 +53,13 @@ export class FinalizeStep implements BuildStep {
       skillInstall: prefs.skillInstallEnabled,
       shellEnv: prefs.shellEnvEnabled,
       binDir: paths.resolvedBin,
-      installType: 'npm',
-      npmDir: paths.npmDir,
-      npmPackage: prefs.resolvedNpmPackage,
-      npmVersion: prefs.resolvedNpmVersion,
-      teamModeEnabled,
+      ...capabilityMetadata,
     };
+
+    meta.nativeDir = paths.nativeDir;
+    meta.nativeVersion = prefs.resolvedClaudeVersion;
+    meta.nativeVersionSource = meta.nativeVersion === DEFAULT_CLAUDE_VERSION ? 'default' : 'pinned';
+    meta.nativePlatform = state.nativePlatform;
 
     writeJson(path.join(paths.variantDir, 'variant.json'), meta);
 

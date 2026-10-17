@@ -2,7 +2,7 @@
  * WrapperStep - Writes the CLI wrapper script
  */
 
-import { writeWrapperForPlatform, type WrapperOptions } from '../../wrapper.js';
+import { writeWrapper } from '../../wrapper.js';
 import { ensureWindowsUserPath } from '../../windows-path.js';
 import type { BuildContext, BuildStep } from '../types.js';
 
@@ -11,31 +11,24 @@ export class WrapperStep implements BuildStep {
 
   execute(ctx: BuildContext): void {
     ctx.report('Writing CLI wrapper...');
-    const options: WrapperOptions = {
-      requiresTranslation: ctx.provider.requiresTranslation,
-    };
-    writeWrapperForPlatform(ctx.paths.wrapperPath, ctx.paths.configDir, ctx.state.binaryPath, options);
-    if (process.platform === 'win32') {
-      const binDir = ctx.paths.resolvedBin;
-      const pathResult = ensureWindowsUserPath(binDir);
-      if (pathResult.added) {
-        ctx.report(`Added ${binDir} to Windows user PATH`);
-      }
-    }
+    writeWrapper(ctx.paths.wrapperPath, ctx.paths.configDir, ctx.state.binaryPath, 'native');
+    this.ensureWindowsPath(ctx);
   }
 
   async executeAsync(ctx: BuildContext): Promise<void> {
     await ctx.report('Writing CLI wrapper...');
-    const options: WrapperOptions = {
-      requiresTranslation: ctx.provider.requiresTranslation,
-    };
-    writeWrapperForPlatform(ctx.paths.wrapperPath, ctx.paths.configDir, ctx.state.binaryPath, options);
-    if (process.platform === 'win32') {
-      const binDir = ctx.paths.resolvedBin;
-      const pathResult = ensureWindowsUserPath(binDir);
-      if (pathResult.added) {
-        await ctx.report(`Added ${binDir} to Windows user PATH`);
-      }
+    writeWrapper(ctx.paths.wrapperPath, ctx.paths.configDir, ctx.state.binaryPath, 'native');
+    this.ensureWindowsPath(ctx);
+  }
+
+  private ensureWindowsPath(ctx: BuildContext): void {
+    const result = ensureWindowsUserPath(ctx.paths.resolvedBin);
+    if (result.status === 'updated') {
+      ctx.state.notes.push(result.message);
+      return;
+    }
+    if (result.status === 'failed') {
+      ctx.state.notes.push(`Windows PATH update failed: ${result.message}`);
     }
   }
 }

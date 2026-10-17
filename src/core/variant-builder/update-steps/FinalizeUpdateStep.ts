@@ -3,7 +3,9 @@
  */
 
 import path from 'node:path';
-import { writeJson } from '../../fs.js';
+import { readJson, writeJson } from '../../fs.js';
+import { buildCapabilityMetadata, getProviderCapability } from '../../../providers/index.js';
+import type { VariantMeta } from '../../types.js';
 import type { UpdateContext, UpdateStep } from '../types.js';
 
 export class FinalizeUpdateStep implements UpdateStep {
@@ -20,16 +22,59 @@ export class FinalizeUpdateStep implements UpdateStep {
   }
 
   private finalize(ctx: UpdateContext): void {
-    const { meta, paths, prefs } = ctx;
+    const { meta, paths, prefs, state } = ctx;
 
     meta.updatedAt = new Date().toISOString();
     meta.promptPack = prefs.promptPackPreference;
     meta.skillInstall = prefs.skillInstallEnabled;
     meta.shellEnv = prefs.shellEnvEnabled;
+    const profile = getProviderCapability(meta.provider);
+    const settings =
+      readJson<{ env?: Record<string, string | number> }>(path.join(meta.configDir, 'settings.json')) || {};
+    const tweakccEnabled = ctx.opts.settingsOnly
+      ? (meta.capabilities?.tweakcc?.enabled ?? profile?.features.tweakcc.defaultEnabled ?? false)
+      : !ctx.opts.noTweak && state.tweakResult?.status === 0;
+    const capabilityMetadata = profile
+      ? buildCapabilityMetadata({
+          profile,
+          baseUrl: meta.baseUrl,
+          env: settings.env,
+          promptPackEnabled: prefs.promptPackPreference,
+          shellEnvEnabled: prefs.shellEnvEnabled,
+          skillInstallEnabled: prefs.skillInstallEnabled,
+          tweakccEnabled,
+        })
+      : {};
 
     // Remove deprecated promptPackMode if present
     delete meta.promptPackMode;
 
-    writeJson(path.join(paths.variantDir, 'variant.json'), meta);
+    // Existing variants may carry legacy metadata fields from older cc-mirror versions.
+    // Write a normalized variant.json so the file reflects our current native-only schema.
+    const sanitized: VariantMeta = {
+      schemaVersion: 2,
+      name: meta.name,
+      provider: meta.provider,
+      baseUrl: meta.baseUrl,
+      createdAt: meta.createdAt,
+      updatedAt: meta.updatedAt,
+      claudeOrig: meta.claudeOrig,
+      binaryPath: meta.binaryPath,
+      configDir: meta.configDir,
+      tweakDir: meta.tweakDir,
+      brand: meta.brand,
+      promptPack: meta.promptPack,
+      skillInstall: meta.skillInstall,
+      shellEnv: meta.shellEnv,
+      binDir: meta.binDir,
+      nativeDir: meta.nativeDir,
+      nativeVersion: meta.nativeVersion,
+      nativeVersionSource: meta.nativeVersionSource,
+      nativePlatform: meta.nativePlatform,
+      ...capabilityMetadata,
+    };
+
+    ctx.meta = sanitized;
+    writeJson(path.join(paths.variantDir, 'variant.json'), sanitized);
   }
 }

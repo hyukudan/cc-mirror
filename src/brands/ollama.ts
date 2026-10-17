@@ -1,121 +1,129 @@
 import type { TweakccConfig, Theme } from './types.js';
 import { DEFAULT_THEMES } from './defaultThemes.js';
+import { buildBrandMiscConfig } from './miscDefaults.js';
+import { buildBrandSettingsDefaults } from './settingsDefaults.js';
+import { buildDiffPalette } from './diffPalette.js';
 import { formatUserMessage, getUserLabel } from './userLabel.js';
-import { rgb, mix, lighten } from './colorUtils.js';
 
-type Palette = {
-  base: string;
-  surface: string;
-  panel: string;
-  border: string;
-  borderStrong: string;
-  text: string;
-  textMuted: string;
-  textDim: string;
-  core: string;
-  deep: string;
-  orange: string;
-  yellow: string;
-  cyan: string;
-  blue: string;
-  green: string;
-  red: string;
-};
+type Rgb = { r: number; g: number; b: number };
 
-// Ollama brand colors - Warm sandstone/brown
-const OLLAMA_CORE = '#c4956a'; // Warm sandstone
+const clamp = (value: number) => Math.max(0, Math.min(255, Math.round(value)));
 
-const palette: Palette = {
-  base: '#0a0908',
-  surface: '#121110',
-  panel: '#1a1816',
-  border: '#2a2724',
-  borderStrong: '#3a3632',
-  text: '#f5f0eb',
-  textMuted: '#a09888',
-  textDim: '#706858',
-  core: OLLAMA_CORE,
-  deep: '#a07850',
-  orange: '#d4a06a',
-  yellow: '#e0c070',
-  cyan: '#7eb8b0',
-  blue: '#6898b8',
-  green: '#6ea060',
-  red: '#c06050',
-};
-
-const makeTheme = (): Theme => {
-  const tint = (hex: string, weight: number) => mix(palette.base, hex, weight);
+const hexToRgb = (hex: string): Rgb => {
+  const normalized = hex.replace('#', '').trim();
+  if (normalized.length === 3) {
+    const [r, g, b] = normalized.split('');
+    return {
+      r: clamp(parseInt(r + r, 16)),
+      g: clamp(parseInt(g + g, 16)),
+      b: clamp(parseInt(b + b, 16)),
+    };
+  }
+  if (normalized.length !== 6) {
+    throw new Error(`Unsupported hex color: ${hex}`);
+  }
   return {
-    name: 'Ollama Sandstone',
-    id: 'dark',
-    colors: {
-      autoAccept: rgb(palette.green),
-      bashBorder: rgb(palette.core),
-      claude: rgb(palette.core),
-      claudeShimmer: lighten(palette.core, 0.28),
-      claudeBlue_FOR_SYSTEM_SPINNER: rgb(palette.blue),
-      claudeBlueShimmer_FOR_SYSTEM_SPINNER: lighten(palette.blue, 0.3),
-      permission: rgb(palette.deep),
-      permissionShimmer: lighten(palette.deep, 0.25),
-      planMode: rgb(palette.cyan),
-      ide: rgb(palette.cyan),
-      promptBorder: rgb(palette.border),
-      promptBorderShimmer: rgb(palette.borderStrong),
-      text: rgb(palette.text),
-      inverseText: rgb(palette.base),
-      inactive: rgb(palette.textDim),
-      subtle: tint(palette.core, 0.18),
-      suggestion: rgb(palette.deep),
-      remember: rgb(palette.core),
-      background: rgb(palette.base),
-      success: rgb(palette.green),
-      error: rgb(palette.red),
-      warning: rgb(palette.yellow),
-      warningShimmer: lighten(palette.yellow, 0.2),
-      diffAdded: mix(palette.base, palette.green, 0.18),
-      diffRemoved: mix(palette.base, palette.red, 0.18),
-      diffAddedDimmed: mix(palette.base, palette.green, 0.1),
-      diffRemovedDimmed: mix(palette.base, palette.red, 0.1),
-      diffAddedWord: mix(palette.base, palette.green, 0.45),
-      diffRemovedWord: mix(palette.base, palette.red, 0.45),
-      diffAddedWordDimmed: mix(palette.base, palette.green, 0.3),
-      diffRemovedWordDimmed: mix(palette.base, palette.red, 0.3),
-      red_FOR_SUBAGENTS_ONLY: rgb(palette.red),
-      blue_FOR_SUBAGENTS_ONLY: rgb(palette.blue),
-      green_FOR_SUBAGENTS_ONLY: rgb(palette.green),
-      yellow_FOR_SUBAGENTS_ONLY: rgb(palette.yellow),
-      purple_FOR_SUBAGENTS_ONLY: rgb('#8b5cf6'),
-      orange_FOR_SUBAGENTS_ONLY: rgb(palette.orange),
-      pink_FOR_SUBAGENTS_ONLY: rgb('#ec4899'),
-      cyan_FOR_SUBAGENTS_ONLY: rgb(palette.cyan),
-      professionalBlue: rgb(palette.blue),
-      rainbow_red: rgb(palette.red),
-      rainbow_orange: rgb(palette.orange),
-      rainbow_yellow: rgb(palette.yellow),
-      rainbow_green: rgb(palette.green),
-      rainbow_blue: rgb(palette.cyan),
-      rainbow_indigo: rgb(palette.blue),
-      rainbow_violet: rgb('#8b5cf6'),
-      rainbow_red_shimmer: lighten(palette.red, 0.35),
-      rainbow_orange_shimmer: lighten(palette.orange, 0.35),
-      rainbow_yellow_shimmer: lighten(palette.yellow, 0.25),
-      rainbow_green_shimmer: lighten(palette.green, 0.35),
-      rainbow_blue_shimmer: lighten(palette.cyan, 0.35),
-      rainbow_indigo_shimmer: lighten(palette.blue, 0.35),
-      rainbow_violet_shimmer: lighten('#8b5cf6', 0.35),
-      clawd_body: rgb(palette.core),
-      clawd_background: rgb(palette.base),
-      userMessageBackground: rgb(palette.panel),
-      bashMessageBackgroundColor: rgb(palette.surface),
-      memoryBackgroundColor: tint(palette.panel, 0.2),
-      rate_limit_fill: rgb(palette.core),
-      rate_limit_empty: rgb(palette.borderStrong),
-    },
+    r: clamp(parseInt(normalized.slice(0, 2), 16)),
+    g: clamp(parseInt(normalized.slice(2, 4), 16)),
+    b: clamp(parseInt(normalized.slice(4, 6), 16)),
   };
 };
 
-const ollamaTheme = makeTheme();
+const rgb = (hex: string) => {
+  const { r, g, b } = hexToRgb(hex);
+  return `rgb(${r},${g},${b})`;
+};
+
+const mix = (hexA: string, hexB: string, weight: number) => {
+  const a = hexToRgb(hexA);
+  const b = hexToRgb(hexB);
+  const w = Math.max(0, Math.min(1, weight));
+  return `rgb(${clamp(a.r + (b.r - a.r) * w)},${clamp(a.g + (b.g - a.g) * w)},${clamp(a.b + (b.b - a.b) * w)})`;
+};
+
+const lighten = (hex: string, weight: number) => mix(hex, '#ffffff', weight);
+
+// Ollama brand colors: #caad8d (sorrel brown), black, white
+// Theme: warm earthy llama tones with sandstone accents
+const palette = {
+  base: '#15110d',
+  surface: '#1f1711',
+  panel: '#281e16',
+  border: '#4a3828',
+  borderStrong: '#6d5138',
+  text: '#f2e8dc',
+  textMuted: '#d5c3ad',
+  textDim: '#a88f76',
+  llama: '#caad8d', // Brand primary - sorrel brown
+  llamaBright: '#dcc4a8',
+  llamaDeep: '#8d6e52',
+  sand: '#b9966e',
+  green: '#2fb37f',
+  red: '#e06b7a',
+  orange: '#c98a4d',
+  blue: '#6e8fae',
+};
+
+const theme: Theme = {
+  name: 'Ollama Llama',
+  id: 'dark',
+  colors: {
+    autoAccept: rgb(palette.green),
+    bashBorder: rgb(palette.llama),
+    claude: rgb(palette.llamaDeep),
+    claudeShimmer: lighten(palette.llama, 0.35),
+    claudeBlue_FOR_SYSTEM_SPINNER: rgb(palette.llama),
+    claudeBlueShimmer_FOR_SYSTEM_SPINNER: lighten(palette.llamaBright, 0.2),
+    permission: rgb(palette.sand),
+    permissionShimmer: lighten(palette.sand, 0.25),
+    planMode: rgb(palette.llamaDeep),
+    ide: rgb(palette.llamaBright),
+    promptBorder: rgb(palette.border),
+    promptBorderShimmer: rgb(palette.borderStrong),
+    text: rgb(palette.text),
+    inverseText: rgb(palette.base),
+    inactive: rgb(palette.textDim),
+    subtle: mix(palette.base, palette.llamaBright, 0.12),
+    suggestion: rgb(palette.llamaBright),
+    remember: rgb(palette.llamaDeep),
+    background: rgb(palette.base),
+    success: rgb(palette.green),
+    error: rgb(palette.red),
+    warning: rgb(palette.orange),
+    warningShimmer: lighten(palette.orange, 0.28),
+    ...buildDiffPalette(),
+    red_FOR_SUBAGENTS_ONLY: rgb(palette.red),
+    blue_FOR_SUBAGENTS_ONLY: rgb(palette.blue),
+    green_FOR_SUBAGENTS_ONLY: rgb(palette.green),
+    yellow_FOR_SUBAGENTS_ONLY: rgb(palette.orange),
+    purple_FOR_SUBAGENTS_ONLY: rgb(palette.llama),
+    orange_FOR_SUBAGENTS_ONLY: rgb(palette.orange),
+    pink_FOR_SUBAGENTS_ONLY: lighten(palette.sand, 0.32),
+    cyan_FOR_SUBAGENTS_ONLY: rgb(palette.llamaBright),
+    professionalBlue: rgb(palette.llama),
+    rainbow_red: rgb(palette.red),
+    rainbow_orange: rgb(palette.orange),
+    rainbow_yellow: lighten(palette.orange, 0.18),
+    rainbow_green: rgb(palette.green),
+    rainbow_blue: rgb(palette.llamaBright),
+    rainbow_indigo: rgb(palette.llamaDeep),
+    rainbow_violet: rgb(palette.llama),
+    rainbow_red_shimmer: lighten(palette.red, 0.35),
+    rainbow_orange_shimmer: lighten(palette.orange, 0.35),
+    rainbow_yellow_shimmer: lighten(palette.orange, 0.3),
+    rainbow_green_shimmer: lighten(palette.green, 0.35),
+    rainbow_blue_shimmer: lighten(palette.llamaBright, 0.35),
+    rainbow_indigo_shimmer: lighten(palette.llamaDeep, 0.35),
+    rainbow_violet_shimmer: lighten(palette.llama, 0.35),
+    clawd_body: rgb(palette.llamaDeep),
+    clawd_background: rgb(palette.base),
+    userMessageBackground: mix('#383838', palette.llama, 0.12),
+    bashMessageBackgroundColor: mix('#404040', palette.llama, 0.08),
+    memoryBackgroundColor: mix('#383838', palette.blue, 0.1),
+    rate_limit_fill: rgb(palette.llama),
+    rate_limit_empty: rgb(palette.borderStrong),
+  },
+};
 
 export const buildOllamaTweakccConfig = (): TweakccConfig => ({
   ccVersion: '',
@@ -124,29 +132,27 @@ export const buildOllamaTweakccConfig = (): TweakccConfig => ({
   changesApplied: false,
   hidePiebaldAnnouncement: true,
   settings: {
-    themes: [ollamaTheme, ...DEFAULT_THEMES],
+    themes: [theme, ...DEFAULT_THEMES.filter((t) => t.id !== theme.id)],
     thinkingVerbs: {
       format: '{}... ',
       verbs: [
         'Grazing',
-        'Herding',
-        'Wandering',
         'Roaming',
+        'Simmering',
+        'Warming',
+        'Kindling',
+        'Steaming',
         'Trekking',
+        'Ranging',
+        'Loping',
         'Foraging',
-        'Weaving',
-        'Spinning',
-        'Gathering',
-        'Exploring',
-        'Crafting',
-        'Shaping',
-        'Molding',
-        'Carving',
+        'Routing',
+        'Saddling',
       ],
     },
     thinkingStyle: {
-      updateInterval: 85,
-      phases: ['▰', '▱', '▰', '▱'],
+      updateInterval: 120,
+      phases: ['·', '•', '◦', '•'],
       reverseMirror: false,
     },
     userMessageDisplay: {
@@ -154,8 +160,8 @@ export const buildOllamaTweakccConfig = (): TweakccConfig => ({
       styling: ['bold'],
       foregroundColor: 'default',
       backgroundColor: 'default',
-      borderStyle: 'topBottomDouble',
-      borderColor: rgb(palette.core),
+      borderStyle: 'topBottomSingle',
+      borderColor: rgb(palette.llama),
       paddingX: 1,
       paddingY: 0,
       fitBoxToContent: true,
@@ -163,15 +169,7 @@ export const buildOllamaTweakccConfig = (): TweakccConfig => ({
     inputBox: {
       removeBorder: true,
     },
-    misc: {
-      showTweakccVersion: false,
-      showPatchesApplied: false,
-      expandThinkingBlocks: true,
-      enableConversationTitle: true,
-      hideStartupBanner: true,
-      hideCtrlGToEditPrompt: true,
-      hideStartupClawd: true,
-      increaseFileReadLimit: true,
-    },
+    misc: buildBrandMiscConfig(),
+    ...buildBrandSettingsDefaults(),
   },
 });

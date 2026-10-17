@@ -19,7 +19,3 @@ export { ModelConfigScreen } from './ModelConfigScreen.js';
 export { EnvEditorScreen } from './EnvEditorScreen.js';
 export { AboutScreen } from './AboutScreen.js';
 export { FeedbackScreen } from './FeedbackScreen.js';
-export { TeamModeScreen } from './TeamModeScreen.js';
-export { SyncSourceScreen } from './SyncSourceScreen.js';
-export { SyncItemsScreen } from './SyncItemsScreen.js';
-export { SyncTargetsScreen } from './SyncTargetsScreen.js';

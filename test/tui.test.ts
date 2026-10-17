@@ -4,7 +4,6 @@ import React from 'react';
 import { render } from 'ink-testing-library';
 import { App } from '../src/tui/app.js';
 import * as providers from '../src/providers/index.js';
-import { icons } from '../src/tui/components/ui/theme.js';
 
 delete process.env.Z_AI_API_KEY;
 delete process.env.ANTHROPIC_API_KEY;
@@ -15,35 +14,17 @@ import { tick, send, waitFor, KEYS, makeCore } from './helpers/index.js';
 const down = KEYS.down;
 const enter = KEYS.enter;
 
-const frameText = (app: { lastFrame: () => string | undefined }) => app.lastFrame() || '';
+const isSelectedProvider = (frame: string, label: string) =>
+  frame.split('\n').some((line) => line.includes('▸') && line.toLowerCase().includes(label.toLowerCase()));
 
-const waitForText = async (app: { lastFrame: () => string | undefined }, text: string, attempts = 100) => {
-  const ok = await waitFor(() => frameText(app).includes(text), attempts);
-  assert.ok(ok, `Expected to see "${text}"`);
-};
-
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-const waitForAnyText = async (app: { lastFrame: () => string | undefined }, texts: string[], attempts = 100) => {
-  const ok = await waitFor(() => texts.some((text) => frameText(app).includes(text)), attempts);
-  assert.ok(ok, `Expected to see one of: ${texts.join(', ')}`);
-};
-
-const selectMenuItem = async (
-  app: { lastFrame: () => string | undefined; stdin: { write: (value: string) => void } },
-  label: string,
-  maxMoves = 30
-) => {
-  await waitForText(app, label);
-  for (let i = 0; i < maxMoves; i += 1) {
-    const selectedLine = frameText(app)
-      .split('\n')
-      .find((line) => line.includes(icons.pointer));
-    if (selectedLine && selectedLine.includes(label)) {
-      return;
-    }
+const moveToProvider = async (app: ReturnType<typeof render>, label: string) => {
+  for (let i = 0; i < 20; i += 1) {
+    const frame = app.lastFrame() || '';
+    if (isSelectedProvider(frame, label)) return;
     await send(app.stdin, down);
+    await tick();
   }
-  assert.fail(`Expected "${label}" to be selected`);
+  throw new Error(`Provider not found in list: ${label}`);
 };
 
 test('TUI create flow applies tweakcc by default', async () => {
@@ -57,62 +38,38 @@ test('TUI create flow applies tweakcc by default', async () => {
     })
   );
 
-  // Home -> New Variant
-  // Use higher timeout (400 = 60s) for initial screens to handle cold start JIT compilation
   await tick();
-  await tick();
-  await waitForText(app, 'Quick Setup', 400);
-  await selectMenuItem(app, 'New Variant');
+  await send(app.stdin, down); // home -> create
+  await send(app.stdin, enter);
+  await moveToProvider(app, 'Zai');
+  await send(app.stdin, enter); // select zai
+  await send(app.stdin, enter); // intro screen -> continue
+  await send(app.stdin, enter); // brand preset (auto)
+  await send(app.stdin, enter); // name
+  await send(app.stdin, enter); // base url
+  await send(app.stdin, enter); // api key
+  await send(app.stdin, enter); // prompt pack mode (maximal) - skipped yes/no for zai/minimax
+  await send(app.stdin, enter); // install dev-browser? default No
+  await send(app.stdin, enter); // write Z_AI_API_KEY? default Yes
+  await send(app.stdin, down); // add env? select No
   await send(app.stdin, enter);
 
-  // Select Provider (zai is default)
-  await waitForText(app, 'Select Provider', 400);
-  await send(app.stdin, enter);
+  const reachedSummary = await waitFor(() => {
+    const frame = app.lastFrame() || '';
+    return frame.includes('Review Configuration') || frame.includes('Extra environment variables');
+  });
+  assert.ok(reachedSummary);
 
-  // Setting up (intro screen)
-  await waitForText(app, 'Setting up', 400);
-  await send(app.stdin, enter);
+  const frame = app.lastFrame() || '';
+  if (frame.includes('Extra environment variables')) {
+    await send(app.stdin, enter); // submit empty env line
+    await waitFor(() => (app.lastFrame() || '').includes('Review Configuration'));
+  }
 
-  // Choose Theme
-  await waitForText(app, 'Choose Theme', 200);
-  await send(app.stdin, enter);
+  await send(app.stdin, enter); // summary -> create
 
-  // Variant Name
-  await waitForText(app, 'Variant Name', 200);
-  await send(app.stdin, enter);
-
-  // Base URL (for zai)
-  await waitForText(app, 'Base URL', 200);
-  await send(app.stdin, enter);
-
-  // API Key
-  await waitForText(app, 'API Key', 200);
-  await send(app.stdin, enter);
-
-  // Browser Automation
-  await waitForText(app, 'Browser Automation', 200);
-  await send(app.stdin, enter);
-
-  // Team Mode
-  await waitForText(app, 'Team Mode', 200);
-  await send(app.stdin, enter);
-
-  // Shell Environment (zai specific)
-  await waitForText(app, 'Shell Environment', 200);
-  await send(app.stdin, enter);
-
-  // Custom Environment
-  await waitForText(app, 'Custom Environment', 200);
-  await send(app.stdin, down); // select No
-  await send(app.stdin, enter);
-
-  // Review Configuration
-  await waitForText(app, 'Review Configuration', 200);
-  await send(app.stdin, enter);
-
-  // Verify create was called with correct params
-  const created = await waitFor(() => calls.create.length > 0, 200);
-  assert.ok(created, 'createVariant should be called');
+  const created = await waitFor(() => calls.create.length > 0, 150);
+  assert.ok(created);
   assert.equal(calls.create.length, 1);
   assert.equal(calls.create[0].name, 'zai');
   assert.equal(calls.create[0].providerKey, 'zai');
@@ -133,15 +90,12 @@ test('TUI manage -> update flow', async () => {
   );
 
   await tick();
-  await waitForText(app, 'Quick Setup');
-  await selectMenuItem(app, 'Manage Variants');
+  await send(app.stdin, down); // create
+  await send(app.stdin, down); // manage
   await send(app.stdin, enter);
-  await waitForText(app, 'Manage Variants');
-  await selectMenuItem(app, 'alpha');
   await send(app.stdin, enter); // pick alpha
-  await waitForText(app, 'Details');
-  await selectMenuItem(app, 'Update');
-  await send(app.stdin, enter);
+  await tick();
+  await send(app.stdin, enter); // update
   await waitFor(() => calls.update.length > 0);
 
   assert.equal(calls.update.length, 1);
@@ -162,17 +116,20 @@ test('TUI manage -> remove flow', async () => {
   );
 
   await tick();
-  await waitForText(app, 'Quick Setup');
-  await selectMenuItem(app, 'Manage Variants');
+  await send(app.stdin, down); // create
+  await send(app.stdin, down); // manage
   await send(app.stdin, enter);
-  await waitForText(app, 'Manage Variants');
-  await selectMenuItem(app, 'alpha');
   await send(app.stdin, enter); // pick alpha
-  await waitForText(app, 'Details');
-  await selectMenuItem(app, 'Remove');
+  await tick();
+  await send(app.stdin, down); // tweak
+  await send(app.stdin, down); // remove
   await send(app.stdin, enter);
-  await send(app.stdin, enter); // confirm remove
-  await waitFor(() => calls.remove.length > 0);
+  const reachedRemoveConfirm = await waitFor(() => (app.lastFrame() || '').includes('Remove Variant'));
+  assert.ok(reachedRemoveConfirm, 'Should reach remove confirmation screen');
+
+  await send(app.stdin, enter); // confirm remove (default: Remove)
+  const removed = await waitFor(() => calls.remove.length > 0);
+  assert.ok(removed, 'Remove should be invoked');
 
   assert.equal(calls.remove.length, 1);
   assert.equal(calls.remove[0].name, 'alpha');
@@ -192,12 +149,12 @@ test('TUI update all flow', async () => {
   );
 
   await tick();
-  await waitForText(app, 'Quick Setup');
-  await selectMenuItem(app, 'Update All');
+  await send(app.stdin, down); // create
+  await send(app.stdin, down); // manage
+  await send(app.stdin, down); // updateAll
   await send(app.stdin, enter);
-  await tick();
-
-  assert.equal(calls.update.length, 2);
+  const updated = await waitFor(() => calls.update.length === 2);
+  assert.ok(updated, 'Update all should trigger updates for all variants');
   assert.equal(calls.update[0].name, 'alpha');
   assert.equal(calls.update[1].name, 'beta');
 
@@ -216,12 +173,14 @@ test('TUI doctor flow', async () => {
   );
 
   await tick();
-  await waitForText(app, 'Quick Setup');
-  await selectMenuItem(app, 'Diagnostics');
+  await send(app.stdin, down); // create
+  await send(app.stdin, down); // manage
+  await send(app.stdin, down); // updateAll
+  await send(app.stdin, down); // doctor
   await send(app.stdin, enter);
   await tick();
 
-  const frame = frameText(app);
+  const frame = app.lastFrame() || '';
   assert.ok(frame.includes('alpha'));
   assert.ok(calls.doctor.length >= 1);
   assert.equal(calls.doctor[0].root, '/tmp/root');

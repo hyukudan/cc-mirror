@@ -3,10 +3,9 @@
  */
 
 import * as core from '../../core/index.js';
-import { getWrapperPath } from '../../core/wrapper.js';
-import { assertValidVariantName } from '../../core/validation.js';
+import { getWrapperPath } from '../../core/paths.js';
 import type { ParsedArgs } from '../args.js';
-import { buildExtraEnv, printSummary } from '../utils/index.js';
+import { buildExtraEnv, getModelOverridesFromArgs, printSummary } from '../utils/index.js';
 
 export interface UpdateCommandOptions {
   opts: ParsedArgs;
@@ -15,13 +14,10 @@ export interface UpdateCommandOptions {
 /**
  * Execute the update command
  */
-export function runUpdateCommand({ opts }: UpdateCommandOptions): void {
-  let target = opts._ && opts._[0];
+export async function runUpdateCommand({ opts }: UpdateCommandOptions): Promise<void> {
+  const target = opts._ && opts._[0];
   const rootDir = (opts.root as string) || core.DEFAULT_ROOT;
   const binDir = (opts['bin-dir'] as string) || core.DEFAULT_BIN_DIR;
-  if (target) {
-    target = assertValidVariantName(target);
-  }
   const names = target ? [target] : core.listVariants(rootDir).map((entry) => entry.name);
 
   if (names.length === 0) {
@@ -33,37 +29,36 @@ export function runUpdateCommand({ opts }: UpdateCommandOptions): void {
   const skillInstall = opts['no-skill-install'] ? false : undefined;
   const skillUpdate = Boolean(opts['skill-update']);
   const shellEnv = opts['no-shell-env'] ? false : opts['shell-env'] ? true : undefined;
-  const enableTeamMode = opts['enable-team-mode'] ? true : undefined;
-  const disableTeamMode = opts['disable-team-mode'] ? true : undefined;
+  const settingsOnly = Boolean(opts['settings-only']);
+  const modelOverrides = getModelOverridesFromArgs(opts);
+  const apiKeyFlag = typeof opts['api-key'] === 'string' ? (opts['api-key'] as string) : '';
+  const authTokenFlag = typeof opts['auth-token'] === 'string' ? (opts['auth-token'] as string) : '';
+  const apiKey = authTokenFlag || apiKeyFlag || undefined;
   const extraEnv = buildExtraEnv(opts);
+  const rawTweakccStdio = opts['tweakcc-stdio'] as string | undefined;
+  const tweakccStdio =
+    rawTweakccStdio === 'inherit' || opts.verbose ? 'inherit' : rawTweakccStdio === 'pipe' ? 'pipe' : 'pipe';
 
-  const failures: { name: string; message: string }[] = [];
+  if ((apiKey || extraEnv.length > 0) && !target && names.length > 1) {
+    throw new Error('Provide a variant name when updating credentials or env values.');
+  }
+
   for (const name of names) {
-    let result: ReturnType<typeof core.updateVariant>;
-    try {
-      result = core.updateVariant(rootDir, name, {
-        binDir,
-        npmPackage: opts['npm-package'] as string | undefined,
-        npmVersion: opts['npm-version'] as string | undefined,
-        brand: opts.brand as string | undefined,
-        noTweak: Boolean(opts.noTweak),
-        extraEnv,
-        promptPack,
-        skillInstall,
-        shellEnv,
-        skillUpdate,
-        enableTeamMode,
-        disableTeamMode,
-      });
-    } catch (error) {
-      // A single named target keeps the old fail-fast behaviour; when updating
-      // every variant, one broken install must not block the rest.
-      if (target) throw error;
-      const message = error instanceof Error ? error.message : String(error);
-      failures.push({ name, message });
-      console.error(`✗ Update failed: ${name}\n  ${message.split('\n')[0]}`);
-      continue;
-    }
+    const result = await core.updateVariantAsync(rootDir, name, {
+      binDir,
+      apiKey,
+      extraEnv,
+      claudeVersion: opts['claude-version'] as string | undefined,
+      brand: opts.brand as string | undefined,
+      noTweak: Boolean(opts.noTweak),
+      settingsOnly,
+      promptPack,
+      skillInstall,
+      shellEnv,
+      skillUpdate,
+      tweakccStdio,
+      modelOverrides: Object.keys(modelOverrides).length > 0 ? modelOverrides : undefined,
+    });
     const wrapperPath = getWrapperPath(binDir, name);
     printSummary({
       action: 'Updated',
@@ -71,12 +66,5 @@ export function runUpdateCommand({ opts }: UpdateCommandOptions): void {
       wrapperPath,
       notes: result.notes,
     });
-  }
-
-  if (failures.length > 0) {
-    console.error(
-      `\n${failures.length} of ${names.length} variants failed to update: ${failures.map((f) => f.name).join(', ')}`
-    );
-    process.exitCode = 1;
   }
 }

@@ -2,7 +2,6 @@
  * Print variant operation summary to console
  */
 
-import path from 'node:path';
 import type { VariantMeta } from '../../core/types.js';
 
 export interface PrintSummaryOptions {
@@ -23,12 +22,6 @@ export function printSummary(opts: PrintSummaryOptions): void {
     return 'on';
   };
 
-  // Helper to get team mode description
-  const getTeamModeDescription = (): string => {
-    if (!meta.teamModeEnabled) return 'off';
-    return 'on (orchestrator + task-manager skills, TodoWrite blocked)';
-  };
-
   // Header
   console.log('');
   console.log(`✓ ${action}: ${meta.name}`);
@@ -40,9 +33,6 @@ export function printSummary(opts: PrintSummaryOptions): void {
   }
   if (meta.skillInstall !== undefined) {
     console.log(`  dev-browser skill: ${meta.skillInstall ? 'on' : 'off'}`);
-  }
-  if (meta.teamModeEnabled !== undefined) {
-    console.log(`  Team mode: ${getTeamModeDescription()}`);
   }
   if (meta.shellEnv !== undefined && meta.provider === 'zai') {
     console.log(`  Shell env: ${meta.shellEnv ? 'write Z_AI_API_KEY' : 'manual'}`);
@@ -61,24 +51,5 @@ export function printSummary(opts: PrintSummaryOptions): void {
   // Next steps
   console.log('');
   console.log(`  Run: ${meta.name}`);
-  if (wrapperPath && !isWrapperInPath(wrapperPath)) {
-    const wrapperDir = path.dirname(wrapperPath);
-    const pathCommand = getPathCommand();
-    console.log(`  Tip: add ${wrapperDir} to PATH (${pathCommand}) or run ${wrapperPath}`);
-  }
   console.log('');
-}
-
-function isWrapperInPath(wrapperPath: string): boolean {
-  const wrapperDir = path.dirname(wrapperPath);
-  const envPath = process.env.PATH || '';
-  if (!envPath) return false;
-  return envPath.split(path.delimiter).some((entry) => entry === wrapperDir || path.resolve(entry) === wrapperDir);
-}
-
-function getPathCommand(): string {
-  if (process.platform === 'win32') return 'npx cc-mirror path --apply';
-  const shellName = path.basename(process.env.SHELL || '');
-  if (shellName === 'fish') return 'npx cc-mirror path';
-  return 'npx cc-mirror path --apply';
 }

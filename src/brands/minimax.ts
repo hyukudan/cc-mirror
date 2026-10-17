@@ -1,11 +1,47 @@
-/**
- * MiniMax brand theme and blocked tools configuration
- */
-
 import type { TweakccConfig, Theme } from './types.js';
 import { DEFAULT_THEMES } from './defaultThemes.js';
+import { buildBrandMiscConfig } from './miscDefaults.js';
+import { buildBrandSettingsDefaults } from './settingsDefaults.js';
+import { buildDiffPalette } from './diffPalette.js';
 import { formatUserMessage, getUserLabel } from './userLabel.js';
-import { mix, rgb, lighten } from './colorUtils.js';
+
+type Rgb = { r: number; g: number; b: number };
+
+const clamp = (value: number) => Math.max(0, Math.min(255, Math.round(value)));
+
+const hexToRgb = (hex: string): Rgb => {
+  const normalized = hex.replace('#', '').trim();
+  if (normalized.length === 3) {
+    const [r, g, b] = normalized.split('');
+    return {
+      r: clamp(parseInt(r + r, 16)),
+      g: clamp(parseInt(g + g, 16)),
+      b: clamp(parseInt(b + b, 16)),
+    };
+  }
+  if (normalized.length !== 6) {
+    throw new Error(`Unsupported hex color: ${hex}`);
+  }
+  return {
+    r: clamp(parseInt(normalized.slice(0, 2), 16)),
+    g: clamp(parseInt(normalized.slice(2, 4), 16)),
+    b: clamp(parseInt(normalized.slice(4, 6), 16)),
+  };
+};
+
+const rgb = (hex: string) => {
+  const { r, g, b } = hexToRgb(hex);
+  return `rgb(${r},${g},${b})`;
+};
+
+const mix = (hexA: string, hexB: string, weight: number) => {
+  const a = hexToRgb(hexA);
+  const b = hexToRgb(hexB);
+  const w = Math.max(0, Math.min(1, weight));
+  return `rgb(${clamp(a.r + (b.r - a.r) * w)},${clamp(a.g + (b.g - a.g) * w)},${clamp(a.b + (b.b - a.b) * w)})`;
+};
+
+const lighten = (hex: string, weight: number) => mix(hex, '#ffffff', weight);
 
 type Palette = {
   base: string;
@@ -26,31 +62,31 @@ type Palette = {
   red: string;
 };
 
-const MINIMAX_CORE = '#ff5733';
+const MINIMAX_CORE = '#a855f7';
 
 const palette: Palette = {
-  base: '#0b0b0f',
-  surface: '#15151d',
-  panel: '#1b1b24',
-  border: '#2b2b36',
-  borderStrong: '#3a3a4a',
-  text: '#f7f7fb',
-  textMuted: '#d1d1db',
-  textDim: '#9b9bac',
+  base: '#0a0a12',
+  surface: '#12121e',
+  panel: '#18182a',
+  border: '#2a2a44',
+  borderStrong: '#3d3d5c',
+  text: '#eeeef8',
+  textMuted: '#c4c4da',
+  textDim: '#8888aa',
   core: MINIMAX_CORE,
-  deep: '#c70039',
-  orange: '#ff8c42',
-  yellow: '#ffeb3b',
-  cyan: '#4db5ff',
-  blue: '#3a7dff',
-  green: '#22c55e',
-  red: '#ff3b3b',
+  deep: '#7c3aed',
+  orange: '#f59e0b',
+  yellow: '#fbbf24',
+  cyan: '#22d3ee',
+  blue: '#6366f1',
+  green: '#34d399',
+  red: '#f43f5e',
 };
 
 const makeTheme = (): Theme => {
   const tint = (hex: string, weight: number) => mix(palette.base, hex, weight);
   return {
-    name: 'MiniMax Pulse',
+    name: 'MiniMax Nebula',
     id: 'dark',
     colors: {
       autoAccept: rgb(palette.green),
@@ -76,14 +112,7 @@ const makeTheme = (): Theme => {
       error: rgb(palette.red),
       warning: rgb(palette.yellow),
       warningShimmer: lighten(palette.yellow, 0.2),
-      diffAdded: mix(palette.base, palette.green, 0.18),
-      diffRemoved: mix(palette.base, palette.red, 0.18),
-      diffAddedDimmed: mix(palette.base, palette.green, 0.1),
-      diffRemovedDimmed: mix(palette.base, palette.red, 0.1),
-      diffAddedWord: mix(palette.base, palette.green, 0.45),
-      diffRemovedWord: mix(palette.base, palette.red, 0.45),
-      diffAddedWordDimmed: mix(palette.base, palette.green, 0.3),
-      diffRemovedWordDimmed: mix(palette.base, palette.red, 0.3),
+      ...buildDiffPalette(),
       red_FOR_SUBAGENTS_ONLY: rgb(palette.red),
       blue_FOR_SUBAGENTS_ONLY: rgb(palette.blue),
       green_FOR_SUBAGENTS_ONLY: rgb(palette.green),
@@ -109,9 +138,9 @@ const makeTheme = (): Theme => {
       rainbow_violet_shimmer: lighten(palette.core, 0.35),
       clawd_body: rgb(palette.core),
       clawd_background: rgb(palette.base),
-      userMessageBackground: rgb(palette.panel),
-      bashMessageBackgroundColor: rgb(palette.surface),
-      memoryBackgroundColor: tint(palette.panel, 0.2),
+      userMessageBackground: mix('#383838', palette.core, 0.12),
+      bashMessageBackgroundColor: mix('#404040', palette.core, 0.08),
+      memoryBackgroundColor: mix('#383838', palette.cyan, 0.1),
       rate_limit_fill: rgb(palette.core),
       rate_limit_empty: rgb(palette.borderStrong),
     },
@@ -127,29 +156,29 @@ export const buildMinimaxTweakccConfig = (): TweakccConfig => ({
   changesApplied: false,
   hidePiebaldAnnouncement: true,
   settings: {
-    themes: [pulseTheme, ...DEFAULT_THEMES],
+    themes: [pulseTheme, ...DEFAULT_THEMES.filter((t) => t.id !== pulseTheme.id)],
     thinkingVerbs: {
       format: '{}... ',
       verbs: [
-        'Resonating',
-        'Prisming',
-        'Spectralizing',
-        'Phase-locking',
-        'Lensing',
-        'Vectorizing',
-        'Harmonizing',
-        'Amplifying',
-        'Stabilizing',
-        'Optimizing',
-        'Synthesizing',
-        'Refining',
-        'Resolving',
-        'Transmitting',
+        'Warping',
+        'Nebulizing',
+        'Phasing',
+        'Refracting',
+        'Tunneling',
+        'Ionizing',
+        'Polarizing',
+        'Cascading',
+        'Crystallizing',
+        'Entangling',
+        'Diffracting',
+        'Converging',
+        'Pulsing',
+        'Transcoding',
       ],
     },
     thinkingStyle: {
-      updateInterval: 90,
-      phases: ['·', '•', '◦', '•'],
+      updateInterval: 80,
+      phases: ['⟡', '◈', '⬡', '◇', '⬡', '◈'],
       reverseMirror: false,
     },
     userMessageDisplay: {
@@ -166,15 +195,7 @@ export const buildMinimaxTweakccConfig = (): TweakccConfig => ({
     inputBox: {
       removeBorder: true,
     },
-    misc: {
-      showTweakccVersion: false,
-      showPatchesApplied: false,
-      expandThinkingBlocks: true,
-      enableConversationTitle: true,
-      hideStartupBanner: true,
-      hideCtrlGToEditPrompt: true,
-      hideStartupClawd: true,
-      increaseFileReadLimit: true,
-    },
+    misc: buildBrandMiscConfig(),
+    ...buildBrandSettingsDefaults(),
   },
 });

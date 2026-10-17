@@ -1,77 +1,420 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
-import { SPLASH_COLORS } from './constants.js';
+import { isWindows } from './paths.js';
 
-// Path to the translator launcher module
-// In development: src/core/translator/launcher.ts (run via tsx)
-// In production: dist/translator-launcher.mjs (bundled)
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const DEV_LAUNCHER_PATH = path.join(__dirname, 'translator', 'launcher.ts');
+export type WrapperRuntime = 'native' | 'node';
 
-// From source: __dirname = src/core → go up 2 levels to project root
-// From bundle: __dirname = dist → launcher is in the same directory
-const DIST_LAUNCHER_FROM_SRC = path.join(__dirname, '..', '..', 'dist', 'translator-launcher.mjs');
-const DIST_LAUNCHER_FROM_BUNDLE = path.join(__dirname, 'translator-launcher.mjs');
+type SplashArt = Record<string, string[]>;
 
-// Check if running from bundled distribution or source
-const LAUNCHER_PATH = fs.existsSync(DIST_LAUNCHER_FROM_BUNDLE)
-  ? DIST_LAUNCHER_FROM_BUNDLE
-  : fs.existsSync(DIST_LAUNCHER_FROM_SRC)
-    ? DIST_LAUNCHER_FROM_SRC
-    : DEV_LAUNCHER_PATH;
-const LAUNCHER_NEEDS_TSX = LAUNCHER_PATH.endsWith('.ts');
-const NODE_BINARY_PATH = process.execPath;
+// ANSI color codes for colored ASCII art
+const C = {
+  reset: '\x1b[0m',
+  // Zai: Gold/Amber gradient
+  zaiPrimary: '\x1b[38;5;220m', // Gold
+  zaiSecondary: '\x1b[38;5;214m', // Orange-gold
+  zaiAccent: '\x1b[38;5;208m', // Dark orange
+  zaiDim: '\x1b[38;5;172m', // Muted gold
+  // MiniMax: Coral/Red/Orange gradient (from brand image)
+  mmPrimary: '\x1b[38;5;203m', // Coral/salmon red
+  mmSecondary: '\x1b[38;5;209m', // Light coral/orange
+  mmAccent: '\x1b[38;5;208m', // Orange
+  mmDim: '\x1b[38;5;167m', // Muted coral/dark red
+  // Kimi: Teal/cyan gradient
+  kmPrimary: '\x1b[38;5;81m', // Neon cyan
+  kmSecondary: '\x1b[38;5;75m', // Soft cyan
+  kmAccent: '\x1b[38;5;69m', // Deep cyan
+  kmDim: '\x1b[38;5;67m', // Muted blue
+  // OpenRouter: Silver/Chrome gradient (ported from Mirror)
+  orPrimary: '\x1b[38;5;252m', // Silver/light gray
+  orSecondary: '\x1b[38;5;250m', // Platinum
+  orAccent: '\x1b[38;5;45m', // Electric cyan
+  orDim: '\x1b[38;5;243m', // Muted silver
+  // CCRouter: Sky blue gradient
+  ccrPrimary: '\x1b[38;5;39m', // Sky blue
+  ccrSecondary: '\x1b[38;5;45m', // Bright cyan
+  ccrAccent: '\x1b[38;5;33m', // Deep blue
+  ccrDim: '\x1b[38;5;31m', // Muted blue
+  // Mirror: Silver/Chrome with electric blue
+  mirPrimary: '\x1b[38;5;252m', // Silver/light gray
+  mirSecondary: '\x1b[38;5;250m', // Platinum
+  mirAccent: '\x1b[38;5;45m', // Electric cyan
+  mirDim: '\x1b[38;5;243m', // Muted silver
+  // GatewayZ: Violet gradient
+  gwPrimary: '\x1b[38;5;141m', // Violet
+  gwSecondary: '\x1b[38;5;135m', // Soft purple
+  gwAccent: '\x1b[38;5;99m', // Deep purple
+  gwDim: '\x1b[38;5;60m', // Muted purple
+  // Vercel: Monochrome with blue accent (brand: #0070F3)
+  vcPrimary: '\x1b[38;5;255m', // White
+  vcSecondary: '\x1b[38;5;250m', // Light gray
+  vcAccent: '\x1b[38;5;33m', // Vercel blue
+  vcDim: '\x1b[38;5;240m', // Dark gray
+  // NanoGPT: Aurora green/cyan gradient
+  ngPrimary: '\x1b[38;5;120m', // Spring green
+  ngSecondary: '\x1b[38;5;51m', // Bright cyan
+  ngAccent: '\x1b[38;5;154m', // Lime green
+  ngDim: '\x1b[38;5;66m', // Muted teal
+  // Ollama: Tan/Brown gradient (brand: #caad8d)
+  olPrimary: '\x1b[38;5;180m', // Tan/sorrel
+  olSecondary: '\x1b[38;5;223m', // Light tan
+  olAccent: '\x1b[38;5;137m', // Deep brown
+  olDim: '\x1b[38;5;101m', // Muted brown
+  // Default: White/Gray
+  defPrimary: '\x1b[38;5;255m', // White
+  defDim: '\x1b[38;5;245m', // Gray
+};
 
-export interface WrapperOptions {
-  /** Use translation proxy for OpenAI-compatible providers */
-  requiresTranslation?: boolean;
-}
+const SPLASH_ART: SplashArt = {
+  // Z.ai: Stylized Z with orbital ring motif
+  zai: [
+    '',
+    `${C.zaiDim}           ╭──────────╮${C.reset}`,
+    `${C.zaiPrimary}    ████████${C.zaiDim}╯${C.zaiPrimary}╗${C.zaiDim}        │${C.reset}`,
+    `${C.zaiPrimary}    ╚═════${C.zaiSecondary}██${C.zaiPrimary}╔╝  ${C.zaiAccent}• ${C.zaiDim}A I •${C.reset}`,
+    `${C.zaiSecondary}        ██╔╝${C.zaiDim}        │${C.reset}`,
+    `${C.zaiSecondary}      ██╔╝${C.zaiDim}╮         │${C.reset}`,
+    `${C.zaiAccent}    ████████${C.zaiDim}╰─────────╯${C.reset}`,
+    '',
+    `${C.zaiDim}    ━━━━━━━━━${C.zaiPrimary}◆${C.zaiDim}━━━━━━━━━${C.reset}`,
+    `${C.zaiSecondary}     GLM Coding Plan${C.reset}`,
+    '',
+  ],
+  // MiniMax: Wave + block letters
+  minimax: [
+    '',
+    `${C.mmDim}    ${C.mmPrimary}▁▂▃▄${C.mmSecondary}▅▆▇█${C.mmAccent}▇▆▅▄${C.mmPrimary}▃▂▁${C.mmDim}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${C.reset}`,
+    '',
+    `${C.mmPrimary}    ███╗   ███╗██╗███╗   ██╗██╗███╗   ███╗ █████╗ ██╗  ██╗${C.reset}`,
+    `${C.mmPrimary}    ████╗ ████║██║████╗  ██║██║████╗ ████║██╔══██╗╚██╗██╔╝${C.reset}`,
+    `${C.mmSecondary}    ██╔████╔██║██║██╔██╗ ██║██║██╔████╔██║███████║ ╚███╔╝${C.reset}`,
+    `${C.mmSecondary}    ██║╚██╔╝██║██║██║╚██╗██║██║██║╚██╔╝██║██╔══██║ ██╔██╗${C.reset}`,
+    `${C.mmAccent}    ██║ ╚═╝ ██║██║██║ ╚████║██║██║ ╚═╝ ██║██║  ██║██╔╝ ██╗${C.reset}`,
+    `${C.mmAccent}    ╚═╝     ╚═╝╚═╝╚═╝  ╚═══╝╚═╝╚═╝     ╚═╝╚═╝  ╚═╝╚═╝  ╚═╝${C.reset}`,
+    '',
+    `${C.mmDim}    ━━━━━━━━━━━━━━━━━━${C.mmPrimary}◆${C.mmDim}━━━━━━━━━━━━━━━━━━${C.reset}`,
+    `${C.mmSecondary}             MiniMax ${C.mmDim}━${C.mmSecondary} AGI for All${C.reset}`,
+    '',
+  ],
+  // Kimi: Aurora header + compact block letters
+  kimi: [
+    '',
+    `${C.kmDim}    ◈━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━◈${C.reset}`,
+    `${C.kmSecondary}      K I M I   C O D E${C.reset}`,
+    `${C.kmDim}    ◈━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━◈${C.reset}`,
+    '',
+    `${C.kmPrimary}    ██╗  ██╗██╗███╗   ███╗██╗${C.reset}`,
+    `${C.kmPrimary}    ██║ ██╔╝██║████╗ ████║██║${C.reset}`,
+    `${C.kmSecondary}    █████╔╝ ██║██╔████╔██║██║${C.reset}`,
+    `${C.kmSecondary}    ██╔═██╗ ██║██║╚██╔╝██║██║${C.reset}`,
+    `${C.kmAccent}    ██║  ██╗██║██║ ╚═╝ ██║██║${C.reset}`,
+    `${C.kmAccent}    ╚═╝  ╚═╝╚═╝╚═╝     ╚═╝╚═╝${C.reset}`,
+    '',
+    `${C.kmDim}    ━━━━━━━━━━━━━━━━━${C.kmPrimary}◆${C.kmDim}━━━━━━━━━━━━━━━━━${C.reset}`,
+    `${C.kmSecondary}        Kimi For Coding${C.kmDim}━${C.kmSecondary} Code Plan${C.reset}`,
+    '',
+  ],
+  // OpenRouter: Stacked block letters (silver/chrome)
+  openrouter: [
+    '',
+    `${C.orPrimary}     ██████╗ ██████╗ ███████╗███╗   ██╗${C.reset}`,
+    `${C.orPrimary}    ██╔═══██╗██╔══██╗██╔════╝████╗  ██║${C.reset}`,
+    `${C.orSecondary}    ██║   ██║██████╔╝█████╗  ██╔██╗ ██║${C.reset}`,
+    `${C.orSecondary}    ██║   ██║██╔═══╝ ██╔══╝  ██║╚██╗██║${C.reset}`,
+    `${C.orAccent}    ╚██████╔╝██║     ███████╗██║ ╚████║${C.reset}`,
+    `${C.orAccent}     ╚═════╝ ╚═╝     ╚══════╝╚═╝  ╚═══╝${C.reset}`,
+    `${C.orPrimary}    ██████╗  ██████╗ ██╗   ██╗████████╗███████╗██████╗${C.reset}`,
+    `${C.orPrimary}    ██╔══██╗██╔═══██╗██║   ██║╚══██╔══╝██╔════╝██╔══██╗${C.reset}`,
+    `${C.orSecondary}    ██████╔╝██║   ██║██║   ██║   ██║   █████╗  ██████╔╝${C.reset}`,
+    `${C.orSecondary}    ██╔══██╗██║   ██║██║   ██║   ██║   ██╔══╝  ██╔══██╗${C.reset}`,
+    `${C.orAccent}    ██║  ██║╚██████╔╝╚██████╔╝   ██║   ███████╗██║  ██║${C.reset}`,
+    `${C.orAccent}    ╚═╝  ╚═╝ ╚═════╝  ╚═════╝    ╚═╝   ╚══════╝╚═╝  ╚═╝${C.reset}`,
+    '',
+    `${C.orDim}    ━━━━━━━━━━━━━━━━━━${C.orPrimary}◇${C.orDim}━━━━━━━━━━━━━━━━━━${C.reset}`,
+    `${C.orSecondary}         One API ${C.orDim}━${C.orSecondary} Any Model${C.reset}`,
+    '',
+  ],
+  // CCRouter: Stacked block letters
+  ccrouter: [
+    '',
+    `${C.ccrPrimary}     ██████╗ ██████╗${C.reset}`,
+    `${C.ccrPrimary}    ██╔════╝██╔════╝${C.reset}`,
+    `${C.ccrSecondary}    ██║     ██║${C.reset}`,
+    `${C.ccrSecondary}    ██║     ██║${C.reset}`,
+    `${C.ccrAccent}    ╚██████╗╚██████╗${C.reset}`,
+    `${C.ccrAccent}     ╚═════╝ ╚═════╝${C.reset}`,
+    `${C.ccrPrimary}    ██████╗  ██████╗ ██╗   ██╗████████╗███████╗██████╗${C.reset}`,
+    `${C.ccrPrimary}    ██╔══██╗██╔═══██╗██║   ██║╚══██╔══╝██╔════╝██╔══██╗${C.reset}`,
+    `${C.ccrSecondary}    ██████╔╝██║   ██║██║   ██║   ██║   █████╗  ██████╔╝${C.reset}`,
+    `${C.ccrSecondary}    ██╔══██╗██║   ██║██║   ██║   ██║   ██╔══╝  ██╔══██╗${C.reset}`,
+    `${C.ccrAccent}    ██║  ██║╚██████╔╝╚██████╔╝   ██║   ███████╗██║  ██║${C.reset}`,
+    `${C.ccrAccent}    ╚═╝  ╚═╝ ╚═════╝  ╚═════╝    ╚═╝   ╚══════╝╚═╝  ╚═╝${C.reset}`,
+    '',
+    `${C.ccrDim}    ━━━━━━━━━━━━━━━━━━${C.ccrPrimary}◆${C.ccrDim}━━━━━━━━━━━━━━━━━━${C.reset}`,
+    `${C.ccrSecondary}       Any Model ${C.ccrDim}━${C.ccrSecondary} Local Router${C.reset}`,
+    '',
+  ],
+  // Mirror: Infinity mirror nested boxes
+  mirror: [
+    '',
+    `${C.mirDim}    ┌─────────────────────────────┐${C.reset}`,
+    `${C.mirDim}    │  ${C.mirSecondary}┌───────────────────────┐${C.mirDim}  │${C.reset}`,
+    `${C.mirDim}    │  ${C.mirSecondary}│  ${C.mirPrimary}┌─────────────────┐${C.mirSecondary}  │${C.mirDim}  │${C.reset}`,
+    `${C.mirDim}    │  ${C.mirSecondary}│  ${C.mirPrimary}│  ${C.mirAccent}┌───────────┐${C.mirPrimary}  │${C.mirSecondary}  │${C.mirDim}  │${C.reset}`,
+    `${C.mirDim}    │  ${C.mirSecondary}│  ${C.mirPrimary}│  ${C.mirAccent}│  MIRROR   │${C.mirPrimary}  │${C.mirSecondary}  │${C.mirDim}  │${C.reset}`,
+    `${C.mirDim}    │  ${C.mirSecondary}│  ${C.mirPrimary}│  ${C.mirAccent}└───────────┘${C.mirPrimary}  │${C.mirSecondary}  │${C.mirDim}  │${C.reset}`,
+    `${C.mirDim}    │  ${C.mirSecondary}│  ${C.mirPrimary}└─────────────────┘${C.mirSecondary}  │${C.mirDim}  │${C.reset}`,
+    `${C.mirDim}    │  ${C.mirSecondary}└───────────────────────┘${C.mirDim}  │${C.reset}`,
+    `${C.mirDim}    └─────────────────────────────┘${C.reset}`,
+    '',
+    `${C.mirDim}    ━━━━━━━━━━━━${C.mirPrimary}◇${C.mirDim}━━━━━━━━━━━━${C.reset}`,
+    `${C.mirSecondary}         Pure Reflection${C.reset}`,
+    '',
+  ],
+  // GatewayZ: Block letters
+  gatewayz: [
+    '',
+    `${C.gwPrimary}     ██████╗  █████╗ ████████╗███████╗██╗    ██╗ █████╗ ██╗   ██╗${C.gwAccent}███████╗${C.reset}`,
+    `${C.gwPrimary}    ██╔════╝ ██╔══██╗╚══██╔══╝██╔════╝██║    ██║██╔══██╗╚██╗ ██╔╝${C.gwAccent}╚══███╔╝${C.reset}`,
+    `${C.gwSecondary}    ██║  ███╗███████║   ██║   █████╗  ██║ █╗ ██║███████║ ╚████╔╝ ${C.gwAccent}  ███╔╝${C.reset}`,
+    `${C.gwSecondary}    ██║   ██║██╔══██║   ██║   ██╔══╝  ██║███╗██║██╔══██║  ╚██╔╝  ${C.gwAccent} ███╔╝${C.reset}`,
+    `${C.gwAccent}    ╚██████╔╝██║  ██║   ██║   ███████╗╚███╔███╔╝██║  ██║   ██║   ${C.gwAccent}███████╗${C.reset}`,
+    `${C.gwAccent}     ╚═════╝ ╚═╝  ╚═╝   ╚═╝   ╚══════╝ ╚══╝╚══╝ ╚═╝  ╚═╝   ╚═╝   ${C.gwAccent}╚══════╝${C.reset}`,
+    '',
+    `${C.gwDim}    ━━━━━━━━━━━━━━━━━━━━━━━━${C.gwPrimary}◆${C.gwDim}━━━━━━━━━━━━━━━━━━━━━━━━${C.reset}`,
+    `${C.gwSecondary}                    AI Gateway${C.reset}`,
+    '',
+  ],
+  // Vercel: Triangle logo + block letters
+  vercel: [
+    '',
+    `${C.vcAccent}                    ▲${C.reset}`,
+    '',
+    `${C.vcPrimary}    ██╗   ██╗███████╗██████╗  ██████╗███████╗██╗${C.reset}`,
+    `${C.vcPrimary}    ██║   ██║██╔════╝██╔══██╗██╔════╝██╔════╝██║${C.reset}`,
+    `${C.vcSecondary}    ██║   ██║█████╗  ██████╔╝██║     █████╗  ██║${C.reset}`,
+    `${C.vcSecondary}    ╚██╗ ██╔╝██╔══╝  ██╔══██╗██║     ██╔══╝  ██║${C.reset}`,
+    `${C.vcAccent}     ╚████╔╝ ███████╗██║  ██║╚██████╗███████╗███████╗${C.reset}`,
+    `${C.vcAccent}      ╚═══╝  ╚══════╝╚═╝  ╚═╝ ╚═════╝╚══════╝╚══════╝${C.reset}`,
+    '',
+    `${C.vcDim}    ━━━━━━━━━━━━━━━━━━━━━━${C.vcPrimary}◆${C.vcDim}━━━━━━━━━━━━━━━━━━━━━━${C.reset}`,
+    `${C.vcSecondary}                  AI Gateway${C.reset}`,
+    '',
+  ],
+  // NanoGPT: Block letters
+  nanogpt: [
+    '',
+    `${C.ngPrimary}    ███╗   ██╗ █████╗ ███╗   ██╗ ██████╗  ${C.ngAccent}██████╗ ██████╗ ████████╗${C.reset}`,
+    `${C.ngPrimary}    ████╗  ██║██╔══██╗████╗  ██║██╔═══██╗ ${C.ngAccent}██╔════╝ ██╔══██╗╚══██╔══╝${C.reset}`,
+    `${C.ngSecondary}    ██╔██╗ ██║███████║██╔██╗ ██║██║   ██║ ${C.ngAccent}██║  ███╗██████╔╝   ██║${C.reset}`,
+    `${C.ngSecondary}    ██║╚██╗██║██╔══██║██║╚██╗██║██║   ██║ ${C.ngAccent}██║   ██║██╔═══╝    ██║${C.reset}`,
+    `${C.ngAccent}    ██║ ╚████║██║  ██║██║ ╚████║╚██████╔╝ ${C.ngAccent}╚██████╔╝██║        ██║${C.reset}`,
+    `${C.ngAccent}    ╚═╝  ╚═══╝╚═╝  ╚═╝╚═╝  ╚═══╝ ╚═════╝  ${C.ngAccent}╚═════╝ ╚═╝        ╚═╝${C.reset}`,
+    '',
+    `${C.ngDim}    ━━━━━━━━━━━━━━━━━━━━━━━${C.ngPrimary}◆${C.ngDim}━━━━━━━━━━━━━━━━━━━━━━━${C.reset}`,
+    `${C.ngSecondary}              All Models ${C.ngDim}━${C.ngSecondary} No Subscription${C.reset}`,
+    '',
+  ],
+  // Ollama: Block letters
+  ollama: [
+    '',
+    `${C.olPrimary}     ██████╗ ██╗     ██╗      █████╗ ███╗   ███╗ █████╗${C.reset}`,
+    `${C.olPrimary}    ██╔═══██╗██║     ██║     ██╔══██╗████╗ ████║██╔══██╗${C.reset}`,
+    `${C.olSecondary}    ██║   ██║██║     ██║     ███████║██╔████╔██║███████║${C.reset}`,
+    `${C.olSecondary}    ██║   ██║██║     ██║     ██╔══██║██║╚██╔╝██║██╔══██║${C.reset}`,
+    `${C.olAccent}    ╚██████╔╝███████╗███████╗██║  ██║██║ ╚═╝ ██║██║  ██║${C.reset}`,
+    `${C.olAccent}     ╚═════╝ ╚══════╝╚══════╝╚═╝  ╚═╝╚═╝     ╚═╝╚═╝  ╚═╝${C.reset}`,
+    '',
+    `${C.olDim}    ━━━━━━━━━━━━━━━━━━━━${C.olPrimary}◆${C.olDim}━━━━━━━━━━━━━━━━━━━━${C.reset}`,
+    `${C.olSecondary}              Run Models Locally${C.reset}`,
+    '',
+  ],
+  default: [
+    '',
+    `${C.defPrimary}    ██████╗ ██████╗   ${C.defDim}━━  M I R R O R${C.reset}`,
+    `${C.defPrimary}   ██╔════╝██╔════╝${C.reset}`,
+    `${C.defPrimary}   ██║     ██║     ${C.defDim}Provider Variants${C.reset}`,
+    `${C.defPrimary}   ██║     ██║     ${C.defDim}Custom Providers${C.reset}`,
+    `${C.defPrimary}   ╚██████╗╚██████╗${C.reset}`,
+    `${C.defPrimary}    ╚═════╝ ╚═════╝${C.reset}`,
+    '',
+  ],
+};
+
+const KNOWN_SPLASH_STYLES = [
+  'zai',
+  'minimax',
+  'kimi',
+  'openrouter',
+  'ccrouter',
+  'mirror',
+  'gatewayz',
+  'vercel',
+  'nanogpt',
+  'ollama',
+];
+
+const buildWindowsWrapperScript = (opts: {
+  configDir: string;
+  tweakDir: string;
+  binaryPath: string;
+  runtime: WrapperRuntime;
+}): string => {
+  const splashJson = JSON.stringify(SPLASH_ART);
+  const stylesJson = JSON.stringify(KNOWN_SPLASH_STYLES);
+
+  const lines = [
+    "import fs from 'node:fs';",
+    "import path from 'node:path';",
+    "import { spawnSync } from 'node:child_process';",
+    "import os from 'node:os';",
+    '',
+    `const configDir = ${JSON.stringify(opts.configDir)};`,
+    `const tweakDir = ${JSON.stringify(opts.tweakDir)};`,
+    `const binaryPath = ${JSON.stringify(opts.binaryPath)};`,
+    `const runtime = ${JSON.stringify(opts.runtime)};`,
+    'const args = process.argv.slice(2);',
+    '',
+    'process.env.CLAUDE_CONFIG_DIR = configDir;',
+    'process.env.TWEAKCC_CONFIG_DIR = tweakDir;',
+    '',
+    "const safeJsonParse = (text) => JSON.parse(text, (key, value) => ['__proto__', 'constructor', 'prototype'].includes(key) ? undefined : value);",
+    '',
+    'const loadSettingsEnv = () => {',
+    "  const file = path.join(configDir, 'settings.json');",
+    '  try {',
+    '    if (!fs.existsSync(file)) return;',
+    '    if (fs.statSync(file).size > 1048576) return;',
+    "    const data = safeJsonParse(fs.readFileSync(file, 'utf8'));",
+    "    const env = data && typeof data === 'object' ? data.env : null;",
+    "    if (env && typeof env === 'object') {",
+    '      for (const [key, value] of Object.entries(env)) {',
+    '        if (!key) continue;',
+    '        process.env[key] = String(value);',
+    '      }',
+    '    }',
+    '  } catch {',
+    '    // ignore malformed settings',
+    '  }',
+    '};',
+    'loadSettingsEnv();',
+    '',
+    "if (['-v', '--version', 'version'].includes(args[0] || '') && (process.env.CC_MIRROR_SHOW_NATIVE_VERSION || '0') === '0') {",
+    "  console.log(process.env.CC_MIRROR_PROVIDER_LABEL || 'cc-mirror');",
+    '  process.exit(0);',
+    '}',
+    '',
+    "if ((process.env.CC_MIRROR_UNSET_AUTH_TOKEN || '0') !== '0') {",
+    '  delete process.env.ANTHROPIC_AUTH_TOKEN;',
+    '}',
+    '',
+    "const splashEnabled = (process.env.CC_MIRROR_SPLASH || '0') !== '0';",
+    "const skipSplash = args.join(' ').includes('--output-format');",
+    'const shouldSplash = splashEnabled && Boolean(process.stdout.isTTY) && !skipSplash;',
+    `const splashArt = ${splashJson};`,
+    `const knownStyles = new Set(${stylesJson});`,
+    'if (shouldSplash) {',
+    "  const style = process.env.CC_MIRROR_SPLASH_STYLE || 'default';",
+    "  const label = process.env.CC_MIRROR_PROVIDER_LABEL || 'cc-mirror';",
+    "  const resolvedStyle = knownStyles.has(style) ? style : 'default';",
+    '  const art = splashArt[resolvedStyle] || [];',
+    "  process.stdout.write('\\n');",
+    '  if (art.length > 0) {',
+    "    process.stdout.write(art.join('\\n'));",
+    '  }',
+    '  if (knownStyles.has(style)) {',
+    "    process.stdout.write('\\n');",
+    '  } else {',
+    "    process.stdout.write('\\n        ' + label + '\\n\\n');",
+    '  }',
+    '}',
+    '',
+    "if ((process.env.CC_MIRROR_ALLOW_CLAUDE_INSTALL || '0') === '0') {",
+    '  const cmd = args[0];',
+    "  if (cmd === 'install' || cmd === 'update' || cmd === 'upgrade') {",
+    "    process.stderr.write('cc-mirror: blocked \"claude ' + cmd + '\" to avoid modifying your global runtime install.\\n');",
+    '    process.stderr.write(\'cc-mirror: use "cc-mirror update <variant> --claude-version latest" instead.\\n\');',
+    "    process.stderr.write('cc-mirror: set CC_MIRROR_ALLOW_CLAUDE_INSTALL=1 to bypass.\\n');",
+    '    process.exit(1);',
+    '  }',
+    '}',
+    '',
+    "const execArgs = runtime === 'node' ? [binaryPath, ...args] : args;",
+    "const execCmd = runtime === 'node' ? process.execPath : binaryPath;",
+    'const result = spawnSync(execCmd, execArgs, { stdio: "inherit", env: process.env });',
+    'if (typeof result.status === "number") {',
+    '  process.exit(result.status);',
+    '}',
+    'if (result.signal) {',
+    '  const code = (os.constants?.signals && os.constants.signals[result.signal])',
+    '    ? 128 + os.constants.signals[result.signal]',
+    '    : 1;',
+    '  process.exit(code);',
+    '}',
+    'process.exit(1);',
+    '',
+  ];
+
+  return lines.join('\n');
+};
+
+const writeWindowsWrapper = (opts: {
+  wrapperPath: string;
+  configDir: string;
+  tweakDir: string;
+  binaryPath: string;
+  runtime: WrapperRuntime;
+}) => {
+  const parsed = path.parse(opts.wrapperPath);
+  const basePath = parsed.ext ? path.join(parsed.dir, parsed.name) : opts.wrapperPath;
+  const cmdPath = parsed.ext ? opts.wrapperPath : `${opts.wrapperPath}.cmd`;
+  const scriptPath = `${basePath}.mjs`;
+  const scriptFilename = `${parsed.name}.mjs`;
+
+  const scriptContent = buildWindowsWrapperScript({
+    configDir: opts.configDir,
+    tweakDir: opts.tweakDir,
+    binaryPath: opts.binaryPath,
+    runtime: opts.runtime,
+  });
+
+  const cmdLines = ['@echo off', 'setlocal', `node "%~dp0${scriptFilename}" %*`, ''];
+
+  fs.writeFileSync(scriptPath, scriptContent, { encoding: 'utf8' });
+  fs.writeFileSync(cmdPath, cmdLines.join('\r\n'), { encoding: 'utf8' });
+};
 
 export const writeWrapper = (
   wrapperPath: string,
   configDir: string,
   binaryPath: string,
-  options: WrapperOptions = {}
+  runtime: WrapperRuntime = 'node'
 ) => {
   const tweakDir = path.join(path.dirname(configDir), 'tweakcc');
-  const quotedNodeBinaryPath = NODE_BINARY_PATH.replaceAll('"', '\\"');
-
-  // For translation providers, use the launcher (node-spawned) instead of direct exec.
-  // Otherwise exec the native Claude binary directly.
-  let execLine: string;
-  if (options.requiresTranslation) {
-    // Launcher handles proxy lifecycle and spawns Claude Code
-    // Use tsx for .ts files (development), node for .mjs (production)
-    const launcherCmd = LAUNCHER_NEEDS_TSX ? 'npx tsx' : '"${__cc_mirror_node_bin:-node}"';
-    execLine = `exec ${launcherCmd} "${LAUNCHER_PATH}" "${binaryPath}" "${configDir}" -- "$@"`;
-  } else {
-    execLine = `exec "${binaryPath}" "$@"`;
+  if (isWindows) {
+    writeWindowsWrapper({ wrapperPath, configDir, tweakDir, binaryPath, runtime });
+    return;
   }
 
+  const execLine = runtime === 'node' ? `exec node "${binaryPath}" "$@"` : `exec "${binaryPath}" "$@"`;
   const envLoader = [
-    `if [[ -x "${quotedNodeBinaryPath}" ]]; then`,
-    `  export __cc_mirror_node_bin="${quotedNodeBinaryPath}"`,
-    'elif command -v node >/dev/null 2>&1; then',
-    '  export __cc_mirror_node_bin="$(command -v node)"',
-    'fi',
-    'if [[ -n "${__cc_mirror_node_bin:-}" ]]; then',
-    '  __cc_mirror_env_file="$(mktemp "${XDG_RUNTIME_DIR:-${TMPDIR:-/tmp}}/cc-mirror-env.XXXXXX")"',
-    '  "$__cc_mirror_node_bin" - <<\'NODE\' > "$__cc_mirror_env_file" || true',
+    'if command -v node >/dev/null 2>&1; then',
+    '  __cc_mirror_env_file="$(mktemp)"',
+    '  node - <<\'NODE\' > "$__cc_mirror_env_file" || true',
     "const fs = require('fs');",
     "const path = require('path');",
     'const dir = process.env.CLAUDE_CONFIG_DIR;',
     'if (!dir) process.exit(0);',
     "const file = path.join(dir, 'settings.json');",
-    'const keyPattern = /^[A-Za-z_][A-Za-z0-9_]*$/;',
+    "const safeJsonParse = (text) => JSON.parse(text, (key, value) => ['__proto__', 'constructor', 'prototype'].includes(key) ? undefined : value);",
     'const escape = (value) => "\'" + String(value).replace(/\'/g, "\'\\"\'\\"\'") + "\'";',
     'try {',
     '  if (fs.existsSync(file)) {',
-    "    const data = JSON.parse(fs.readFileSync(file, 'utf8'));",
+    '    if (fs.statSync(file).size > 1048576) process.exit(0);',
+    "    const data = safeJsonParse(fs.readFileSync(file, 'utf8'));",
     "    const env = data && typeof data === 'object' ? data.env : null;",
     "    if (env && typeof env === 'object') {",
     '      for (const [key, value] of Object.entries(env)) {',
-    '        if (!key || !keyPattern.test(key)) continue;',
+    '        if (!key) continue;',
     '        process.stdout.write(`export ${key}=${escape(value)}\\n`);',
     '      }',
     '    }',
@@ -87,7 +430,6 @@ export const writeWrapper = (
     '  rm -f "$__cc_mirror_env_file" || true',
     'fi',
   ];
-  const C = SPLASH_COLORS;
 
   const splash = [
     'if [[ "${CC_MIRROR_SPLASH:-0}" != "0" ]] && [[ -t 1 ]]; then',
@@ -99,276 +441,67 @@ export const writeWrapper = (
     '    case "$__cc_style" in',
     '      zai)',
     "        cat <<'CCMZAI'",
-    '',
-    `${C.zaiPrimary}    ███████╗       █████╗ ██╗${C.reset}`,
-    `${C.zaiPrimary}    ╚══███╔╝      ██╔══██╗██║${C.reset}`,
-    `${C.zaiSecondary}      ███╔╝       ███████║██║${C.reset}`,
-    `${C.zaiSecondary}     ███╔╝    ${C.zaiAccent}██╗${C.zaiSecondary} ██╔══██║██║${C.reset}`,
-    `${C.zaiAccent}    ███████╗  ╚═╝ ██║  ██║██║${C.reset}`,
-    `${C.zaiAccent}    ╚══════╝      ╚═╝  ╚═╝╚═╝${C.reset}`,
-    '',
-    `${C.zaiDim}    ━━━━━━━━━━${C.zaiPrimary}◆${C.zaiDim}━━━━━━━━━━${C.reset}`,
-    `${C.zaiSecondary}      GLM Coding Plan${C.reset}`,
-    '',
+    ...SPLASH_ART.zai,
     'CCMZAI',
     '        __cc_show_label="0"',
     '        ;;',
     '      minimax)',
     "        cat <<'CCMMIN'",
-    '',
-    `${C.mmPrimary}    ███╗   ███╗██╗███╗   ██╗██╗███╗   ███╗ █████╗ ██╗  ██╗${C.reset}`,
-    `${C.mmPrimary}    ████╗ ████║██║████╗  ██║██║████╗ ████║██╔══██╗╚██╗██╔╝${C.reset}`,
-    `${C.mmSecondary}    ██╔████╔██║██║██╔██╗ ██║██║██╔████╔██║███████║ ╚███╔╝${C.reset}`,
-    `${C.mmSecondary}    ██║╚██╔╝██║██║██║╚██╗██║██║██║╚██╔╝██║██╔══██║ ██╔██╗${C.reset}`,
-    `${C.mmAccent}    ██║ ╚═╝ ██║██║██║ ╚████║██║██║ ╚═╝ ██║██║  ██║██╔╝ ██╗${C.reset}`,
-    `${C.mmAccent}    ╚═╝     ╚═╝╚═╝╚═╝  ╚═══╝╚═╝╚═╝     ╚═╝╚═╝  ╚═╝╚═╝  ╚═╝${C.reset}`,
-    '',
-    `${C.mmDim}    ━━━━━━━━━━━━━━━━━━${C.mmPrimary}◆${C.mmDim}━━━━━━━━━━━━━━━━━━${C.reset}`,
-    `${C.mmSecondary}           MiniMax-M2.1 ${C.mmDim}━${C.mmSecondary} AGI for All${C.reset}`,
-    '',
+    ...SPLASH_ART.minimax,
     'CCMMIN',
+    '        __cc_show_label="0"',
+    '        ;;',
+    '      kimi)',
+    "        cat <<'CCMKMI'",
+    ...SPLASH_ART.kimi,
+    'CCMKMI',
     '        __cc_show_label="0"',
     '        ;;',
     '      openrouter)',
     "        cat <<'CCMORT'",
-    '',
-    `${C.orPrimary}     ██████╗ ██████╗ ███████╗███╗   ██╗${C.reset}`,
-    `${C.orPrimary}    ██╔═══██╗██╔══██╗██╔════╝████╗  ██║${C.reset}`,
-    `${C.orSecondary}    ██║   ██║██████╔╝█████╗  ██╔██╗ ██║${C.reset}`,
-    `${C.orSecondary}    ██║   ██║██╔═══╝ ██╔══╝  ██║╚██╗██║${C.reset}`,
-    `${C.orAccent}    ╚██████╔╝██║     ███████╗██║ ╚████║${C.reset}`,
-    `${C.orAccent}     ╚═════╝ ╚═╝     ╚══════╝╚═╝  ╚═══╝${C.reset}`,
-    `${C.orPrimary}    ██████╗  ██████╗ ██╗   ██╗████████╗███████╗██████╗${C.reset}`,
-    `${C.orPrimary}    ██╔══██╗██╔═══██╗██║   ██║╚══██╔══╝██╔════╝██╔══██╗${C.reset}`,
-    `${C.orSecondary}    ██████╔╝██║   ██║██║   ██║   ██║   █████╗  ██████╔╝${C.reset}`,
-    `${C.orSecondary}    ██╔══██╗██║   ██║██║   ██║   ██║   ██╔══╝  ██╔══██╗${C.reset}`,
-    `${C.orAccent}    ██║  ██║╚██████╔╝╚██████╔╝   ██║   ███████╗██║  ██║${C.reset}`,
-    `${C.orAccent}    ╚═╝  ╚═╝ ╚═════╝  ╚═════╝    ╚═╝   ╚══════╝╚═╝  ╚═╝${C.reset}`,
-    '',
-    `${C.orDim}    ━━━━━━━━━━━━━${C.orPrimary}◆${C.orDim}━━━━━━━━━━━━━${C.reset}`,
-    `${C.orSecondary}      One API ${C.orDim}━${C.orSecondary} Any Model${C.reset}`,
-    '',
+    ...SPLASH_ART.openrouter,
     'CCMORT',
-    '        __cc_show_label="0"',
-    '        ;;',
-    '      gatewayz)',
-    "        cat <<'CCMGWZ'",
-    '',
-    `${C.gzPrimary}     ██████╗  █████╗ ████████╗███████╗██╗    ██╗ █████╗ ██╗   ██╗${C.gzCyan}███████╗${C.reset}`,
-    `${C.gzPrimary}    ██╔════╝ ██╔══██╗╚══██╔══╝██╔════╝██║    ██║██╔══██╗╚██╗ ██╔╝${C.gzCyan}╚══███╔╝${C.reset}`,
-    `${C.gzSecondary}    ██║  ███╗███████║   ██║   █████╗  ██║ █╗ ██║███████║ ╚████╔╝ ${C.gzCyan}  ███╔╝${C.reset}`,
-    `${C.gzSecondary}    ██║   ██║██╔══██║   ██║   ██╔══╝  ██║███╗██║██╔══██║  ╚██╔╝  ${C.gzCyan} ███╔╝${C.reset}`,
-    `${C.gzAccent}    ╚██████╔╝██║  ██║   ██║   ███████╗╚███╔███╔╝██║  ██║   ██║   ${C.gzCyan}███████╗${C.reset}`,
-    `${C.gzAccent}     ╚═════╝ ╚═╝  ╚═╝   ╚═╝   ╚══════╝ ╚══╝╚══╝ ╚═╝  ╚═╝   ╚═╝   ${C.gzCyan}╚══════╝${C.reset}`,
-    '',
-    `${C.gzDim}    ━━━━━━━━━━━━━━━━${C.gzPrimary}◆${C.gzDim}━━━━━━━━━━━━━━━━${C.reset}`,
-    `${C.gzSecondary}       Your Gateway to AI${C.reset}`,
-    '',
-    'CCMGWZ',
-    '        __cc_show_label="0"',
-    '        ;;',
-    '      nanogpt)',
-    "        cat <<'CCMNGPT'",
-    '',
-    `${C.ngPrimary}    ███╗   ██╗ █████╗ ███╗   ██╗ ██████╗  ██████╗ ██████╗ ████████╗${C.reset}`,
-    `${C.ngPrimary}    ████╗  ██║██╔══██╗████╗  ██║██╔═══██╗██╔════╝ ██╔══██╗╚══██╔══╝${C.reset}`,
-    `${C.ngSecondary}    ██╔██╗ ██║███████║██╔██╗ ██║██║   ██║██║  ███╗██████╔╝   ██║${C.reset}`,
-    `${C.ngSecondary}    ██║╚██╗██║██╔══██║██║╚██╗██║██║   ██║██║   ██║██╔═══╝    ██║${C.reset}`,
-    `${C.ngAccent}    ██║ ╚████║██║  ██║██║ ╚████║╚██████╔╝╚██████╔╝██║        ██║${C.reset}`,
-    `${C.ngAccent}    ╚═╝  ╚═══╝╚═╝  ╚═╝╚═╝  ╚═══╝ ╚═════╝  ╚═════╝ ╚═╝        ╚═╝${C.reset}`,
-    '',
-    `${C.ngDim}    ━━━━━━━━━━━━━━${C.ngPrimary}◆${C.ngDim}━━━━━━━━━━━━━━${C.reset}`,
-    `${C.ngSecondary}      One API ${C.ngDim}━${C.ngSecondary} Many Models${C.reset}`,
-    '',
-    'CCMNGPT',
     '        __cc_show_label="0"',
     '        ;;',
     '      ccrouter)',
     "        cat <<'CCMCCR'",
-    '',
-    `${C.ccrPrimary}     ██████╗ ██████╗██████╗  ██████╗ ██╗   ██╗████████╗███████╗██████╗${C.reset}`,
-    `${C.ccrPrimary}    ██╔════╝██╔════╝██╔══██╗██╔═══██╗██║   ██║╚══██╔══╝██╔════╝██╔══██╗${C.reset}`,
-    `${C.ccrSecondary}    ██║     ██║     ██████╔╝██║   ██║██║   ██║   ██║   █████╗  ██████╔╝${C.reset}`,
-    `${C.ccrSecondary}    ██║     ██║     ██╔══██╗██║   ██║██║   ██║   ██║   ██╔══╝  ██╔══██╗${C.reset}`,
-    `${C.ccrAccent}    ╚██████╗╚██████╗██║  ██║╚██████╔╝╚██████╔╝   ██║   ███████╗██║  ██║${C.reset}`,
-    `${C.ccrAccent}     ╚═════╝ ╚═════╝╚═╝  ╚═╝ ╚═════╝  ╚═════╝    ╚═╝   ╚══════╝╚═╝  ╚═╝${C.reset}`,
-    '',
-    `${C.ccrDim}    ━━━━━━━━━━━━━━━━${C.ccrPrimary}◆${C.ccrDim}━━━━━━━━━━━━━━━━${C.reset}`,
-    `${C.ccrSecondary}      Claude Code Router ${C.ccrDim}━${C.ccrSecondary} Any Model${C.reset}`,
-    '',
+    ...SPLASH_ART.ccrouter,
     'CCMCCR',
-    '        __cc_show_label="0"',
-    '        ;;',
-    '      kimi)',
-    "        cat <<'CCMKIMI'",
-    '',
-    `${C.kimiPrimary}    ██╗  ██╗██╗███╗   ███╗██╗${C.reset}`,
-    `${C.kimiPrimary}    ██║ ██╔╝██║████╗ ████║██║${C.reset}`,
-    `${C.kimiSecondary}    █████╔╝ ██║██╔████╔██║██║${C.reset}`,
-    `${C.kimiSecondary}    ██╔═██╗ ██║██║╚██╔╝██║██║${C.reset}`,
-    `${C.kimiAccent}    ██║  ██╗██║██║ ╚═╝ ██║██║${C.reset}`,
-    `${C.kimiAccent}    ╚═╝  ╚═╝╚═╝╚═╝     ╚═╝╚═╝${C.reset}`,
-    '',
-    `${C.kimiDim}    ━━━━━━━━━━${C.kimiPrimary}◆${C.kimiDim}━━━━━━━━━━${C.reset}`,
-    `${C.kimiSecondary}      Kimi Code ${C.kimiDim}━${C.kimiSecondary} K2.5 Inside${C.reset}`,
-    '',
-    'CCMKIMI',
-    '        __cc_show_label="0"',
-    '        ;;',
-    '      deepseek)',
-    "        cat <<'CCMDS'",
-    '',
-    `${C.dsPrimary}    ██████╗ ███████╗███████╗██████╗ ███████╗███████╗███████╗██╗  ██╗${C.reset}`,
-    `${C.dsPrimary}    ██╔══██╗██╔════╝██╔════╝██╔══██╗██╔════╝██╔════╝██╔════╝██║ ██╔╝${C.reset}`,
-    `${C.dsSecondary}    ██║  ██║█████╗  █████╗  ██████╔╝███████╗█████╗  █████╗  █████╔╝${C.reset}`,
-    `${C.dsSecondary}    ██║  ██║██╔══╝  ██╔══╝  ██╔═══╝ ╚════██║██╔══╝  ██╔══╝  ██╔═██╗${C.reset}`,
-    `${C.dsAccent}    ██████╔╝███████╗███████╗██║     ███████║███████╗███████╗██║  ██╗${C.reset}`,
-    `${C.dsAccent}    ╚═════╝ ╚══════╝╚══════╝╚═╝     ╚══════╝╚══════╝╚══════╝╚═╝  ╚═╝${C.reset}`,
-    '',
-    `${C.dsDim}    ━━━━━━━━━━━━━━━${C.dsPrimary}◆${C.dsDim}━━━━━━━━━━━━━━━${C.reset}`,
-    `${C.dsSecondary}      DeepSeek ${C.dsDim}━${C.dsSecondary} Unmatched Intelligence${C.reset}`,
-    '',
-    'CCMDS',
-    '        __cc_show_label="0"',
-    '        ;;',
-    '      vercel)',
-    "        cat <<'CCMVER'",
-    '',
-    `${C.vercelPrimary}    ██╗   ██╗███████╗██████╗  ██████╗███████╗██╗${C.reset}`,
-    `${C.vercelPrimary}    ██║   ██║██╔════╝██╔══██╗██╔════╝██╔════╝██║${C.reset}`,
-    `${C.vercelSecondary}    ██║   ██║█████╗  ██████╔╝██║     █████╗  ██║${C.reset}`,
-    `${C.vercelSecondary}    ╚██╗ ██╔╝██╔══╝  ██╔══██╗██║     ██╔══╝  ██║${C.reset}`,
-    `${C.vercelAccent}     ╚████╔╝ ███████╗██║  ██║╚██████╗███████╗███████╗${C.reset}`,
-    `${C.vercelAccent}      ╚═══╝  ╚══════╝╚═╝  ╚═╝ ╚═════╝╚══════╝╚══════╝${C.reset}`,
-    '',
-    `${C.vercelDim}    ━━━━━━━━━━━━${C.vercelPrimary}▲${C.vercelDim}━━━━━━━━━━━━${C.reset}`,
-    `${C.vercelSecondary}      AI Gateway ${C.vercelDim}━${C.vercelSecondary} Edge${C.reset}`,
-    '',
-    'CCMVER',
-    '        __cc_show_label="0"',
-    '        ;;',
-    '      poe)',
-    "        cat <<'CCMPOE'",
-    '',
-    `${C.poePrimary}    ██████╗  ██████╗ ███████╗${C.reset}`,
-    `${C.poePrimary}    ██╔══██╗██╔═══██╗██╔════╝${C.reset}`,
-    `${C.poeSecondary}    ██████╔╝██║   ██║█████╗${C.reset}`,
-    `${C.poeSecondary}    ██╔═══╝ ██║   ██║██╔══╝${C.reset}`,
-    `${C.poeAccent}    ██║     ╚██████╔╝███████╗${C.reset}`,
-    `${C.poeAccent}    ╚═╝      ╚═════╝ ╚══════╝${C.reset}`,
-    '',
-    `${C.poeDim}    ━━━━━━━━${C.poePrimary}◆${C.poeDim}━━━━━━━━${C.reset}`,
-    `${C.poeSecondary}      Quora ${C.poeDim}━${C.poeSecondary} Multi-model${C.reset}`,
-    '',
-    'CCMPOE',
-    '        __cc_show_label="0"',
-    '        ;;',
-    '      vertex)',
-    "        cat <<'CCMVTX'",
-    '',
-    `${C.vertexPrimary}    ██╗   ██╗███████╗██████╗ ████████╗███████╗██╗  ██╗${C.reset}`,
-    `${C.vertexPrimary}    ██║   ██║██╔════╝██╔══██╗╚══██╔══╝██╔════╝╚██╗██╔╝${C.reset}`,
-    `${C.vertexSecondary}    ██║   ██║█████╗  ██████╔╝   ██║   █████╗   ╚███╔╝${C.reset}`,
-    `${C.vertexSecondary}    ╚██╗ ██╔╝██╔══╝  ██╔══██╗   ██║   ██╔══╝   ██╔██╗${C.reset}`,
-    `${C.vertexAccent}     ╚████╔╝ ███████╗██║  ██║   ██║   ███████╗██╔╝ ██╗${C.reset}`,
-    `${C.vertexAccent}      ╚═══╝  ╚══════╝╚═╝  ╚═╝   ╚═╝   ╚══════╝╚═╝  ╚═╝${C.reset}`,
-    '',
-    `${C.vertexDim}    ━━━━━━━━━━━━${C.vertexPrimary}◆${C.vertexDim}━━━━━━━━━━━━${C.reset}`,
-    `${C.vertexSecondary}      Google Cloud ${C.vertexDim}━${C.vertexSecondary} AI${C.reset}`,
-    '',
-    'CCMVTX',
-    '        __cc_show_label="0"',
-    '        ;;',
-    '      bedrock)',
-    "        cat <<'CCMBR'",
-    '',
-    `${C.bedrockPrimary}    ██████╗ ███████╗██████╗ ██████╗  ██████╗  ██████╗██╗  ██╗${C.reset}`,
-    `${C.bedrockPrimary}    ██╔══██╗██╔════╝██╔══██╗██╔══██╗██╔═══██╗██╔════╝██║ ██╔╝${C.reset}`,
-    `${C.bedrockSecondary}    ██████╔╝█████╗  ██║  ██║██████╔╝██║   ██║██║     █████╔╝${C.reset}`,
-    `${C.bedrockSecondary}    ██╔══██╗██╔══╝  ██║  ██║██╔══██╗██║   ██║██║     ██╔═██╗${C.reset}`,
-    `${C.bedrockAccent}    ██████╔╝███████╗██████╔╝██║  ██║╚██████╔╝╚██████╗██║  ██╗${C.reset}`,
-    `${C.bedrockAccent}    ╚═════╝ ╚══════╝╚═════╝ ╚═╝  ╚═╝ ╚═════╝  ╚═════╝╚═╝  ╚═╝${C.reset}`,
-    '',
-    `${C.bedrockDim}    ━━━━━━━━━━━━━━${C.bedrockPrimary}◆${C.bedrockDim}━━━━━━━━━━━━━━${C.reset}`,
-    `${C.bedrockSecondary}        AWS ${C.bedrockDim}━${C.bedrockSecondary} Claude${C.reset}`,
-    '',
-    'CCMBR',
-    '        __cc_show_label="0"',
-    '        ;;',
-    '      foundry)',
-    "        cat <<'CCMFND'",
-    '',
-    `${C.foundryPrimary}    ███████╗ ██████╗ ██╗   ██╗███╗   ██╗██████╗ ██████╗ ██╗   ██╗${C.reset}`,
-    `${C.foundryPrimary}    ██╔════╝██╔═══██╗██║   ██║████╗  ██║██╔══██╗██╔══██╗╚██╗ ██╔╝${C.reset}`,
-    `${C.foundrySecondary}    █████╗  ██║   ██║██║   ██║██╔██╗ ██║██║  ██║██████╔╝ ╚████╔╝${C.reset}`,
-    `${C.foundrySecondary}    ██╔══╝  ██║   ██║██║   ██║██║╚██╗██║██║  ██║██╔══██╗  ╚██╔╝${C.reset}`,
-    `${C.foundryAccent}    ██║     ╚██████╔╝╚██████╔╝██║ ╚████║██████╔╝██║  ██║   ██║${C.reset}`,
-    `${C.foundryAccent}    ╚═╝      ╚═════╝  ╚═════╝ ╚═╝  ╚═══╝╚═════╝ ╚═╝  ╚═╝   ╚═╝${C.reset}`,
-    '',
-    `${C.foundryDim}    ━━━━━━━━━━━━━━${C.foundryPrimary}◆${C.foundryDim}━━━━━━━━━━━━━━${C.reset}`,
-    `${C.foundrySecondary}       Azure ${C.foundryDim}━${C.foundrySecondary} AI Foundry${C.reset}`,
-    '',
-    'CCMFND',
-    '        __cc_show_label="0"',
-    '        ;;',
-    '      alibaba)',
-    "        cat <<'CCMALI'",
-    '',
-    `${C.aliPrimary}     █████╗ ██╗     ██╗██████╗  █████╗ ██████╗  █████╗${C.reset}`,
-    `${C.aliPrimary}    ██╔══██╗██║     ██║██╔══██╗██╔══██╗██╔══██╗██╔══██╗${C.reset}`,
-    `${C.aliSecondary}    ███████║██║     ██║██████╔╝███████║██████╔╝███████║${C.reset}`,
-    `${C.aliSecondary}    ██╔══██║██║     ██║██╔══██╗██╔══██║██╔══██╗██╔══██║${C.reset}`,
-    `${C.aliAccent}    ██║  ██║███████╗██║██████╔╝██║  ██║██████╔╝██║  ██║${C.reset}`,
-    `${C.aliAccent}    ╚═╝  ╚═╝╚══════╝╚═╝╚═════╝ ╚═╝  ╚═╝╚═════╝ ╚═╝  ╚═╝${C.reset}`,
-    '',
-    `${C.aliDim}    ━━━━━━━━━━━━━━${C.aliPrimary}◆${C.aliDim}━━━━━━━━━━━━━━${C.reset}`,
-    `${C.aliSecondary}      Coding Plan ${C.aliDim}━${C.aliSecondary} Cloud${C.reset}`,
-    '',
-    'CCMALI',
-    '        __cc_show_label="0"',
-    '        ;;',
-    '      ollama)',
-    "        cat <<'CCMOLL'",
-    '',
-    `${C.ollamaPrimary}     ██████╗ ██╗     ██╗      █████╗ ███╗   ███╗ █████╗${C.reset}`,
-    `${C.ollamaPrimary}    ██╔═══██╗██║     ██║     ██╔══██╗████╗ ████║██╔══██╗${C.reset}`,
-    `${C.ollamaSecondary}    ██║   ██║██║     ██║     ███████║██╔████╔██║███████║${C.reset}`,
-    `${C.ollamaSecondary}    ██║   ██║██║     ██║     ██╔══██║██║╚██╔╝██║██╔══██║${C.reset}`,
-    `${C.ollamaAccent}    ╚██████╔╝███████╗███████╗██║  ██║██║ ╚═╝ ██║██║  ██║${C.reset}`,
-    `${C.ollamaAccent}     ╚═════╝ ╚══════╝╚══════╝╚═╝  ╚═╝╚═╝     ╚═╝╚═╝  ╚═╝${C.reset}`,
-    '',
-    `${C.ollamaDim}    ━━━━━━━━━━━━━${C.ollamaPrimary}◆${C.ollamaDim}━━━━━━━━━━━━━${C.reset}`,
-    `${C.ollamaSecondary}      Local ${C.ollamaDim}━${C.ollamaSecondary} Any Model${C.reset}`,
-    '',
-    'CCMOLL',
     '        __cc_show_label="0"',
     '        ;;',
     '      mirror)',
     "        cat <<'CCMMIR'",
-    '',
-    `${C.mirPrimary}    ███╗   ███╗██╗██████╗ ██████╗  ██████╗ ██████╗${C.reset}`,
-    `${C.mirPrimary}    ████╗ ████║██║██╔══██╗██╔══██╗██╔═══██╗██╔══██╗${C.reset}`,
-    `${C.mirSecondary}    ██╔████╔██║██║██████╔╝██████╔╝██║   ██║██████╔╝${C.reset}`,
-    `${C.mirSecondary}    ██║╚██╔╝██║██║██╔══██╗██╔══██╗██║   ██║██╔══██╗${C.reset}`,
-    `${C.mirAccent}    ██║ ╚═╝ ██║██║██║  ██║██║  ██║╚██████╔╝██║  ██║${C.reset}`,
-    `${C.mirAccent}    ╚═╝     ╚═╝╚═╝╚═╝  ╚═╝╚═╝  ╚═╝ ╚═════╝ ╚═╝  ╚═╝${C.reset}`,
-    '',
-    `${C.mirDim}    ━━━━━━━━━━━━${C.mirAccent}◇${C.mirDim}━━━━━━━━━━━━${C.reset}`,
-    `${C.mirSecondary}      Claude ${C.mirDim}━${C.mirSecondary} Pure Reflection${C.reset}`,
-    '',
+    ...SPLASH_ART.mirror,
     'CCMMIR',
+    '        __cc_show_label="0"',
+    '        ;;',
+    '      gatewayz)',
+    "        cat <<'CCMGW'",
+    ...SPLASH_ART.gatewayz,
+    'CCMGW',
+    '        __cc_show_label="0"',
+    '        ;;',
+    '      vercel)',
+    "        cat <<'CCMVC'",
+    ...SPLASH_ART.vercel,
+    'CCMVC',
+    '        __cc_show_label="0"',
+    '        ;;',
+    '      nanogpt)',
+    "        cat <<'CCMNG'",
+    ...SPLASH_ART.nanogpt,
+    'CCMNG',
+    '        __cc_show_label="0"',
+    '        ;;',
+    '      ollama)',
+    "        cat <<'CCMOL'",
+    ...SPLASH_ART.ollama,
+    'CCMOL',
     '        __cc_show_label="0"',
     '        ;;',
     '      *)',
     "        cat <<'CCMGEN'",
-    '',
-    `${C.defPrimary}    ██████╗ ██████╗   ${C.defDim}━━  M I R R O R${C.reset}`,
-    `${C.defPrimary}   ██╔════╝██╔════╝${C.reset}`,
-    `${C.defPrimary}   ██║     ██║     ${C.defDim}Claude Code Variants${C.reset}`,
-    `${C.defPrimary}   ██║     ██║     ${C.defDim}Custom Providers${C.reset}`,
-    `${C.defPrimary}   ╚██████╗╚██████╗${C.reset}`,
-    `${C.defPrimary}    ╚═════╝ ╚═════╝${C.reset}`,
-    '',
+    ...SPLASH_ART.default,
     'CCMGEN',
     '        ;;',
     '    esac',
@@ -380,443 +513,42 @@ export const writeWrapper = (
     '  fi',
     'fi',
   ];
+
+  const blockUpstreamInstall = [
+    'if [[ "${CC_MIRROR_ALLOW_CLAUDE_INSTALL:-0}" == "0" ]]; then',
+    '  case "${1:-}" in',
+    '    install|update|upgrade)',
+    '      echo "cc-mirror: blocked \\"claude $1\\" to avoid modifying your global runtime install." >&2',
+    '      echo "cc-mirror: use \\"cc-mirror update <variant> --claude-version latest\\" instead." >&2',
+    '      echo "cc-mirror: set CC_MIRROR_ALLOW_CLAUDE_INSTALL=1 to bypass." >&2',
+    '      exit 1',
+    '      ;;',
+    '  esac',
+    'fi',
+  ];
+
   const content = [
     '#!/usr/bin/env bash',
     'set -euo pipefail',
     `export CLAUDE_CONFIG_DIR="${configDir}"`,
     `export TWEAKCC_CONFIG_DIR="${tweakDir}"`,
     ...envLoader,
-    'if [[ "${CC_MIRROR_PREFER_IPV4:-0}" != "0" ]] && [[ -z "${NODE_OPTIONS:-}" ]]; then',
-    '  export NODE_OPTIONS="--dns-result-order=ipv4first"',
-    'fi',
+    'case "${1:-}" in',
+    '  -v|--version|version)',
+    '    if [[ "${CC_MIRROR_SHOW_NATIVE_VERSION:-0}" == "0" ]]; then',
+    '      printf "%s\\n" "${CC_MIRROR_PROVIDER_LABEL:-cc-mirror}"',
+    '      exit 0',
+    '    fi',
+    '    ;;',
+    'esac',
     'if [[ "${CC_MIRROR_UNSET_AUTH_TOKEN:-0}" != "0" ]]; then',
     '  unset ANTHROPIC_AUTH_TOKEN',
     'fi',
-    '# Dynamic team name: purely directory-based, with optional TEAM modifier',
-    '# Check for CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS (native 2.1.x+)',
-    'if [[ -n "${CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS:-}" ]] || [[ -n "${CLAUDE_CODE_TEAM_MODE:-}" ]]; then',
-    '  __cc_git_root=$(git rev-parse --show-toplevel 2>/dev/null || pwd)',
-    '  __cc_folder_name=$(basename "$__cc_git_root")',
-    '  if [[ -n "${TEAM:-}" ]]; then',
-    '    # Folder name + TEAM modifier',
-    '    export CLAUDE_CODE_TEAM_NAME="${__cc_folder_name}-${TEAM}"',
-    '  else',
-    '    # Just folder name (pure directory-based)',
-    '    export CLAUDE_CODE_TEAM_NAME="${__cc_folder_name}"',
-    '  fi',
-    'elif [[ -n "${TEAM:-}" ]]; then',
-    '  # TEAM env var set without team mode in settings - use folder + TEAM',
-    '  __cc_git_root=$(git rev-parse --show-toplevel 2>/dev/null || pwd)',
-    '  __cc_folder_name=$(basename "$__cc_git_root")',
-    '  export CLAUDE_CODE_TEAM_NAME="${__cc_folder_name}-${TEAM}"',
-    'fi',
+    ...blockUpstreamInstall,
     ...splash,
     execLine,
     '',
   ].join('\n');
+
   fs.writeFileSync(wrapperPath, content, { mode: 0o755 });
-};
-
-export const getWrapperName = (name: string): string => (process.platform === 'win32' ? `${name}.cmd` : name);
-
-export const getWrapperPath = (binDir: string, name: string): string => path.join(binDir, getWrapperName(name));
-
-export const writeWindowsWrapper = (
-  wrapperPath: string,
-  configDir: string,
-  binaryPath: string,
-  options: WrapperOptions = {}
-) => {
-  const tweakDir = path.join(path.dirname(configDir), 'tweakcc');
-  const configDirWin = path.win32.normalize(configDir);
-  const tweakDirWin = path.win32.normalize(tweakDir);
-  const binaryPathWin = path.win32.normalize(binaryPath);
-  const C = SPLASH_COLORS;
-
-  const wrapperParsed = path.parse(wrapperPath);
-  const helperScriptPath = path.join(wrapperParsed.dir, `${wrapperParsed.name}-env.js`);
-  const helperScript = `const fs = require('fs');
-const path = require('path');
-const dir = process.env.CLAUDE_CONFIG_DIR;
-if (!dir) process.exit(0);
-const file = path.join(dir, 'settings.json');
-const keyPattern = /^[A-Za-z_][A-Za-z0-9_]*$/;
-try {
-  if (fs.existsSync(file)) {
-    const data = JSON.parse(fs.readFileSync(file, 'utf8'));
-    const env = data && typeof data === 'object' ? data.env : null;
-    if (env && typeof env === 'object') {
-      for (const [key, value] of Object.entries(env)) {
-        if (!key || !keyPattern.test(key)) continue;
-        const raw = String(value);
-        const escaped = raw.replace(/"/g, '""').replace(/%/g, '%%');
-        console.log('SET "' + key + '=' + escaped + '"');
-      }
-    }
-  }
-} catch {}
-`;
-  fs.writeFileSync(helperScriptPath, helperScript, { mode: 0o644 });
-  const helperScriptName = path.basename(helperScriptPath);
-
-  // For translation providers, use the launcher (node-spawned) instead of direct exec.
-  // Otherwise exec the native Claude binary directly.
-  const launcherPathWin = path.win32.normalize(LAUNCHER_PATH);
-  let execLine: string;
-  if (options.requiresTranslation) {
-    // Use npx tsx for .ts files (development), node for .mjs (production)
-    const launcherCmd = LAUNCHER_NEEDS_TSX ? 'npx tsx' : 'node';
-    execLine = `${launcherCmd} "${launcherPathWin}" "${binaryPathWin}" "${configDirWin}" -- %*`;
-  } else {
-    execLine = `"${binaryPathWin}" %*`;
-  }
-
-  const splashLines: string[] = [
-    '',
-    'rem === Splash Screen ===',
-    'if not defined CC_MIRROR_SPLASH set "CC_MIRROR_SPLASH=0"',
-    'if "%CC_MIRROR_SPLASH%"=="0" goto :skip_splash',
-    '',
-    'if not defined CC_MIRROR_SPLASH_UTF8 set "CC_MIRROR_SPLASH_UTF8=1"',
-    'if "%CC_MIRROR_SPLASH_UTF8%"=="0" goto :skip_utf8',
-    'rem Ensure UTF-8 output for block characters',
-    'chcp 65001 >nul',
-    ':skip_utf8',
-    '',
-    'if not defined CC_MIRROR_SPLASH_STYLE set "CC_MIRROR_SPLASH_STYLE=default"',
-    'if not defined CC_MIRROR_PROVIDER_LABEL set "CC_MIRROR_PROVIDER_LABEL=cc-mirror"',
-    '',
-    'echo.',
-    '',
-    'if "%CC_MIRROR_SPLASH_STYLE%"=="zai" goto :splash_zai',
-    'if "%CC_MIRROR_SPLASH_STYLE%"=="minimax" goto :splash_minimax',
-    'if "%CC_MIRROR_SPLASH_STYLE%"=="openrouter" goto :splash_openrouter',
-    'if "%CC_MIRROR_SPLASH_STYLE%"=="gatewayz" goto :splash_gatewayz',
-    'if "%CC_MIRROR_SPLASH_STYLE%"=="nanogpt" goto :splash_nanogpt',
-    'if "%CC_MIRROR_SPLASH_STYLE%"=="ccrouter" goto :splash_ccrouter',
-    'if "%CC_MIRROR_SPLASH_STYLE%"=="kimi" goto :splash_kimi',
-    'if "%CC_MIRROR_SPLASH_STYLE%"=="deepseek" goto :splash_deepseek',
-    'if "%CC_MIRROR_SPLASH_STYLE%"=="vercel" goto :splash_vercel',
-    'if "%CC_MIRROR_SPLASH_STYLE%"=="poe" goto :splash_poe',
-    'if "%CC_MIRROR_SPLASH_STYLE%"=="vertex" goto :splash_vertex',
-    'if "%CC_MIRROR_SPLASH_STYLE%"=="bedrock" goto :splash_bedrock',
-    'if "%CC_MIRROR_SPLASH_STYLE%"=="foundry" goto :splash_foundry',
-    'if "%CC_MIRROR_SPLASH_STYLE%"=="alibaba" goto :splash_alibaba',
-    'if "%CC_MIRROR_SPLASH_STYLE%"=="ollama" goto :splash_ollama',
-    'if "%CC_MIRROR_SPLASH_STYLE%"=="mirror" goto :splash_mirror',
-    'goto :splash_default',
-    '',
-    ':splash_zai',
-    `echo ${C.zaiPrimary}    ███████╗       █████╗ ██╗${C.reset}`,
-    `echo ${C.zaiPrimary}    ╚══███╔╝      ██╔══██╗██║${C.reset}`,
-    `echo ${C.zaiSecondary}      ███╔╝       ███████║██║${C.reset}`,
-    `echo ${C.zaiSecondary}     ███╔╝    ${C.zaiAccent}██╗${C.zaiSecondary} ██╔══██║██║${C.reset}`,
-    `echo ${C.zaiAccent}    ███████╗  ╚═╝ ██║  ██║██║${C.reset}`,
-    `echo ${C.zaiAccent}    ╚══════╝      ╚═╝  ╚═╝╚═╝${C.reset}`,
-    'echo.',
-    `echo ${C.zaiDim}    ━━━━━━━━━━${C.zaiPrimary}◆${C.zaiDim}━━━━━━━━━━${C.reset}`,
-    `echo ${C.zaiSecondary}      GLM Coding Plan${C.reset}`,
-    'echo.',
-    'goto :end_splash',
-    '',
-    ':splash_minimax',
-    `echo ${C.mmPrimary}    ███╗   ███╗██╗███╗   ██╗██╗███╗   ███╗ █████╗ ██╗  ██╗${C.reset}`,
-    `echo ${C.mmPrimary}    ████╗ ████║██║████╗  ██║██║████╗ ████║██╔══██╗╚██╗██╔╝${C.reset}`,
-    `echo ${C.mmSecondary}    ██╔████╔██║██║██╔██╗ ██║██║██╔████╔██║███████║ ╚███╔╝${C.reset}`,
-    `echo ${C.mmSecondary}    ██║╚██╔╝██║██║██║╚██╗██║██║██║╚██╔╝██║██╔══██║ ██╔██╗${C.reset}`,
-    `echo ${C.mmAccent}    ██║ ╚═╝ ██║██║██║ ╚████║██║██║ ╚═╝ ██║██║  ██║██╔╝ ██╗${C.reset}`,
-    `echo ${C.mmAccent}    ╚═╝     ╚═╝╚═╝╚═╝  ╚═══╝╚═╝╚═╝     ╚═╝╚═╝  ╚═╝╚═╝  ╚═╝${C.reset}`,
-    'echo.',
-    `echo ${C.mmDim}    ━━━━━━━━━━━━━━━━━━${C.mmPrimary}◆${C.mmDim}━━━━━━━━━━━━━━━━━━${C.reset}`,
-    `echo ${C.mmSecondary}           MiniMax-M2.1 ${C.mmDim}━${C.mmSecondary} AGI for All${C.reset}`,
-    'echo.',
-    'goto :end_splash',
-    '',
-    ':splash_openrouter',
-    `echo ${C.orPrimary}     ██████╗ ██████╗ ███████╗███╗   ██╗${C.reset}`,
-    `echo ${C.orPrimary}    ██╔═══██╗██╔══██╗██╔════╝████╗  ██║${C.reset}`,
-    `echo ${C.orSecondary}    ██║   ██║██████╔╝█████╗  ██╔██╗ ██║${C.reset}`,
-    `echo ${C.orSecondary}    ██║   ██║██╔═══╝ ██╔══╝  ██║╚██╗██║${C.reset}`,
-    `echo ${C.orAccent}    ╚██████╔╝██║     ███████╗██║ ╚████║${C.reset}`,
-    `echo ${C.orAccent}     ╚═════╝ ╚═╝     ╚══════╝╚═╝  ╚═══╝${C.reset}`,
-    `echo ${C.orPrimary}    ██████╗  ██████╗ ██╗   ██╗████████╗███████╗██████╗${C.reset}`,
-    `echo ${C.orPrimary}    ██╔══██╗██╔═══██╗██║   ██║╚══██╔══╝██╔════╝██╔══██╗${C.reset}`,
-    `echo ${C.orSecondary}    ██████╔╝██║   ██║██║   ██║   ██║   █████╗  ██████╔╝${C.reset}`,
-    `echo ${C.orSecondary}    ██╔══██╗██║   ██║██║   ██║   ██║   ██╔══╝  ██╔══██╗${C.reset}`,
-    `echo ${C.orAccent}    ██║  ██║╚██████╔╝╚██████╔╝   ██║   ███████╗██║  ██║${C.reset}`,
-    `echo ${C.orAccent}    ╚═╝  ╚═╝ ╚═════╝  ╚═════╝    ╚═╝   ╚══════╝╚═╝  ╚═╝${C.reset}`,
-    'echo.',
-    `echo ${C.orDim}    ━━━━━━━━━━━━━${C.orPrimary}◆${C.orDim}━━━━━━━━━━━━━${C.reset}`,
-    `echo ${C.orSecondary}      One API ${C.orDim}━${C.orSecondary} Any Model${C.reset}`,
-    'echo.',
-    'goto :end_splash',
-    '',
-    ':splash_gatewayz',
-    `echo ${C.gzPrimary}     ██████╗  █████╗ ████████╗███████╗██╗    ██╗ █████╗ ██╗   ██╗${C.gzCyan}███████╗${C.reset}`,
-    `echo ${C.gzPrimary}    ██╔════╝ ██╔══██╗╚══██╔══╝██╔════╝██║    ██║██╔══██╗╚██╗ ██╔╝${C.gzCyan}╚══███╔╝${C.reset}`,
-    `echo ${C.gzSecondary}    ██║  ███╗███████║   ██║   █████╗  ██║ █╗ ██║███████║ ╚████╔╝ ${C.gzCyan}  ███╔╝${C.reset}`,
-    `echo ${C.gzSecondary}    ██║   ██║██╔══██║   ██║   ██╔══╝  ██║███╗██║██╔══██║  ╚██╔╝  ${C.gzCyan} ███╔╝${C.reset}`,
-    `echo ${C.gzAccent}    ╚██████╔╝██║  ██║   ██║   ███████╗╚███╔███╔╝██║  ██║   ██║   ${C.gzCyan}███████╗${C.reset}`,
-    `echo ${C.gzAccent}     ╚═════╝ ╚═╝  ╚═╝   ╚═╝   ╚══════╝ ╚══╝╚══╝ ╚═╝  ╚═╝   ╚═╝   ${C.gzCyan}╚══════╝${C.reset}`,
-    'echo.',
-    `echo ${C.gzDim}    ━━━━━━━━━━━━━━━━${C.gzPrimary}◆${C.gzDim}━━━━━━━━━━━━━━━━${C.reset}`,
-    `echo ${C.gzSecondary}       Your Gateway to AI${C.reset}`,
-    'echo.',
-    'goto :end_splash',
-    '',
-    ':splash_nanogpt',
-    `echo ${C.ngPrimary}    ███╗   ██╗ █████╗ ███╗   ██╗ ██████╗  ██████╗ ██████╗ ████████╗${C.reset}`,
-    `echo ${C.ngPrimary}    ████╗  ██║██╔══██╗████╗  ██║██╔═══██╗██╔════╝ ██╔══██╗╚══██╔══╝${C.reset}`,
-    `echo ${C.ngSecondary}    ██╔██╗ ██║███████║██╔██╗ ██║██║   ██║██║  ███╗██████╔╝   ██║${C.reset}`,
-    `echo ${C.ngSecondary}    ██║╚██╗██║██╔══██║██║╚██╗██║██║   ██║██║   ██║██╔═══╝    ██║${C.reset}`,
-    `echo ${C.ngAccent}    ██║ ╚████║██║  ██║██║ ╚████║╚██████╔╝╚██████╔╝██║        ██║${C.reset}`,
-    `echo ${C.ngAccent}    ╚═╝  ╚═══╝╚═╝  ╚═╝╚═╝  ╚═══╝ ╚═════╝  ╚═════╝ ╚═╝        ╚═╝${C.reset}`,
-    'echo.',
-    `echo ${C.ngDim}    ━━━━━━━━━━━━━━${C.ngPrimary}◆${C.ngDim}━━━━━━━━━━━━━━${C.reset}`,
-    `echo ${C.ngSecondary}      One API ${C.ngDim}━${C.ngSecondary} Many Models${C.reset}`,
-    'echo.',
-    'goto :end_splash',
-    '',
-    ':splash_ccrouter',
-    `echo ${C.ccrPrimary}     ██████╗ ██████╗██████╗  ██████╗ ██╗   ██╗████████╗███████╗██████╗${C.reset}`,
-    `echo ${C.ccrPrimary}    ██╔════╝██╔════╝██╔══██╗██╔═══██╗██║   ██║╚══██╔══╝██╔════╝██╔══██╗${C.reset}`,
-    `echo ${C.ccrSecondary}    ██║     ██║     ██████╔╝██║   ██║██║   ██║   ██║   █████╗  ██████╔╝${C.reset}`,
-    `echo ${C.ccrSecondary}    ██║     ██║     ██╔══██╗██║   ██║██║   ██║   ██║   ██╔══╝  ██╔══██╗${C.reset}`,
-    `echo ${C.ccrAccent}    ╚██████╗╚██████╗██║  ██║╚██████╔╝╚██████╔╝   ██║   ███████╗██║  ██║${C.reset}`,
-    `echo ${C.ccrAccent}     ╚═════╝ ╚═════╝╚═╝  ╚═╝ ╚═════╝  ╚═════╝    ╚═╝   ╚══════╝╚═╝  ╚═╝${C.reset}`,
-    'echo.',
-    `echo ${C.ccrDim}    ━━━━━━━━━━━━━━━━${C.ccrPrimary}◆${C.ccrDim}━━━━━━━━━━━━━━━━${C.reset}`,
-    `echo ${C.ccrSecondary}      Claude Code Router ${C.ccrDim}━${C.ccrSecondary} Any Model${C.reset}`,
-    'echo.',
-    'goto :end_splash',
-    '',
-    ':splash_kimi',
-    `echo ${C.kimiPrimary}    ██╗  ██╗██╗███╗   ███╗██╗${C.reset}`,
-    `echo ${C.kimiPrimary}    ██║ ██╔╝██║████╗ ████║██║${C.reset}`,
-    `echo ${C.kimiSecondary}    █████╔╝ ██║██╔████╔██║██║${C.reset}`,
-    `echo ${C.kimiSecondary}    ██╔═██╗ ██║██║╚██╔╝██║██║${C.reset}`,
-    `echo ${C.kimiAccent}    ██║  ██╗██║██║ ╚═╝ ██║██║${C.reset}`,
-    `echo ${C.kimiAccent}    ╚═╝  ╚═╝╚═╝╚═╝     ╚═╝╚═╝${C.reset}`,
-    'echo.',
-    `echo ${C.kimiDim}    ━━━━━━━━━━${C.kimiPrimary}◆${C.kimiDim}━━━━━━━━━━${C.reset}`,
-    `echo ${C.kimiSecondary}      Kimi Code ${C.kimiDim}━${C.kimiSecondary} K2.5 Inside${C.reset}`,
-    'echo.',
-    'goto :end_splash',
-    '',
-    ':splash_deepseek',
-    `echo ${C.dsPrimary}    ██████╗ ███████╗███████╗██████╗ ███████╗███████╗███████╗██╗  ██╗${C.reset}`,
-    `echo ${C.dsPrimary}    ██╔══██╗██╔════╝██╔════╝██╔══██╗██╔════╝██╔════╝██╔════╝██║ ██╔╝${C.reset}`,
-    `echo ${C.dsSecondary}    ██║  ██║█████╗  █████╗  ██████╔╝███████╗█████╗  █████╗  █████╔╝${C.reset}`,
-    `echo ${C.dsSecondary}    ██║  ██║██╔══╝  ██╔══╝  ██╔═══╝ ╚════██║██╔══╝  ██╔══╝  ██╔═██╗${C.reset}`,
-    `echo ${C.dsAccent}    ██████╔╝███████╗███████╗██║     ███████║███████╗███████╗██║  ██╗${C.reset}`,
-    `echo ${C.dsAccent}    ╚═════╝ ╚══════╝╚══════╝╚═╝     ╚══════╝╚══════╝╚══════╝╚═╝  ╚═╝${C.reset}`,
-    'echo.',
-    `echo ${C.dsDim}    ━━━━━━━━━━━━━━━${C.dsPrimary}◆${C.dsDim}━━━━━━━━━━━━━━━${C.reset}`,
-    `echo ${C.dsSecondary}      DeepSeek ${C.dsDim}━${C.dsSecondary} Unmatched Intelligence${C.reset}`,
-    'echo.',
-    'goto :end_splash',
-    '',
-    ':splash_vercel',
-    `echo ${C.vercelPrimary}    ██╗   ██╗███████╗██████╗  ██████╗███████╗██╗${C.reset}`,
-    `echo ${C.vercelPrimary}    ██║   ██║██╔════╝██╔══██╗██╔════╝██╔════╝██║${C.reset}`,
-    `echo ${C.vercelSecondary}    ██║   ██║█████╗  ██████╔╝██║     █████╗  ██║${C.reset}`,
-    `echo ${C.vercelSecondary}    ╚██╗ ██╔╝██╔══╝  ██╔══██╗██║     ██╔══╝  ██║${C.reset}`,
-    `echo ${C.vercelAccent}     ╚████╔╝ ███████╗██║  ██║╚██████╗███████╗███████╗${C.reset}`,
-    `echo ${C.vercelAccent}      ╚═══╝  ╚══════╝╚═╝  ╚═╝ ╚═════╝╚══════╝╚══════╝${C.reset}`,
-    'echo.',
-    `echo ${C.vercelDim}    ━━━━━━━━━━━━${C.vercelPrimary}▲${C.vercelDim}━━━━━━━━━━━━${C.reset}`,
-    `echo ${C.vercelSecondary}      AI Gateway ${C.vercelDim}━${C.vercelSecondary} Edge${C.reset}`,
-    'echo.',
-    'goto :end_splash',
-    '',
-    ':splash_poe',
-    `echo ${C.poePrimary}    ██████╗  ██████╗ ███████╗${C.reset}`,
-    `echo ${C.poePrimary}    ██╔══██╗██╔═══██╗██╔════╝${C.reset}`,
-    `echo ${C.poeSecondary}    ██████╔╝██║   ██║█████╗${C.reset}`,
-    `echo ${C.poeSecondary}    ██╔═══╝ ██║   ██║██╔══╝${C.reset}`,
-    `echo ${C.poeAccent}    ██║     ╚██████╔╝███████╗${C.reset}`,
-    `echo ${C.poeAccent}    ╚═╝      ╚═════╝ ╚══════╝${C.reset}`,
-    'echo.',
-    `echo ${C.poeDim}    ━━━━━━━━${C.poePrimary}◆${C.poeDim}━━━━━━━━${C.reset}`,
-    `echo ${C.poeSecondary}      Quora ${C.poeDim}━${C.poeSecondary} Multi-model${C.reset}`,
-    'echo.',
-    'goto :end_splash',
-    '',
-    ':splash_vertex',
-    `echo ${C.vertexPrimary}    ██╗   ██╗███████╗██████╗ ████████╗███████╗██╗  ██╗${C.reset}`,
-    `echo ${C.vertexPrimary}    ██║   ██║██╔════╝██╔══██╗╚══██╔══╝██╔════╝╚██╗██╔╝${C.reset}`,
-    `echo ${C.vertexSecondary}    ██║   ██║█████╗  ██████╔╝   ██║   █████╗   ╚███╔╝${C.reset}`,
-    `echo ${C.vertexSecondary}    ╚██╗ ██╔╝██╔══╝  ██╔══██╗   ██║   ██╔══╝   ██╔██╗${C.reset}`,
-    `echo ${C.vertexAccent}     ╚████╔╝ ███████╗██║  ██║   ██║   ███████╗██╔╝ ██╗${C.reset}`,
-    `echo ${C.vertexAccent}      ╚═══╝  ╚══════╝╚═╝  ╚═╝   ╚═╝   ╚══════╝╚═╝  ╚═╝${C.reset}`,
-    'echo.',
-    `echo ${C.vertexDim}    ━━━━━━━━━━━━${C.vertexPrimary}◆${C.vertexDim}━━━━━━━━━━━━${C.reset}`,
-    `echo ${C.vertexSecondary}      Google Cloud ${C.vertexDim}━${C.vertexSecondary} AI${C.reset}`,
-    'echo.',
-    'goto :end_splash',
-    '',
-    ':splash_bedrock',
-    `echo ${C.bedrockPrimary}    ██████╗ ███████╗██████╗ ██████╗  ██████╗  ██████╗██╗  ██╗${C.reset}`,
-    `echo ${C.bedrockPrimary}    ██╔══██╗██╔════╝██╔══██╗██╔══██╗██╔═══██╗██╔════╝██║ ██╔╝${C.reset}`,
-    `echo ${C.bedrockSecondary}    ██████╔╝█████╗  ██║  ██║██████╔╝██║   ██║██║     █████╔╝${C.reset}`,
-    `echo ${C.bedrockSecondary}    ██╔══██╗██╔══╝  ██║  ██║██╔══██╗██║   ██║██║     ██╔═██╗${C.reset}`,
-    `echo ${C.bedrockAccent}    ██████╔╝███████╗██████╔╝██║  ██║╚██████╔╝╚██████╗██║  ██╗${C.reset}`,
-    `echo ${C.bedrockAccent}    ╚═════╝ ╚══════╝╚═════╝ ╚═╝  ╚═╝ ╚═════╝  ╚═════╝╚═╝  ╚═╝${C.reset}`,
-    'echo.',
-    `echo ${C.bedrockDim}    ━━━━━━━━━━━━━━${C.bedrockPrimary}◆${C.bedrockDim}━━━━━━━━━━━━━━${C.reset}`,
-    `echo ${C.bedrockSecondary}        AWS ${C.bedrockDim}━${C.bedrockSecondary} Claude${C.reset}`,
-    'echo.',
-    'goto :end_splash',
-    '',
-    ':splash_foundry',
-    `echo ${C.foundryPrimary}    ███████╗ ██████╗ ██╗   ██╗███╗   ██╗██████╗ ██████╗ ██╗   ██╗${C.reset}`,
-    `echo ${C.foundryPrimary}    ██╔════╝██╔═══██╗██║   ██║████╗  ██║██╔══██╗██╔══██╗╚██╗ ██╔╝${C.reset}`,
-    `echo ${C.foundrySecondary}    █████╗  ██║   ██║██║   ██║██╔██╗ ██║██║  ██║██████╔╝ ╚████╔╝${C.reset}`,
-    `echo ${C.foundrySecondary}    ██╔══╝  ██║   ██║██║   ██║██║╚██╗██║██║  ██║██╔══██╗  ╚██╔╝${C.reset}`,
-    `echo ${C.foundryAccent}    ██║     ╚██████╔╝╚██████╔╝██║ ╚████║██████╔╝██║  ██║   ██║${C.reset}`,
-    `echo ${C.foundryAccent}    ╚═╝      ╚═════╝  ╚═════╝ ╚═╝  ╚═══╝╚═════╝ ╚═╝  ╚═╝   ╚═╝${C.reset}`,
-    'echo.',
-    `echo ${C.foundryDim}    ━━━━━━━━━━━━━━${C.foundryPrimary}◆${C.foundryDim}━━━━━━━━━━━━━━${C.reset}`,
-    `echo ${C.foundrySecondary}       Azure ${C.foundryDim}━${C.foundrySecondary} AI Foundry${C.reset}`,
-    'echo.',
-    'goto :end_splash',
-    '',
-    ':splash_alibaba',
-    `echo ${C.aliPrimary}     █████╗ ██╗     ██╗██████╗  █████╗ ██████╗  █████╗${C.reset}`,
-    `echo ${C.aliPrimary}    ██╔══██╗██║     ██║██╔══██╗██╔══██╗██╔══██╗██╔══██╗${C.reset}`,
-    `echo ${C.aliSecondary}    ███████║██║     ██║██████╔╝███████║██████╔╝███████║${C.reset}`,
-    `echo ${C.aliSecondary}    ██╔══██║██║     ██║██╔══██╗██╔══██║██╔══██╗██╔══██║${C.reset}`,
-    `echo ${C.aliAccent}    ██║  ██║███████╗██║██████╔╝██║  ██║██████╔╝██║  ██║${C.reset}`,
-    `echo ${C.aliAccent}    ╚═╝  ╚═╝╚══════╝╚═╝╚═════╝ ╚═╝  ╚═╝╚═════╝ ╚═╝  ╚═╝${C.reset}`,
-    'echo.',
-    `echo ${C.aliDim}    ━━━━━━━━━━━━━━${C.aliPrimary}◆${C.aliDim}━━━━━━━━━━━━━━${C.reset}`,
-    `echo ${C.aliSecondary}      Coding Plan ${C.aliDim}━${C.aliSecondary} Cloud${C.reset}`,
-    'echo.',
-    'goto :end_splash',
-    '',
-    ':splash_ollama',
-    `echo ${C.ollamaPrimary}     ██████╗ ██╗     ██╗      █████╗ ███╗   ███╗ █████╗${C.reset}`,
-    `echo ${C.ollamaPrimary}    ██╔═══██╗██║     ██║     ██╔══██╗████╗ ████║██╔══██╗${C.reset}`,
-    `echo ${C.ollamaSecondary}    ██║   ██║██║     ██║     ███████║██╔████╔██║███████║${C.reset}`,
-    `echo ${C.ollamaSecondary}    ██║   ██║██║     ██║     ██╔══██║██║╚██╔╝██║██╔══██║${C.reset}`,
-    `echo ${C.ollamaAccent}    ╚██████╔╝███████╗███████╗██║  ██║██║ ╚═╝ ██║██║  ██║${C.reset}`,
-    `echo ${C.ollamaAccent}     ╚═════╝ ╚══════╝╚══════╝╚═╝  ╚═╝╚═╝     ╚═╝╚═╝  ╚═╝${C.reset}`,
-    'echo.',
-    `echo ${C.ollamaDim}    ━━━━━━━━━━━━━${C.ollamaPrimary}◆${C.ollamaDim}━━━━━━━━━━━━━${C.reset}`,
-    `echo ${C.ollamaSecondary}      Local ${C.ollamaDim}━${C.ollamaSecondary} Any Model${C.reset}`,
-    'echo.',
-    'goto :end_splash',
-    '',
-    ':splash_mirror',
-    `echo ${C.mirPrimary}    ███╗   ███╗██╗██████╗ ██████╗  ██████╗ ██████╗${C.reset}`,
-    `echo ${C.mirPrimary}    ████╗ ████║██║██╔══██╗██╔══██╗██╔═══██╗██╔══██╗${C.reset}`,
-    `echo ${C.mirSecondary}    ██╔████╔██║██║██████╔╝██████╔╝██║   ██║██████╔╝${C.reset}`,
-    `echo ${C.mirSecondary}    ██║╚██╔╝██║██║██╔══██╗██╔══██╗██║   ██║██╔══██╗${C.reset}`,
-    `echo ${C.mirAccent}    ██║ ╚═╝ ██║██║██║  ██║██║  ██║╚██████╔╝██║  ██║${C.reset}`,
-    `echo ${C.mirAccent}    ╚═╝     ╚═╝╚═╝╚═╝  ╚═╝╚═╝  ╚═╝ ╚═════╝ ╚═╝  ╚═╝${C.reset}`,
-    'echo.',
-    `echo ${C.mirDim}    ━━━━━━━━━━━━${C.mirAccent}◇${C.mirDim}━━━━━━━━━━━━${C.reset}`,
-    `echo ${C.mirSecondary}      Claude ${C.mirDim}━${C.mirSecondary} Pure Reflection${C.reset}`,
-    'echo.',
-    'goto :end_splash',
-    '',
-    ':splash_default',
-    `echo ${C.defPrimary}    ██████╗ ██████╗   ${C.defDim}━━  M I R R O R${C.reset}`,
-    `echo ${C.defPrimary}   ██╔════╝██╔════╝${C.reset}`,
-    `echo ${C.defPrimary}   ██║     ██║     ${C.defDim}Claude Code Variants${C.reset}`,
-    `echo ${C.defPrimary}   ██║     ██║     ${C.defDim}Custom Providers${C.reset}`,
-    `echo ${C.defPrimary}   ╚██████╗╚██████╗${C.reset}`,
-    `echo ${C.defPrimary}    ╚═════╝ ╚═════╝${C.reset}`,
-    'echo.',
-    'echo         %CC_MIRROR_PROVIDER_LABEL%',
-    'echo.',
-    'goto :end_splash',
-    '',
-    ':end_splash',
-    'echo.',
-    '',
-    ':skip_splash',
-  ];
-
-  const content = [
-    '@echo off',
-    'setlocal enabledelayedexpansion',
-    '',
-    `set "CLAUDE_CONFIG_DIR=${configDirWin}"`,
-    `set "TWEAKCC_CONFIG_DIR=${tweakDirWin}"`,
-    '',
-    'rem === Load environment from settings.json ===',
-    'where node >nul 2>nul',
-    'if %errorlevel% neq 0 goto :skip_env_load',
-    '',
-    'set "__cc_mirror_env_file=%TEMP%\\cc_mirror_env_%RANDOM%.cmd"',
-    '',
-    `for /f "delims=" %%i in ('node "%~dp0${helperScriptName}" 2^>nul') do (`,
-    '  echo %%i>>"%__cc_mirror_env_file%"',
-    ')',
-    '',
-    'if exist "%__cc_mirror_env_file%" (',
-    '  call "%__cc_mirror_env_file%"',
-    '  del "%__cc_mirror_env_file%" >nul 2>nul',
-    ')',
-    '',
-    ':skip_env_load',
-    '',
-    'rem === Prefer IPv4 for DNS when requested ===',
-    'if defined CC_MIRROR_PREFER_IPV4 (',
-    '  if not "%CC_MIRROR_PREFER_IPV4%"=="0" (',
-    '    if not defined NODE_OPTIONS set "NODE_OPTIONS=--dns-result-order=ipv4first"',
-    '  )',
-    ')',
-    '',
-    'rem === Unset auth token if requested ===',
-    'if defined CC_MIRROR_UNSET_AUTH_TOKEN (',
-    '  if not "%CC_MIRROR_UNSET_AUTH_TOKEN%"=="0" (',
-    '    set "ANTHROPIC_AUTH_TOKEN="',
-    '  )',
-    ')',
-    '',
-    'rem === Dynamic team name ===',
-    'if defined CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS goto :set_team_name',
-    'if defined CLAUDE_CODE_TEAM_MODE goto :set_team_name',
-    'if defined TEAM goto :set_team_name',
-    'goto :skip_team_name',
-    '',
-    ':set_team_name',
-    'set "__cc_git_root="',
-    'for /f "delims=" %%i in (\'git rev-parse --show-toplevel 2^>nul\') do set "__cc_git_root=%%i"',
-    'if not defined __cc_git_root set "__cc_git_root=%CD%"',
-    'for %%i in ("%__cc_git_root%") do set "__cc_folder_name=%%~nxi"',
-    'if defined TEAM (',
-    '  set "CLAUDE_CODE_TEAM_NAME=%__cc_folder_name%-%TEAM%"',
-    ') else (',
-    '  set "CLAUDE_CODE_TEAM_NAME=%__cc_folder_name%"',
-    ')',
-    'goto :skip_team_name',
-    '',
-    ':skip_team_name',
-    ...splashLines,
-    '',
-    'rem === Execute Claude ===',
-    execLine,
-    '',
-    'endlocal',
-    '',
-  ].join('\r\n');
-
-  fs.writeFileSync(wrapperPath, content);
-};
-
-export const writeWrapperForPlatform = (
-  wrapperPath: string,
-  configDir: string,
-  binaryPath: string,
-  options: WrapperOptions = {}
-): string => {
-  if (process.platform === 'win32') {
-    writeWindowsWrapper(wrapperPath, configDir, binaryPath, options);
-    return wrapperPath;
-  }
-  writeWrapper(wrapperPath, configDir, binaryPath, options);
-  return wrapperPath;
 };

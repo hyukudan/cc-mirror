@@ -7,25 +7,14 @@ export interface ParsedArgs {
   noTui?: boolean;
   quick?: boolean;
   help?: boolean;
-  h?: boolean;
-  version?: boolean;
   ['no-prompt-pack']?: boolean;
   ['prompt-pack-mode']?: string;
   ['no-skill-install']?: boolean;
   ['skill-update']?: boolean;
   ['shell-env']?: boolean;
   ['no-shell-env']?: boolean;
-  ['prefer-ipv4']?: boolean;
-  ['enable-team-mode']?: boolean;
-  ['disable-team-mode']?: boolean;
-  ['no-team-skills']?: boolean;
-  ['no-backup']?: boolean;
-  ['dry-run']?: boolean;
-  prefix?: string;
-  ['allow-collision']?: boolean;
-  items?: string;
-  source?: string;
-  targets?: string;
+  ['tweakcc-stdio']?: string;
+  verbose?: boolean;
   [key: string]: string | boolean | string[] | undefined;
 }
 
@@ -38,21 +27,8 @@ export const parseArgs = (argv: string[]): ParsedArgs => {
       opts._.push(arg);
       continue;
     }
-    if (arg === '--') {
-      opts._.push(...args);
-      break;
-    }
     if (arg === '--yes') {
       opts.yes = true;
-      continue;
-    }
-    if (arg === '--help' || arg === '-h') {
-      opts.help = true;
-      opts.h = true;
-      continue;
-    }
-    if (arg === '--version' || arg === '-v') {
-      opts.version = true;
       continue;
     }
     if (arg === '--no-tweak') {
