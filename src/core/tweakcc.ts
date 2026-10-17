@@ -32,8 +32,23 @@ const buildTweakccInvocation = (versionSpec: string, args: string[]) =>
 const getCombinedOutput = (result: { stderr?: string; stdout?: string }) =>
   `${result.stderr ?? ''}\n${result.stdout ?? ''}`.trim();
 
-const buildApplyArgs = (patchIds?: string[] | null): string[] => {
+// tweakcc 4.3.2+ refuses a non-interactive --apply without --yes; older releases reject the unknown flag.
+const TWEAKCC_YES_MIN_VERSION = [4, 3, 2];
+
+export const tweakccSupportsYes = (versionSpec: string): boolean => {
+  if (versionSpec === TWEAKCC_LATEST_SPEC) return true;
+  const match = /^(\d+)\.(\d+)\.(\d+)/.exec(versionSpec);
+  if (!match) return false;
+  const parts = match.slice(1, 4).map(Number);
+  for (let i = 0; i < 3; i += 1) {
+    if (parts[i] !== TWEAKCC_YES_MIN_VERSION[i]) return parts[i] > TWEAKCC_YES_MIN_VERSION[i];
+  }
+  return true;
+};
+
+const buildApplyArgs = (versionSpec: string, patchIds?: string[] | null): string[] => {
   const args = ['--apply'];
+  if (tweakccSupportsYes(versionSpec)) args.push('--yes');
   const filteredPatchIds = [...new Set((patchIds ?? []).map((id) => id.trim()).filter(Boolean))];
   if (filteredPatchIds.length > 0) {
     args.push('--patches', filteredPatchIds.join(','));
@@ -515,7 +530,7 @@ export const runTweakcc = (
 
   const runVersion = (versionSpec: string) => {
     removeGeneratedPatchedJs(tweakDir);
-    const invocation = buildTweakccInvocation(versionSpec, buildApplyArgs(patchIds));
+    const invocation = buildTweakccInvocation(versionSpec, buildApplyArgs(versionSpec, patchIds));
     const result = spawnSync(invocation.cmd, invocation.args, { stdio: 'pipe', env, encoding: 'utf8' });
     if (stdio === 'inherit') {
       if (result.stdout) process.stdout.write(result.stdout);
@@ -665,7 +680,7 @@ export const runTweakccAsync = async (
 
   const runVersion = async (versionSpec: string) => {
     removeGeneratedPatchedJs(tweakDir);
-    const invocation = buildTweakccInvocation(versionSpec, buildApplyArgs(patchIds));
+    const invocation = buildTweakccInvocation(versionSpec, buildApplyArgs(versionSpec, patchIds));
     const result = await spawnTweakccAsync(invocation.cmd, invocation.args, env, stdio);
     return withValidationAndWarnings(
       withManagedNativeUiHardening(withTweakccMetadata(result, versionSpec), tweakDir, binaryPath, versionSpec, stdio),

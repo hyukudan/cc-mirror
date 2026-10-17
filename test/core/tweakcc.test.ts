@@ -6,7 +6,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
-import { ensureTweakccConfig } from '../../src/core/tweakcc.js';
+import { ensureTweakccConfig, tweakccSupportsYes } from '../../src/core/tweakcc.js';
 import { buildBrandConfig } from '../../src/brands/index.js';
 import { getManagedTweakccPatchIds } from '../../src/core/tweakcc-profile.js';
 import { makeTempDir, cleanup } from '../helpers/index.js';
@@ -323,4 +323,13 @@ test('managed tweakcc patch list excludes toolsets and includes prompt pack IDs 
   assert.ok(!mirrorIds.includes('model-customizations'));
   assert.ok(!mirrorIds.includes('opusplan1m'));
   assert.ok(mirrorIds.includes('show-more-items-in-select-menus'));
+});
+
+test('tweakccSupportsYes only passes --yes to tweakcc releases that accept it', () => {
+  assert.equal(tweakccSupportsYes('latest'), true);
+  assert.equal(tweakccSupportsYes('4.4.0'), true);
+  assert.equal(tweakccSupportsYes('4.3.2'), true);
+  assert.equal(tweakccSupportsYes('4.3.1'), false);
+  assert.equal(tweakccSupportsYes('4.0.13'), false);
+  assert.equal(tweakccSupportsYes('5.0.0'), true);
 });

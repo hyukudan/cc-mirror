@@ -45,6 +45,18 @@ test('Provider Feature Matrix', async (t) => {
     assert.equal(mirror.authMode, 'none', 'mirror should have authMode: none');
   });
 
+  await t.test('mirror keeps claude.ai login and feature flags available', () => {
+    const env = buildEnv({ providerKey: 'mirror' });
+    assert.equal(env.DISABLE_UPDATES, '1', 'mirror runtime is still cc-mirror managed');
+    assert.equal(env.DISABLE_LOGIN_COMMAND, undefined, 'mirror must allow /login');
+    assert.equal(env.DISABLE_LOGOUT_COMMAND, undefined, 'mirror must allow /logout');
+    assert.equal(env.CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC, undefined, 'mirror needs feature-flag evaluation');
+
+    const zaiEnv = buildEnv({ providerKey: 'zai', apiKey: 'test-key' });
+    assert.equal(zaiEnv.DISABLE_LOGIN_COMMAND, '1', 'hosted providers still hide /login');
+    assert.equal(zaiEnv.CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC, '1');
+  });
+
   await t.test('ccrouter provider has correct auth mode', () => {
     const ccrouter = getProvider('ccrouter');
     assert.ok(ccrouter, 'ccrouter provider should exist');

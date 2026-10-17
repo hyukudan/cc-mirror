@@ -143,9 +143,11 @@ const hostedRuntime = (apiTimeoutMs = DEFAULT_PROVIDER_TIMEOUT_MS): ProviderCapa
   suppressInstallChecks: true,
 });
 
+// First-party variants talk to Anthropic directly: disabling nonessential traffic turns off
+// feature-flag evaluation (Remote Control, cloud agents, claude.ai MCP servers).
 const firstPartyRuntime = (): ProviderCapabilityProfile['runtime'] => ({
   updatePolicy: 'ccMirrorManaged',
-  nonessentialTraffic: 'disable',
+  nonessentialTraffic: 'allow',
   suppressInstallChecks: true,
 });
 
@@ -628,8 +630,11 @@ export const buildCapabilityEnv = (opts: {
     env.DISABLE_UPDATES = '1';
     env.DISABLE_AUTOUPDATER = '1';
     env.DISABLE_UPGRADE_COMMAND = '1';
-    env.DISABLE_LOGIN_COMMAND = '1';
-    env.DISABLE_LOGOUT_COMMAND = '1';
+    // First-party variants authenticate with claude.ai OAuth, so /login and /logout must stay available.
+    if (profile.providerClass !== 'firstParty') {
+      env.DISABLE_LOGIN_COMMAND = '1';
+      env.DISABLE_LOGOUT_COMMAND = '1';
+    }
   }
   if (profile.runtime.nonessentialTraffic === 'disable') {
     env.CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC = '1';
